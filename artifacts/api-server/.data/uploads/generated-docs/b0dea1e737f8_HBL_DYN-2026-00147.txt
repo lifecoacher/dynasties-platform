@@ -1,0 +1,43 @@
+═══════════════════════════════════════════════════
+              HOUSE BILL OF LADING
+═══════════════════════════════════════════════════
+
+B/L Number: TBD
+Booking Number: MAE-2026-SH-4471
+Reference: DYN-2026-00147
+Date: March 14, 2026
+
+── SHIPPER ─────────────────────────────────────────
+  Shanghai Huawei Electronics Co., Ltd.
+  88 Pudong Avenue, Pudong New Area
+  Shanghai, CN
+
+── CONSIGNEE ───────────────────────────────────────
+  TechHub Distribution Inc.
+  1200 Harbor Blvd, Suite 400
+  Long Beach, US
+
+── NOTIFY PARTY ────────────────────────────────────
+  Same as Consignee
+
+── VESSEL / VOYAGE ─────────────────────────────────
+  Vessel: MAERSK SEALAND
+  Voyage: 026E
+  Port of Loading: CNSHA
+  Port of Discharge: USLGB
+
+── CARGO DETAILS ───────────────────────────────────
+  Commodity: Consumer Electronics — LCD Monitors & Tablets
+  HS Code: 8528.72
+  Packages: 240
+  Gross Weight: 5800 KG
+  Volume: 28.5 CBM
+  Incoterms: FOB Shanghai
+
+── FREIGHT TERMS ───────────────────────────────────
+  PREPAID
+
+═══════════════════════════════════════════════════
+  This is a non-negotiable House Bill of Lading
+  issued by the freight forwarder.
+═══════════════════════════════════════════════════
