@@ -1,0 +1,106 @@
+Start Milestone 6 implementation.
+
+Goal:
+Extend the current working pipeline so that once an operator approves a shipment, the system automatically performs the operational outputs required for freight forwarding:
+	1.	charge calculation
+	2.	document generation
+	3.	invoice creation
+
+The target end-to-end development flow becomes:
+
+document upload or email
+→ extraction
+→ entity resolution
+→ shipment draft
+→ compliance / risk / insurance
+→ operator review in Workbench
+→ operator approves shipment
+→ pricing calculation runs
+→ shipment documents generated
+→ invoice created and stored
+
+Prioritize this exact sequence:
+	1.	Pricing and Charge Calculation Service
+
+	•	trigger when shipment status transitions to APPROVED
+	•	calculate shipment charges using deterministic logic first
+	•	support rate table lookup and rule-based calculations
+	•	write results to shipment_charges
+	•	publish charges-calculated event
+
+	2.	Pricing Agent
+
+	•	used only when deterministic pricing cannot resolve charges
+	•	return structured JSON with recommended charge lines and margin logic
+	•	must not write directly to database
+	•	output validated before deterministic service writes
+
+	3.	Rate Table Management
+
+	•	create rate_tables table if not already present
+	•	support CSV or spreadsheet upload of carrier rate sheets
+	•	implement minimal API endpoints for rate table storage and lookup
+	•	do not overbuild UI yet
+
+	4.	Document Generation Service
+
+	•	generate shipping documents after pricing completes
+	•	initial document set:
+	•	House Bill of Lading (HBL)
+	•	Arrival Notice
+	•	Shipment Summary
+	•	render PDFs using templates
+	•	store documents in storage layer
+	•	link generated documents to shipment_documents
+	•	publish document-generated event
+
+	5.	Document Generation Agent
+
+	•	used only when document field interpretation is ambiguous
+	•	returns structured JSON for template population
+	•	deterministic service must validate before generating documents
+
+	6.	Billing and Invoicing Service
+
+	•	trigger after document generation completes
+	•	consolidate shipment charges
+	•	create invoice record
+	•	generate invoice PDF
+	•	store invoice in invoices table
+	•	publish invoice-created event
+
+	7.	Invoice and Charges API endpoints
+
+	•	create endpoints for:
+	•	GET /api/shipments/:id/charges
+	•	GET /api/invoices
+	•	GET /api/invoices/:id
+	•	expose charge and invoice data for Workbench UI later
+
+Important constraints:
+	•	do not start claims management yet
+	•	do not start exception automation yet
+	•	do not expand the UI significantly beyond what is required to view charges and invoices
+	•	preserve idempotency for pricing, document generation, and invoicing
+	•	avoid creating duplicate documents or invoices if jobs run twice
+
+Core rule remains absolute:
+LLMs never write directly to the system of record.
+All agent outputs must pass through validation before deterministic services write to the database.
+
+Milestone is complete only when this works end-to-end in development:
+
+upload/email
+→ shipment created
+→ operator approves
+→ charges calculated
+→ documents generated
+→ invoice created
+
+When complete, stop and report:
+	•	files created
+	•	services implemented
+	•	events used
+	•	queues used
+	•	database writes performed
+	•	what remains before exceptions, claims, and trade-lane intelligence (Milestone 7) can begin

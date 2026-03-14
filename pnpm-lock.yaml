@@ -190,12 +190,18 @@ importers:
       '@workspace/storage':
         specifier: workspace:*
         version: link:../../lib/storage
+      '@workspace/svc-billing':
+        specifier: workspace:*
+        version: link:../../services/billing
       '@workspace/svc-compliance-screening':
         specifier: workspace:*
         version: link:../../services/compliance-screening
       '@workspace/svc-document-extraction':
         specifier: workspace:*
         version: link:../../services/document-extraction
+      '@workspace/svc-document-generation':
+        specifier: workspace:*
+        version: link:../../services/document-generation
       '@workspace/svc-email-ingestion':
         specifier: workspace:*
         version: link:../../services/email-ingestion
@@ -205,6 +211,9 @@ importers:
       '@workspace/svc-insurance':
         specifier: workspace:*
         version: link:../../services/insurance
+      '@workspace/svc-pricing':
+        specifier: workspace:*
+        version: link:../../services/pricing
       '@workspace/svc-risk-intelligence':
         specifier: workspace:*
         version: link:../../services/risk-intelligence
@@ -739,7 +748,33 @@ importers:
 
   services/agent-worker: {}
 
-  services/billing: {}
+  services/billing:
+    dependencies:
+      '@workspace/config':
+        specifier: workspace:*
+        version: link:../../lib/config
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/queue':
+        specifier: workspace:*
+        version: link:../../lib/queue
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      '@workspace/storage':
+        specifier: workspace:*
+        version: link:../../lib/storage
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
 
   services/claims-management: {}
 
@@ -802,7 +837,33 @@ importers:
         specifier: 'catalog:'
         version: 25.3.5
 
-  services/document-generation: {}
+  services/document-generation:
+    dependencies:
+      '@workspace/config':
+        specifier: workspace:*
+        version: link:../../lib/config
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/queue':
+        specifier: workspace:*
+        version: link:../../lib/queue
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      '@workspace/storage':
+        specifier: workspace:*
+        version: link:../../lib/storage
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
 
   services/email-ingestion:
     dependencies:
@@ -881,7 +942,33 @@ importers:
         specifier: 'catalog:'
         version: 25.3.5
 
-  services/pricing: {}
+  services/pricing:
+    dependencies:
+      '@workspace/config':
+        specifier: workspace:*
+        version: link:../../lib/config
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/integrations-anthropic-ai':
+        specifier: workspace:*
+        version: link:../../lib/integrations-anthropic-ai
+      '@workspace/queue':
+        specifier: workspace:*
+        version: link:../../lib/queue
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
 
   services/risk-intelligence:
     dependencies:

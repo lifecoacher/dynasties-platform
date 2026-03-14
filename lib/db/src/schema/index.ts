@@ -10,3 +10,6 @@ export * from "./risk-scores";
 export * from "./insurance-quotes";
 export * from "./operator-corrections";
 export * from "./events";
+export * from "./shipment-charges";
+export * from "./rate-tables";
+export * from "./invoices";

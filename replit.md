@@ -1,205 +1,61 @@
 # Dynasties — Agentic Operating System for Global Trade
 
 ## Overview
+Dynasties is an AI operating layer designed for global freight forwarding and logistics. Its primary purpose is to transform unstructured operational data (from emails, PDFs, spreadsheets) into structured, actionable workflows. This is achieved through the use of AI agents and deterministic execution services. The project aims to enhance efficiency and automation in a traditionally manual industry by ensuring that AI outputs are validated and integrated into the system of record through controlled processes.
 
-Dynasties is an AI operating layer for global freight forwarding and logistics. It converts unstructured operational inputs (emails, PDFs, spreadsheets) into structured operational workflows using AI agents and deterministic execution services.
+## User Preferences
+I prefer iterative development with a focus on delivering functional, well-tested components in each step.
+I value clear and concise communication.
+I prefer to be asked before major architectural changes or significant refactoring.
+I like to see unit and integration tests for new features.
+I prefer detailed explanations for complex logic or design decisions.
+Do not make changes to the `infrastructure/` folder.
+Do not make changes to the `tests/` folder without prior discussion.
 
-**Core Architectural Rule**: LLMs never directly write to the system of record. Agents produce structured JSON only. All writes happen through deterministic services with validation and approval.
+## System Architecture
+The core architectural principle is that LLMs never directly write to the system of record; instead, agents produce structured JSON outputs which are then processed by deterministic services with validation and approval mechanisms before any database writes occur.
 
-## Stack
+**UI/UX Decisions:**
+The project includes a React-based Operator Workbench UI (`workbench/`) for managing operations and interacting with the system. A mockup sandbox (`mockup-sandbox/`) is used for design component development.
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
-- **Logging**: pino
-- **ID generation**: ULID
-- **AI**: Anthropic Claude Sonnet (via Replit AI Integrations)
+**Technical Implementations:**
+- **Monorepo:** Managed with pnpm workspaces.
+- **Backend:** Node.js 24, TypeScript 5.9, Express 5.
+- **Database:** PostgreSQL with Drizzle ORM for schema definition and interaction.
+- **Validation:** Zod (`zod/v4`) is used for data validation, including `drizzle-zod` for ORM integration and Orval for API codegen from OpenAPI specifications.
+- **Build System:** esbuild for CJS bundling.
+- **Logging:** pino for efficient logging.
+- **ID Generation:** ULID for unique identifiers across the system.
+- **Multi-tenancy:** All database tables include `company_id`.
+- **API:** All routes are exposed under `/api` and defined via OpenAPI specification, from which React Query hooks and Zod schemas are generated.
 
-## Structure
+**Feature Specifications:**
+The system processes various stages of freight forwarding, including:
+- **Email Ingestion:** Parsing MIME, extracting attachments, creating `ingested_emails` and `ingested_documents` records.
+- **Document Extraction:** OCR processing, AI agent-based data extraction, and Zod schema validation for extracted data. This triggers the `ShipmentPipelineJob`.
+- **Entity Resolution:** Deterministic matching (exact, normalized, fuzzy) to create or reuse `entities` records.
+- **Shipment Construction:** Assembling shipment drafts and handling field conflicts.
+- **Compliance Screening:** Screening shipment parties against sanctions lists with AI agent assistance for ambiguous matches.
+- **Risk Intelligence:** Calculating composite risk scores and providing AI-driven explanations.
+- **Insurance Quoting:** Generating cargo insurance quotes with AI-generated rationale.
+- **Pricing:** Calculating shipment charges based on rate tables and AI-suggested supplemental charges.
+- **Document Generation:** Generating critical documents like HBL, Arrival Notices, and Shipment Summaries.
+- **Billing:** Consolidating charges and generating invoices.
 
-```text
-workspace/
-├── artifacts/                    # Deployable applications
-│   ├── api-server/               # Express API server
-│   ├── workbench/                # M5: Operator Workbench UI (React + Vite)
-│   └── mockup-sandbox/           # Design component sandbox
-├── lib/                          # Shared libraries (composite, emit declarations)
-│   ├── api-spec/                 # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/         # Generated React Query hooks
-│   ├── api-zod/                  # Generated Zod schemas from OpenAPI
-│   ├── db/                       # Drizzle ORM schema + DB connection
-│   ├── shared-schemas/           # Domain Zod schemas (inter-service contracts)
-│   ├── config/                   # Env var loading, logger, error types
-│   ├── shared-utils/             # ID generation, entity normalization, doc classifier
-│   ├── storage/                  # File storage abstraction (local FS for dev, S3 for prod)
-│   ├── queue/                    # Job queue abstraction (EventEmitter for dev, SQS for prod)
-│   └── integrations-anthropic-ai/ # Anthropic SDK client + batch utilities
-├── services/
-│   ├── email-ingestion/          # M2: MIME parsing, attachment extraction, email records
-│   ├── document-extraction/      # M2: OCR + Claude agent + ExtractionValidator
-│   ├── entity-resolution/        # M3: fuzzy matching, entity creation
-│   ├── shipment-construction/    # M3: shipment draft assembly
-│   ├── compliance-screening/     # M4: sanctions list screening
-│   ├── risk-intelligence/        # M4: risk scoring algorithm
-│   ├── insurance/                # M4: cargo insurance quoting
-│   ├── pricing/                  # M6: charge calculation
-│   ├── document-generation/      # M6: PDF generation
-│   ├── billing/                  # M6: invoicing
-│   ├── exception-management/     # M7: exception detection and routing
-│   ├── claims-management/        # M7: claims lifecycle
-│   ├── trade-lane-intelligence/  # M7: lane analytics
-│   ├── agent-worker/             # Agent definitions and orchestration
-│   └── workflow-orchestrator/    # Workflow state machine
-├── infrastructure/               # AWS IaC (Terraform, M8)
-├── tests/                        # Integration and isolation tests
-├── scripts/                      # Utility scripts
-├── .data/uploads/                # Local file storage (dev only, gitignored)
-├── pnpm-workspace.yaml
-├── tsconfig.base.json
-└── tsconfig.json
-```
+**System Design Choices:**
+- **Modular Services:** The architecture is broken down into distinct services (e.g., `email-ingestion`, `document-extraction`, `entity-resolution`) to promote separation of concerns and scalability.
+- **Job Queues:** An abstraction for job queuing (`lib/queue`) supports various job types, defaulting to in-process EventEmitter for development and designed to swap to SQS for production.
+- **File Storage:** An abstraction for file storage (`lib/storage`) uses the local filesystem for development and will switch to S3 for production.
+- **Agent Output Validation:** All AI agents return structured JSON, which is then validated against Zod schemas. If validation fails, services fall back to deterministic output, ensuring no silent failures.
+- **Composite TypeScript Projects:** The monorepo leverages TypeScript's composite project feature for efficient type-checking and building across shared libraries.
 
-## Database Schema (12 First-Slice Tables)
-
-All tables use ULID text primary keys. All tables include `company_id` for multi-tenancy.
-
-| Table | Purpose | Milestone |
-|-------|---------|-----------|
-| companies | Tenant companies | M1 |
-| users | Operators and admins | M1 |
-| ingested_emails | Raw email intake records | M1 |
-| ingested_documents | Parsed documents with extraction data (JSONB) | M1 |
-| entities | Resolved parties (shipper, consignee, carrier, etc.) | M1 |
-| shipments | Core shipment records | M1 |
-| shipment_documents | Join table linking shipments to documents | M1 |
-| compliance_screenings | Sanctions screening results | M1 |
-| risk_scores | Multi-factor risk assessments | M1 |
-| insurance_quotes | Cargo insurance quotes (Phase One: quote only) | M1 |
-| operator_corrections | Field corrections by operators (learning loop) | M1 |
-| events | Immutable audit log of all system actions | M1 |
-
-### Deferred Tables
-- `containers`, `memory_graph_nodes`, `memory_graph_edges`, `classification_precedents` → M3
-- `shipment_charges`, `invoices`, `rate_tables`, `rules` → M6
-- `exceptions`, `trade_lane_stats` → M7
-- `claims`, `claim_communications` → M7
-- `insurance_policies` → Phase Two (binding requires insurer API)
-- `migration_imports` → M2
-
-## TypeScript & Composite Projects
-
-Every `lib/*` package extends `tsconfig.base.json` with `composite: true`. The root `tsconfig.json` lists all lib packages as project references.
-
-- **Typecheck from root**: `pnpm run typecheck`
-- **Build libs only**: `pnpm run typecheck:libs` (runs `tsc --build`)
-- `artifacts/*` and `services/*` are leaf workspace packages checked with `tsc --noEmit`
-
-## API Routes (Current)
-
-All routes are under `/api` on the Express server:
-
-| Route | Method | Description |
-|-------|--------|-------------|
-| `/api/healthz` | GET | Health check |
-| `/api/shipments` | GET | List shipments |
-| `/api/shipments/:id` | GET | Get shipment by ID |
-| `/api/shipments/:id/compliance` | GET | Compliance screening for shipment |
-| `/api/shipments/:id/risk` | GET | Risk score for shipment |
-| `/api/shipments/:id/insurance` | GET | Insurance quote for shipment |
-| `/api/entities` | GET | List entities |
-| `/api/entities/:id` | GET | Get entity by ID |
-| `/api/documents` | GET | List ingested documents |
-| `/api/documents/:id` | GET | Get document by ID |
-| `/api/documents/upload` | POST | Upload document (multipart, triggers extraction) |
-| `/api/emails` | GET | List ingested emails |
-| `/api/emails/ingest` | POST | Ingest raw email (multipart .eml, extracts attachments) |
-| `/api/shipments/:id/documents` | GET | Linked documents for shipment |
-| `/api/shipments/:id/corrections` | GET | Operator correction history |
-| `/api/shipments/:id/events` | GET | Event log for shipment |
-| `/api/shipments/:id/approve` | POST | Approve a DRAFT shipment |
-| `/api/shipments/:id/reject` | POST | Reject a DRAFT shipment with reason |
-| `/api/shipments/:id/fields` | PATCH | Edit shipment fields (writes operator_corrections) |
-| `/api/events` | GET | List events (optional ?type= filter) |
-
-## M2 Extraction Pipeline
-
-The first executable intelligence pipeline:
-
-```
-Upload/Email → File stored → Extraction job queued → OCR → Agent → Validator → DB write
-  → Pipeline job published → Entity Resolution (exact/normalized/fuzzy match)
-  → Shipment Draft created (with field conflict detection) → Events logged
-  → M4 jobs dispatched in parallel:
-    → Compliance Screening (sanctions lists + agent for ambiguous matches) → compliance_screenings
-    → Risk Intelligence (deterministic scorer + agent for risk explanation) → risk_scores
-    → Insurance Quote (deterministic calculator + agent for rationale/exclusions) → insurance_quotes
-```
-
-### Components:
-- **`lib/storage`** (`@workspace/storage`): File storage abstraction. Local filesystem (`.data/uploads/`) for dev; will swap to S3 in M8.
-- **`lib/queue`** (`@workspace/queue`): Job queue abstraction. In-process EventEmitter for dev; will swap to SQS in M8. Supports `ExtractionJob`, `ShipmentPipelineJob`, `ComplianceJob`, `RiskJob`, `InsuranceJob` channels. `publishM4Jobs()` dispatches compliance/risk/insurance in parallel.
-- **`services/email-ingestion`** (`@workspace/svc-email-ingestion`): MIME parsing via `mailparser`, attachment extraction, creates `ingested_emails` + `ingested_documents` records.
-- **`services/document-extraction`** (`@workspace/svc-document-extraction`): OCR via `pdf-parse`, Document Extraction Agent (Claude Sonnet), ExtractionValidator (Zod schema validation). After successful extraction, triggers `ShipmentPipelineJob` (waits for all sibling docs in email batches).
-- **`services/entity-resolution`** (`@workspace/svc-entity-resolution`): Deterministic entity matching — exact (case-insensitive), normalized (strip legal suffixes), fuzzy (Levenshtein ≥0.9 auto-match, 0.8–0.9 flagged). Creates or reuses `entities` records.
-- **`services/shipment-construction`** (`@workspace/svc-shipment-construction`): Orchestrates entity resolution → shipment draft creation → M4 dispatch. `runShipmentPipeline` consumes pipeline jobs, resolves parties, builds `shipments` record with field conflict detection, logs events, then dispatches compliance/risk/insurance jobs in parallel.
-- **`services/compliance-screening`** (`@workspace/svc-compliance-screening`): Screens all shipment parties against OFAC SDN, EU, UN sanctions lists. Deterministic exact/fuzzy matching. Claude Haiku agent resolves ambiguous matches (0.75-0.9 similarity). Results stored in `compliance_screenings`. Events: `COMPLIANCE_SCREENED`, `COMPLIANCE_ALERT`.
-- **`services/risk-intelligence`** (`@workspace/svc-risk-intelligence`): Computes composite risk score from 6 weighted sub-factors (cargo type, trade lane, counterparty, route geopolitical, seasonal, document completeness). Claude Haiku agent explains primary risk drivers. Results stored in `risk_scores`. Event: `RISK_SCORED`. Recommends: `AUTO_APPROVE` / `OPERATOR_REVIEW` / `ESCALATE`.
-- **`services/insurance`** (`@workspace/svc-insurance`): Generates cargo insurance quote based on commodity value estimation, route risk, coverage type. Claude Haiku agent provides coverage rationale and exclusions. Results stored in `insurance_quotes`. Event: `INSURANCE_QUOTED`.
-
-### Core Rule Enforcement:
-- All agents (extraction, compliance, risk, insurance) return structured JSON only.
-- All validators include markdown fence stripping for robustness.
-- If agent validation fails: service falls back to deterministic output. No silent failures.
-- LLMs NEVER write directly to DB. Agent → JSON → Validator (Zod) → deterministic service → DB write.
-
-### Extracted Fields:
-shipper, consignee, notifyParty, vessel, voyage, portOfLoading, portOfDischarge, commodity, hsCode, packageCount, weight, volume, freightTerms, releaseType, shipmentDate, containerNumbers, bookingNumber, blNumber
-
-Each field includes: `value`, `confidence` (0-1), `source` (quote from document), `needsReview` (boolean).
-
-## Key Packages
-
-### `lib/shared-schemas` (`@workspace/shared-schemas`)
-Domain Zod schemas for all 12 first-slice entities. Includes `ExtractionOutputSchema` — the Zod contract that gates all agent output.
-
-### `lib/config` (`@workspace/config`)
-- `loadEnv()` — Zod-validated environment variable loader
-- `createLogger(serviceName)` — pino logger factory
-- Error types: `AppError`, `ValidationError`, `AgentOutputError`
-
-### `lib/shared-utils` (`@workspace/shared-utils`)
-- `generateId()` — ULID generation
-- `normalizeEntityName(name)` — Strip legal suffixes, lowercase, normalize whitespace
-- `classifyDocumentType(fileName, contentPreview?)` — Deterministic document type classification
-
-### `lib/db` (`@workspace/db`)
-Drizzle ORM with PostgreSQL. 12 tables with foreign keys and indexes.
-- `pnpm --filter @workspace/db run push` — push schema to dev database
-
-### `lib/integrations-anthropic-ai` (`@workspace/integrations-anthropic-ai`)
-Anthropic SDK client via Replit AI Integrations proxy. No API key required — uses `AI_INTEGRATIONS_ANTHROPIC_BASE_URL` and `AI_INTEGRATIONS_ANTHROPIC_API_KEY` env vars (auto-provisioned).
-
-## Root Scripts
-
-- `pnpm run build` — typecheck then recursively build all packages
-- `pnpm run typecheck` — full workspace typecheck
-- `pnpm --filter @workspace/api-spec run codegen` — generate React Query hooks + Zod schemas from OpenAPI
-
-## Build Roadmap
-
-| Milestone | Focus | Status |
-|-----------|-------|--------|
-| M1 | Foundation & Repo Setup | ✅ Complete |
-| M2 | Email Ingestion & Document Extraction | ✅ Complete |
-| M3 | Entity Resolution & Shipment Construction | ✅ Complete |
-| M4 | Compliance, Risk & Insurance | ✅ Complete |
-| M5 | Operator Workbench UI | ✅ Complete |
-| M6 | Pricing, Document Generation & Invoicing | Planned |
-| M7 | Exceptions, Claims & Trade Lane Intelligence | Planned |
-| M8 | AWS Deployment & Pilot Readiness | Planned |
+## External Dependencies
+- **AI Integration:** Anthropic Claude Sonnet (via Replit AI Integrations) for AI agent capabilities in document extraction, compliance, risk intelligence, insurance, and pricing.
+- **Database:** PostgreSQL.
+- **ORM:** Drizzle ORM.
+- **Email Parsing:** `mailparser` for MIME parsing in email ingestion.
+- **PDF Parsing:** `pdf-parse` for OCR in document extraction.
+- **HTTP Framework:** Express 5.
+- **Validation Library:** Zod (`zod/v4`).
+- **OpenAPI Codegen:** Orval.
+- **Logging Library:** pino.

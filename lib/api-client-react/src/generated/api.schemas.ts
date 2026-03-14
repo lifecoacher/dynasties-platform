@@ -428,6 +428,116 @@ export interface FieldUpdateResult {
   correctedFields?: string[];
 }
 
+export type ShipmentChargeChargeType =
+  (typeof ShipmentChargeChargeType)[keyof typeof ShipmentChargeChargeType];
+
+export const ShipmentChargeChargeType = {
+  FREIGHT: "FREIGHT",
+  ORIGIN: "ORIGIN",
+  DESTINATION: "DESTINATION",
+  DOCUMENTATION: "DOCUMENTATION",
+  INSURANCE: "INSURANCE",
+  CUSTOMS: "CUSTOMS",
+  SURCHARGE: "SURCHARGE",
+  OTHER: "OTHER",
+} as const;
+
+export type ShipmentChargeSource =
+  (typeof ShipmentChargeSource)[keyof typeof ShipmentChargeSource];
+
+export const ShipmentChargeSource = {
+  RATE_TABLE: "RATE_TABLE",
+  RULE_ENGINE: "RULE_ENGINE",
+  AGENT: "AGENT",
+  MANUAL: "MANUAL",
+} as const;
+
+export type ShipmentChargeMetadata = { [key: string]: unknown } | null;
+
+export interface ShipmentCharge {
+  id: string;
+  companyId: string;
+  shipmentId: string;
+  chargeCode: string;
+  description: string;
+  chargeType: ShipmentChargeChargeType;
+  quantity: number;
+  unitPrice: number;
+  currency: string;
+  totalAmount: number;
+  taxRate?: number;
+  taxAmount?: number;
+  source: ShipmentChargeSource;
+  rateTableId?: string | null;
+  metadata?: ShipmentChargeMetadata;
+  createdAt: string;
+}
+
+export type InvoiceStatus = (typeof InvoiceStatus)[keyof typeof InvoiceStatus];
+
+export const InvoiceStatus = {
+  DRAFT: "DRAFT",
+  ISSUED: "ISSUED",
+  PAID: "PAID",
+  CANCELLED: "CANCELLED",
+} as const;
+
+export type InvoiceLineItemsItem = { [key: string]: unknown };
+
+export type InvoiceMetadata = { [key: string]: unknown } | null;
+
+export interface Invoice {
+  id: string;
+  companyId: string;
+  shipmentId: string;
+  invoiceNumber: string;
+  status: InvoiceStatus;
+  billToEntityId?: string | null;
+  subtotal: number;
+  taxTotal: number;
+  grandTotal: number;
+  currency: string;
+  lineItems?: InvoiceLineItemsItem[];
+  dueDate?: string | null;
+  issuedAt?: string | null;
+  paidAt?: string | null;
+  pdfStorageKey?: string | null;
+  metadata?: InvoiceMetadata;
+  createdAt: string;
+}
+
+export type RateTableEntryMetadata = { [key: string]: unknown } | null;
+
+export interface RateTableEntry {
+  id: string;
+  companyId: string;
+  carrier: string;
+  chargeCode: string;
+  description: string;
+  origin: string;
+  destination: string;
+  containerType?: string | null;
+  unitPrice: number;
+  currency: string;
+  validFrom?: string | null;
+  validTo?: string | null;
+  metadata?: RateTableEntryMetadata;
+  createdAt: string;
+}
+
+export interface CreateRateTableEntry {
+  companyId: string;
+  carrier: string;
+  chargeCode: string;
+  description: string;
+  origin: string;
+  destination: string;
+  unitPrice: number;
+  currency?: string;
+  validFrom?: string;
+  validTo?: string;
+}
+
 export type ListShipments200 = {
   data: EnrichedShipment[];
 };
@@ -510,4 +620,24 @@ export type ListEventsParams = {
 
 export type ListEvents200 = {
   data: Event[];
+};
+
+export type GetShipmentCharges200 = {
+  data: ShipmentCharge[];
+};
+
+export type GetShipmentInvoice200 = {
+  data: Invoice;
+};
+
+export type ListInvoices200 = {
+  data: Invoice[];
+};
+
+export type ListRateTables200 = {
+  data: RateTableEntry[];
+};
+
+export type CreateRateTableEntry201 = {
+  data: RateTableEntry;
 };

@@ -4,6 +4,9 @@ import {
   registerComplianceConsumer,
   registerRiskConsumer,
   registerInsuranceConsumer,
+  registerPricingConsumer,
+  registerDocGenConsumer,
+  registerBillingConsumer,
 } from "@workspace/queue";
 import type {
   ExtractionJob,
@@ -11,12 +14,18 @@ import type {
   ComplianceJob,
   RiskJob,
   InsuranceJob,
+  PricingJob,
+  DocGenJob,
+  BillingJob,
 } from "@workspace/queue";
 import { processExtractionJob } from "@workspace/svc-document-extraction";
 import { runShipmentPipeline } from "@workspace/svc-shipment-construction";
 import { runComplianceScreening } from "@workspace/svc-compliance-screening";
 import { runRiskIntelligence } from "@workspace/svc-risk-intelligence";
 import { runInsuranceQuoteGeneration } from "@workspace/svc-insurance";
+import { runPricing } from "@workspace/svc-pricing";
+import { runDocumentGeneration } from "@workspace/svc-document-generation";
+import { runBilling } from "@workspace/svc-billing";
 
 export function startConsumers(): void {
   registerExtractionConsumer(async (job: ExtractionJob) => {
@@ -71,4 +80,40 @@ export function startConsumers(): void {
     }
   });
   console.log("[consumer] insurance job consumer registered");
+
+  registerPricingConsumer(async (job: PricingJob) => {
+    const result = await runPricing(job.shipmentId, job.companyId);
+    if (result.success) {
+      console.log(
+        `[consumer] pricing complete: shipment=${job.shipmentId} charges=${result.chargeCount} total=$${result.totalAmount.toFixed(2)}`,
+      );
+    } else {
+      console.log(`[consumer] pricing failed: ${result.error}`);
+    }
+  });
+  console.log("[consumer] pricing job consumer registered");
+
+  registerDocGenConsumer(async (job: DocGenJob) => {
+    const result = await runDocumentGeneration(job.shipmentId, job.companyId);
+    if (result.success) {
+      console.log(
+        `[consumer] docgen complete: shipment=${job.shipmentId} docs=${result.documentsGenerated} types=${result.documentTypes.join(",")}`,
+      );
+    } else {
+      console.log(`[consumer] docgen failed: ${result.error}`);
+    }
+  });
+  console.log("[consumer] docgen job consumer registered");
+
+  registerBillingConsumer(async (job: BillingJob) => {
+    const result = await runBilling(job.shipmentId, job.companyId);
+    if (result.success) {
+      console.log(
+        `[consumer] billing complete: shipment=${job.shipmentId} invoice=${result.invoiceNumber} total=$${result.grandTotal.toFixed(2)}`,
+      );
+    } else {
+      console.log(`[consumer] billing failed: ${result.error}`);
+    }
+  });
+  console.log("[consumer] billing job consumer registered");
 }
