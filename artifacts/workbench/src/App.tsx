@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Workbench from "./pages/Workbench";
 import ShipmentDetail from "./pages/ShipmentDetail";
+import LoginPage from "./pages/LoginPage";
+import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,7 +17,12 @@ const queryClient = new QueryClient({
   },
 });
 
-function Router() {
+function AuthenticatedRouter() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return null;
+  if (!user) return <LoginPage />;
+
   return (
     <Switch>
       <Route path="/" component={Workbench} />
@@ -29,12 +36,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={300}>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <div className="min-h-screen bg-background text-foreground dark selection:bg-primary/30">
-            <Router />
-          </div>
-        </WouterRouter>
-        <Toaster />
+        <AuthProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <div className="min-h-screen bg-background text-foreground dark selection:bg-primary/30">
+              <AuthenticatedRouter />
+            </div>
+          </WouterRouter>
+          <Toaster />
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
