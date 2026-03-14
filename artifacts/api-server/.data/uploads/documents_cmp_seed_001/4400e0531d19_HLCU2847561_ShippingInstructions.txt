@@ -1,0 +1,79 @@
+═══════════════════════════════════════════════════════════
+             SHIPPING INSTRUCTIONS / BILL OF LADING
+───────────────────────────────────────────────────────────
+
+B/L Number: HLCU2847561
+Booking Number: HAM-2026-0088
+Date of Issue: March 14, 2026
+
+───────────────────────────────────────────────────────────
+SHIPPER / EXPORTER:
+  Precision Machinery GmbH
+  Industriestrasse 45
+  20457 Hamburg, Germany
+  Tel: +49-40-555-1234
+  Contact: Sarah Mueller
+  VAT: DE312887654
+
+CONSIGNEE:
+  Singapore Industrial Solutions Pte. Ltd.
+  31 Jurong Port Road
+  Singapore 619115
+  Tel: +65-6899-4556
+  Contact: David Tan
+
+NOTIFY PARTY:
+  Singapore Industrial Solutions Pte. Ltd.
+  Same as Consignee
+
+───────────────────────────────────────────────────────────
+VESSEL / VOYAGE:
+  Vessel: HAPAG LONDON EXPRESS
+  Voyage: 112S
+  Flag: Germany
+
+PORT OF LOADING: DEHAM (Hamburg, Germany)
+PORT OF DISCHARGE: SGSIN (Singapore)
+
+ETD: March 30, 2026
+ETA: April 28, 2026
+
+───────────────────────────────────────────────────────────
+DESCRIPTION OF GOODS:
+  Industrial Machinery Parts
+
+  1. CNC Milling Machine Components (Part# PM-CNC-500)
+     Qty: 4 sets, 30 cartons
+
+  2. Precision Ball Bearings (Part# PM-BRG-220L)
+     Qty: 200 pcs, 80 cartons
+
+  3. Hydraulic Pump Assemblies (Part# PM-HYD-750)
+     Qty: 12 units, 12 crates
+
+  HS Code: 8456.30
+  Country of Origin: Germany
+
+  Number of Packages: 122 (30 cartons + 80 cartons + 12 crates)
+  Gross Weight: 14,500 KG
+  Net Weight: 13,800 KG
+  Measurement: 28.5 CBM
+
+  Container: TCKU 551 223 8   Seal: HAM-2026-066   Type: 20' Standard
+
+───────────────────────────────────────────────────────────
+FREIGHT AND CHARGES:
+  Freight Terms: PREPAID
+  Incoterms: FOB Hamburg
+  Declared Value: EUR 850,000.00 (USD 922,500.00)
+
+CARRIER: Hapag-Lloyd AG
+
+───────────────────────────────────────────────────────────
+SPECIAL INSTRUCTIONS:
+  - Handle with care - heavy machinery components
+  - Keep upright, do not stack
+  - Protect from moisture
+  - Customs documentation required for dual-use items
+
+═══════════════════════════════════════════════════════════

@@ -1,0 +1,74 @@
+═══════════════════════════════════════════════════════════
+                    PACKING LIST
+═══════════════════════════════════════════════════════════
+
+B/L Number: COSCO9917823
+Booking Number: HKG-2026-0412
+Date of Issue: March 13, 2026
+
+───────────────────────────────────────────────────────────
+SHIPPER / EXPORTER:
+  Orient Express Trading Co. Ltd.
+  Unit 2208, Tower 2, Cheung Sha Wan Plaza
+  Hong Kong SAR, China
+  Tel: +852-2555-8812
+  Contact: James Wong
+
+CONSIGNEE:
+  EuroTech Distributors B.V.
+  Willemskade 23
+  3016 DJ Rotterdam, Netherlands
+  Tel: +31-10-455-7890
+  Contact: Anna van Dijk
+
+NOTIFY PARTY:
+  EuroTech Distributors B.V.
+  Same as Consignee
+
+───────────────────────────────────────────────────────────
+VESSEL / VOYAGE:
+  Vessel: COSCO SHIPPING ALPS
+  Voyage: 015W
+  Flag: China
+
+PORT OF LOADING: HKHKG (Hong Kong)
+PORT OF DISCHARGE: NLRTM (Rotterdam, Netherlands)
+
+ETD: March 28, 2026
+ETA: April 29, 2026
+
+───────────────────────────────────────────────────────────
+PACKING DETAILS:
+
+Container No.: COSU 388 721 5    Seal No.: HP-2026-445    Type: 40' HC
+
+Pallet  Item Description                 Qty     Net Wt (KG)  Gross Wt (KG)
+1-8     Smartphones Model OX-12 Pro
+        (Part# OX-SP-12)                 240     3,840         4,150
+        HS Code: 8517.13
+
+9-18    Tablets Model OX-TAB 10X
+        (Part# OX-TB-10)                 160     2,240         2,520
+        HS Code: 8471.30
+
+19-26   Wireless Earbuds Model OX-BUDS
+        (Part# OX-WB-05)                 120       360           480
+        HS Code: 8518.30
+
+───────────────────────────────────────────────────────────
+SUMMARY:
+
+  Total Cartons: 520
+  Total Pallets: 26
+  Total Net Weight: 6,440 KG
+  Total Gross Weight: 7,150 KG
+  Total Measurement: 38.5 CBM
+
+  Country of Origin: China (PRC)
+  Declared Value: USD 1,250,000.00
+  Incoterms: CIF Rotterdam
+  Freight Terms: PREPAID
+
+CARRIER: COSCO Shipping Lines
+
+═══════════════════════════════════════════════════════════

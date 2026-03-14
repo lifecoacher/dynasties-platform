@@ -1,0 +1,20 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "UbZstkm7cYpRkfgCBgjSW"
+uri = "file://.demo/validation-report.md"
+type = "text"
+title = "Pipeline Validation Report"
+
+[[outputs]]
+id = "mAI2H1PSvmtj2i_D2Pqg2"
+uri = "file://.demo/architecture-summary.md"
+type = "text"
+title = "System Architecture Summary"
+
+[[outputs]]
+id = "Dj3GTmwTnIO6QCtXkmbCx"
+uri = "file://.demo/product-explanation.md"
+type = "text"
+title = "Product Explanation (Investor-Ready)"

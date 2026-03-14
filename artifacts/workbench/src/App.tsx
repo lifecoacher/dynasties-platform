@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Workbench from "./pages/Workbench";
 import ShipmentDetail from "./pages/ShipmentDetail";
+import ShipmentIntelligence from "./pages/ShipmentIntelligence";
+import DecisionTrace from "./pages/DecisionTrace";
 import LoginPage from "./pages/LoginPage";
 import DemoControls from "./pages/DemoControls";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
@@ -27,6 +29,8 @@ function AuthenticatedRouter() {
   return (
     <Switch>
       <Route path="/" component={Workbench} />
+      <Route path="/intelligence" component={ShipmentIntelligence} />
+      <Route path="/shipments/:id/trace" component={DecisionTrace} />
       <Route path="/shipments/:id" component={ShipmentDetail} />
       <Route path="/demo" component={DemoControls} />
       <Route component={NotFound} />
