@@ -28,7 +28,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @workspace/api-server run typecheck
+      - run: pnpm run typecheck
 
   build-and-push:
     needs: lint-and-typecheck

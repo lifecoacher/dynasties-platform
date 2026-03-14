@@ -126,8 +126,8 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
     .limit(1);
 
   if (invoice && charges.length > 0) {
-    const chargeTotal = charges.reduce((sum: any, c: any) => sum + c.totalAmount, 0);
-    const invoiceSubtotal = invoice.subtotal;
+    const chargeTotal = charges.reduce((sum: number, c: any) => sum + Number(c.totalAmount), 0);
+    const invoiceSubtotal = Number(invoice.subtotal);
     const diff = Math.abs(chargeTotal - invoiceSubtotal);
     if (diff > 0.01) {
       conditions.push({

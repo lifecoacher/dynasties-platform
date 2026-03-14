@@ -543,7 +543,7 @@ router.post("/rate-tables", requireMinRole("MANAGER"), validateBody(createRateTa
     carrier: string;
     origin: string;
     destination: string;
-    unitPrice: number;
+    unitPrice: number | string;
     currency?: string;
     validFrom?: string;
     validTo?: string;
@@ -563,7 +563,7 @@ router.post("/rate-tables", requireMinRole("MANAGER"), validateBody(createRateTa
     description,
     origin,
     destination,
-    unitPrice,
+    unitPrice: String(unitPrice),
     currency: currency || "USD",
     validFrom: validFrom ? new Date(validFrom) : null,
     validTo: validTo ? new Date(validTo) : null,

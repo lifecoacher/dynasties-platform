@@ -42,7 +42,7 @@ export async function runClaimsAgent(context: string): Promise<ClaimsAgentOutput
     system: SYSTEM_PROMPT,
   });
 
-  const textBlock = response.content.find((b: any) => b.type === "text");
+  const textBlock = response.content.find((b: any) => b.type === "text") as { type: "text"; text: string } | undefined;
   const raw = textBlock?.text || "{}";
 
   return {
