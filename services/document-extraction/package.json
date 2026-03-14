@@ -3,5 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "scripts": {}
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/storage": "workspace:*",
+    "@workspace/queue": "workspace:*",
+    "@workspace/shared-utils": "workspace:*",
+    "@workspace/shared-schemas": "workspace:*",
+    "@workspace/config": "workspace:*",
+    "@workspace/integrations-anthropic-ai": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:"
+  }
 }

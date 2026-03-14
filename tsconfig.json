@@ -20,6 +20,15 @@
     },
     {
       "path": "./lib/shared-utils"
+    },
+    {
+      "path": "./lib/storage"
+    },
+    {
+      "path": "./lib/queue"
+    },
+    {
+      "path": "./lib/integrations-anthropic-ai"
     }
   ]
 }
