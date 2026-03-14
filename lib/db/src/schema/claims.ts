@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, index, real } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, index, numeric } from "drizzle-orm/pg-core";
 import { companiesTable } from "./companies";
 import { shipmentsTable } from "./shipments";
 
@@ -23,7 +23,7 @@ export const claimsTable = pgTable(
     }).notNull(),
     incidentDate: timestamp("incident_date"),
     incidentDescription: text("incident_description").notNull(),
-    estimatedLoss: real("estimated_loss"),
+    estimatedLoss: numeric("estimated_loss", { precision: 12, scale: 2 }),
     currency: text("currency").notNull().default("USD"),
     claimNarrative: text("claim_narrative"),
     requiredDocuments: jsonb("required_documents"),

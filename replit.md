@@ -76,8 +76,10 @@ The system processes various stages of freight forwarding, including:
 - **Job Queues:** An abstraction for job queuing (`lib/queue`) supports 11 job types (extraction, shipment-pipeline, compliance, risk, insurance, pricing, docgen, billing, exception, trade-lane, claims), defaulting to in-process EventEmitter for development and designed to swap to SQS for production. Queue health check in `/api/healthz` verifies all 11 consumers are registered.
 - **File Storage:** An abstraction for file storage (`lib/storage`) uses the local filesystem for development and will switch to S3 for production.
 - **Agent Output Validation:** All AI agents return structured JSON, which is then validated against Zod schemas. If validation fails, services fall back to deterministic output, ensuring no silent failures.
+- **Database Transactions:** All multi-step writes in services (compliance, risk, insurance, billing, pricing, docgen, shipment-construction, exception-management, trade-lane, email-ingestion) and route handlers (approve, reject, patch, rate-table creation) are wrapped in `db.transaction()`.
+- **DB Migrations:** Drizzle Kit migrations in `lib/db/migrations/`. CI deploy runs `drizzle-kit migrate` (not push). Config at `lib/db/drizzle.config.ts`.
 - **Composite TypeScript Projects:** The monorepo leverages TypeScript's composite project feature for efficient type-checking and building across shared libraries.
-- **N+1 Prevention:** GET /shipments uses batch queries (4 parallel `IN` queries) instead of per-shipment lookups.
+- **N+1 Prevention:** GET /shipments uses batch queries (4 parallel `IN` queries) instead of per-shipment lookups. GET /shipments/:id uses single `inArray` batch query for all entity lookups.
 - **Idempotency:** Unique indexes on `shipmentId` in compliance_screenings, risk_scores, insurance_quotes tables prevent duplicate processing.
 
 **Deployment Architecture (M8):**
