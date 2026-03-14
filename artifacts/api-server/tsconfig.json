@@ -12,6 +12,15 @@
     },
     {
       "path": "../../lib/api-zod"
+    },
+    {
+      "path": "../../lib/storage"
+    },
+    {
+      "path": "../../lib/queue"
+    },
+    {
+      "path": "../../lib/integrations-anthropic-ai"
     }
   ]
 }

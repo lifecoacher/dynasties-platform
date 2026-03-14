@@ -1,0 +1,35 @@
+BILL OF LADING
+Date: March 10, 2026
+B/L Number: MAEU987654321
+
+SHIPPER:
+Global Electronics Corp
+123 Industrial Blvd, Shenzhen, China
+
+CONSIGNEE:
+US Distribution Inc
+456 Commerce Way, Los Angeles, CA 90001
+
+NOTIFY PARTY:
+West Coast Customs Broker LLC
+789 Port Ave, Long Beach, CA 90802
+
+VESSEL: MSC AURORA
+VOYAGE: 2026-W14
+
+PORT OF LOADING: Shenzhen, China (CNSHE)
+PORT OF DISCHARGE: Los Angeles, USA (USLAX)
+
+COMMODITY: Electronic Components (PCBs, ICs, Capacitors)
+HS CODE: 8534.00
+
+PACKAGES: 250 Cartons
+GROSS WEIGHT: 12,500 KG
+VOLUME: 45 CBM
+
+CONTAINER NUMBERS: MSCU7654321, MSCU7654322
+
+FREIGHT TERMS: CIF Los Angeles
+RELEASE TYPE: ORIGINAL
+
+BOOKING NUMBER: BK-2026-0314-001

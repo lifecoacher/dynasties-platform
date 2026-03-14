@@ -19,13 +19,14 @@ Dynasties is an AI operating layer for global freight forwarding and logistics. 
 - **Build**: esbuild (CJS bundle)
 - **Logging**: pino
 - **ID generation**: ULID
+- **AI**: Anthropic Claude Sonnet (via Replit AI Integrations)
 
 ## Structure
 
 ```text
 workspace/
 ├── artifacts/                    # Deployable applications
-│   ├── api-server/               # Express API server (single service for now)
+│   ├── api-server/               # Express API server
 │   └── mockup-sandbox/           # Design component sandbox
 ├── lib/                          # Shared libraries (composite, emit declarations)
 │   ├── api-spec/                 # OpenAPI spec + Orval codegen config
@@ -34,26 +35,30 @@ workspace/
 │   ├── db/                       # Drizzle ORM schema + DB connection
 │   ├── shared-schemas/           # Domain Zod schemas (inter-service contracts)
 │   ├── config/                   # Env var loading, logger, error types
-│   └── shared-utils/             # ID generation, entity normalization, doc classifier
-├── services/                     # Service stubs (built in later milestones)
-│   ├── email-ingestion/          # M2: MIME parsing, S3 storage
-│   ├── document-extraction/      # M2: OCR + agent extraction (Python FastAPI)
+│   ├── shared-utils/             # ID generation, entity normalization, doc classifier
+│   ├── storage/                  # File storage abstraction (local FS for dev, S3 for prod)
+│   ├── queue/                    # Job queue abstraction (EventEmitter for dev, SQS for prod)
+│   └── integrations-anthropic-ai/ # Anthropic SDK client + batch utilities
+├── services/
+│   ├── email-ingestion/          # M2: MIME parsing, attachment extraction, email records
+│   ├── document-extraction/      # M2: OCR + Claude agent + ExtractionValidator
 │   ├── entity-resolution/        # M3: fuzzy matching, entity creation
 │   ├── shipment-construction/    # M3: shipment draft assembly
-│   ├── compliance-screening/     # M4: sanctions list screening (Python)
-│   ├── risk-intelligence/        # M4: risk scoring algorithm (Python)
+│   ├── compliance-screening/     # M4: sanctions list screening
+│   ├── risk-intelligence/        # M4: risk scoring algorithm
 │   ├── insurance/                # M4: cargo insurance quoting
 │   ├── pricing/                  # M6: charge calculation
-│   ├── document-generation/      # M6: PDF generation (Python)
+│   ├── document-generation/      # M6: PDF generation
 │   ├── billing/                  # M6: invoicing
 │   ├── exception-management/     # M7: exception detection and routing
 │   ├── claims-management/        # M7: claims lifecycle
-│   ├── trade-lane-intelligence/  # M7: lane analytics (Python)
+│   ├── trade-lane-intelligence/  # M7: lane analytics
 │   ├── agent-worker/             # Agent definitions and orchestration
 │   └── workflow-orchestrator/    # Workflow state machine
 ├── infrastructure/               # AWS IaC (Terraform, M8)
 ├── tests/                        # Integration and isolation tests
 ├── scripts/                      # Utility scripts
+├── .data/uploads/                # Local file storage (dev only, gitignored)
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
 └── tsconfig.json
@@ -109,19 +114,41 @@ All routes are under `/api` on the Express server:
 | `/api/entities` | GET | List entities |
 | `/api/entities/:id` | GET | Get entity by ID |
 | `/api/documents` | GET | List ingested documents |
+| `/api/documents/:id` | GET | Get document by ID |
+| `/api/documents/upload` | POST | Upload document (multipart, triggers extraction) |
 | `/api/emails` | GET | List ingested emails |
+| `/api/emails/ingest` | POST | Ingest raw email (multipart .eml, extracts attachments) |
 | `/api/events` | GET | List events (optional ?type= filter) |
 
-## Root Scripts
+## M2 Extraction Pipeline
 
-- `pnpm run build` — typecheck then recursively build all packages
-- `pnpm run typecheck` — full workspace typecheck
-- `pnpm --filter @workspace/api-spec run codegen` — generate React Query hooks + Zod schemas from OpenAPI
+The first executable intelligence pipeline:
+
+```
+Upload/Email → File stored → Extraction job queued → OCR → Agent → Validator → DB write
+```
+
+### Components:
+- **`lib/storage`** (`@workspace/storage`): File storage abstraction. Local filesystem (`.data/uploads/`) for dev; will swap to S3 in M8.
+- **`lib/queue`** (`@workspace/queue`): Job queue abstraction. In-process EventEmitter for dev; will swap to SQS in M8.
+- **`services/email-ingestion`** (`@workspace/svc-email-ingestion`): MIME parsing via `mailparser`, attachment extraction, creates `ingested_emails` + `ingested_documents` records.
+- **`services/document-extraction`** (`@workspace/svc-document-extraction`): OCR via `pdf-parse`, Document Extraction Agent (Claude Sonnet), ExtractionValidator (Zod schema validation).
+
+### Core Rule Enforcement:
+- `agent.ts`: Claude Sonnet returns structured JSON only. System prompt enforces JSON-only output.
+- `validator.ts`: ExtractionValidator validates agent output against `ExtractionOutputSchema` (Zod). Only validated data is written to `ingested_documents.extracted_data`.
+- If validation fails: document marked as FAILED, `AGENT_VALIDATION_FAILURE` event logged.
+- If validation passes: document marked as EXTRACTED, `EXTRACTION_COMPLETED` event logged with field/review counts.
+
+### Extracted Fields:
+shipper, consignee, notifyParty, vessel, voyage, portOfLoading, portOfDischarge, commodity, hsCode, packageCount, weight, volume, freightTerms, releaseType, shipmentDate, containerNumbers, bookingNumber, blNumber
+
+Each field includes: `value`, `confidence` (0-1), `source` (quote from document), `needsReview` (boolean).
 
 ## Key Packages
 
 ### `lib/shared-schemas` (`@workspace/shared-schemas`)
-Domain Zod schemas for all 12 first-slice entities. Used as the single source of truth for inter-service contracts and message validation.
+Domain Zod schemas for all 12 first-slice entities. Includes `ExtractionOutputSchema` — the Zod contract that gates all agent output.
 
 ### `lib/config` (`@workspace/config`)
 - `loadEnv()` — Zod-validated environment variable loader
@@ -137,13 +164,22 @@ Domain Zod schemas for all 12 first-slice entities. Used as the single source of
 Drizzle ORM with PostgreSQL. 12 tables with foreign keys and indexes.
 - `pnpm --filter @workspace/db run push` — push schema to dev database
 
+### `lib/integrations-anthropic-ai` (`@workspace/integrations-anthropic-ai`)
+Anthropic SDK client via Replit AI Integrations proxy. No API key required — uses `AI_INTEGRATIONS_ANTHROPIC_BASE_URL` and `AI_INTEGRATIONS_ANTHROPIC_API_KEY` env vars (auto-provisioned).
+
+## Root Scripts
+
+- `pnpm run build` — typecheck then recursively build all packages
+- `pnpm run typecheck` — full workspace typecheck
+- `pnpm --filter @workspace/api-spec run codegen` — generate React Query hooks + Zod schemas from OpenAPI
+
 ## Build Roadmap
 
 | Milestone | Focus | Status |
 |-----------|-------|--------|
 | M1 | Foundation & Repo Setup | ✅ Complete |
-| M2 | Email Ingestion & Document Extraction | Next |
-| M3 | Entity Resolution & Shipment Construction | Planned |
+| M2 | Email Ingestion & Document Extraction | ✅ Complete |
+| M3 | Entity Resolution & Shipment Construction | Next |
 | M4 | Compliance, Risk & Insurance | Planned |
 | M5 | Operator Workbench UI | Planned |
 | M6 | Pricing, Document Generation & Invoicing | Planned |

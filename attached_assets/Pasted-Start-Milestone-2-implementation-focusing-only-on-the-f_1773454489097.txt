@@ -1,0 +1,82 @@
+Start Milestone 2 implementation, focusing only on the first executable intelligence pipeline.
+
+Prioritize this exact sequence:
+	1.	Email Ingestion Service
+
+	•	parse MIME emails
+	•	extract attachments
+	•	store raw email and attachments in S3
+	•	create ingested_emails and ingested_documents records
+	•	publish extraction jobs to SQS
+
+	2.	Document Extraction Service
+
+	•	run OCR on PDFs/images
+	•	invoke the Document Extraction Agent
+	•	validate all agent output through an ExtractionValidator
+	•	store only validated structured JSON in ingested_documents.extracted_data
+
+	3.	Manual document upload path
+
+	•	implement POST /api/documents/upload
+	•	store uploaded files in S3
+	•	create ingested_documents records
+	•	enqueue extraction jobs
+	•	allow the full extraction pipeline to be tested without waiting for inbound email setup
+
+Important constraints:
+	•	do not start authentication yet
+	•	do not start multi-tenant scoping yet
+	•	do not start entity resolution yet
+	•	do not start shipment construction yet
+	•	do not build extra UI pages yet
+	•	do not add unnecessary abstractions
+
+Preserve the core rule:
+LLMs never write directly to the system of record.
+The Document Extraction Agent may only return structured JSON.
+The Document Extraction Service must validate the output before any database write.
+
+The milestone is complete only when this works end-to-end in development:
+
+manual upload or inbound email
+→ file stored
+→ extraction job queued
+→ OCR/extraction runs
+→ validated structured fields saved in database
+
+When complete, stop and report:
+	•	files created
+	•	services implemented
+	•	queues used
+	•	database writes performed
+	•	what remains before entity resolution can begin
+
+If you want an even tighter version for Replit, use this instead:
+
+Implement Milestone 2 only.
+
+Goal:
+Get the first executable extraction pipeline working in development:
+
+email or manual upload
+→ attachment/document stored
+→ extraction job queued
+→ OCR + Document Extraction Agent runs
+→ ExtractionValidator validates output
+→ structured fields saved to ingested_documents.extracted_data
+
+Scope:
+	•	Email Ingestion Service
+	•	Document Extraction Service
+	•	Document Extraction Agent
+	•	manual upload endpoint
+
+Do not start:
+	•	auth
+	•	multi-tenancy
+	•	entity resolution
+	•	shipment construction
+	•	extra UI
+
+Stop as soon as this pipeline works and report results.

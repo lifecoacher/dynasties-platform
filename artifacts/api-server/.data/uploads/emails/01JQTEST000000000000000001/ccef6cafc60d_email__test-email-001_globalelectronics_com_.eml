@@ -1,0 +1,43 @@
+From: shipping@globalelectronics.com
+To: operations@dynastiesfreight.com
+Subject: BOL for shipment BK-2026-0315
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="boundary123"
+Message-ID: <test-email-001@globalelectronics.com>
+
+--boundary123
+Content-Type: text/plain
+
+Please find attached the Bill of Lading for booking BK-2026-0315.
+Vessel departs on March 20, 2026.
+
+Best regards,
+Shipping Department
+
+--boundary123
+Content-Type: text/plain; name="bol_BK20260315.txt"
+Content-Disposition: attachment; filename="bol_BK20260315.txt"
+
+BILL OF LADING
+B/L Number: OOLU123456789
+
+SHIPPER: Pacific Trading Co, 88 Harbor Road, Busan, South Korea
+CONSIGNEE: European Imports GmbH, Europark 12, Hamburg, Germany
+
+VESSEL: EVER GIVEN
+VOYAGE: 2026-E08
+
+PORT OF LOADING: Busan, South Korea (KRPUS)
+PORT OF DISCHARGE: Hamburg, Germany (DEHAM)
+
+COMMODITY: Automotive Parts
+HS CODE: 8708.99
+GROSS WEIGHT: 8,750 KG
+PACKAGES: 180 Cartons
+VOLUME: 32 CBM
+
+CONTAINER: OOLU4455667
+FREIGHT TERMS: FOB Busan
+BOOKING NUMBER: BK-2026-0315
+
+--boundary123--
