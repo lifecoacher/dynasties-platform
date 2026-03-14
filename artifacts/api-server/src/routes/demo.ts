@@ -248,4 +248,100 @@ router.get("/demo/status", ...demoGuard, async (req, res) => {
   });
 });
 
+router.get("/demo/shipment-intelligence", ...demoGuard, async (req, res) => {
+  try {
+    const companyId = getCompanyId(req);
+
+    const allShipments = await db
+      .select()
+      .from(shipmentsTable)
+      .where(eq(shipmentsTable.companyId, companyId));
+
+    if (allShipments.length === 0) {
+      res.json({ data: { shipments: [], summary: { total: 0 } } });
+      return;
+    }
+
+    const shipmentIds = allShipments.map((s) => s.id);
+
+    const [allCompliance, allRisk, allInsurance, allEntities] = await Promise.all([
+      db.select().from(complianceScreeningsTable).where(and(inArray(complianceScreeningsTable.shipmentId, shipmentIds), eq(complianceScreeningsTable.companyId, companyId))),
+      db.select().from(riskScoresTable).where(and(inArray(riskScoresTable.shipmentId, shipmentIds), eq(riskScoresTable.companyId, companyId))),
+      db.select().from(insuranceQuotesTable).where(and(inArray(insuranceQuotesTable.shipmentId, shipmentIds), eq(insuranceQuotesTable.companyId, companyId))),
+      db.select().from(entitiesTable).where(eq(entitiesTable.companyId, companyId)),
+    ]);
+
+    const complianceMap = Object.fromEntries(allCompliance.map((c) => [c.shipmentId, c]));
+    const riskMap = Object.fromEntries(allRisk.map((r) => [r.shipmentId, r]));
+    const insuranceMap = Object.fromEntries(allInsurance.map((i) => [i.shipmentId, i]));
+    const entityMap = Object.fromEntries(allEntities.map((e) => [e.id, e]));
+
+    const enriched = allShipments.map((s) => {
+      const compliance = complianceMap[s.id];
+      const risk = riskMap[s.id];
+      const insurance = insuranceMap[s.id];
+      return {
+        id: s.id,
+        reference: s.reference,
+        status: s.status,
+        commodity: s.commodity,
+        hsCode: s.hsCode,
+        portOfLoading: s.portOfLoading,
+        portOfDischarge: s.portOfDischarge,
+        vessel: s.vessel,
+        voyage: s.voyage,
+        grossWeight: s.grossWeight ? Number(s.grossWeight) : null,
+        weightUnit: s.weightUnit,
+        volume: s.volume ? Number(s.volume) : null,
+        volumeUnit: s.volumeUnit,
+        packageCount: s.packageCount,
+        incoterms: s.incoterms,
+        blNumber: s.blNumber,
+        bookingNumber: s.bookingNumber,
+        extractionConfidence: s.extractionConfidence,
+        createdAt: s.createdAt,
+        shipper: s.shipperId ? entityMap[s.shipperId] || null : null,
+        consignee: s.consigneeId ? entityMap[s.consigneeId] || null : null,
+        notifyParty: s.notifyPartyId ? entityMap[s.notifyPartyId] || null : null,
+        carrier: s.carrierId ? entityMap[s.carrierId] || null : null,
+        compliance: compliance ? {
+          status: compliance.status,
+          matchCount: compliance.matchCount,
+          screenedParties: compliance.screenedParties,
+          explanation: compliance.explanation,
+          createdAt: compliance.createdAt,
+        } : null,
+        risk: risk ? {
+          compositeScore: Number(risk.compositeScore),
+          recommendedAction: risk.recommendedAction,
+          factors: risk.factors,
+          explanation: risk.explanation,
+        } : null,
+        insurance: insurance ? {
+          coverageType: insurance.coverageType,
+          cargoValue: Number(insurance.cargoValue),
+          estimatedPremium: Number(insurance.estimatedPremium),
+          currency: insurance.currency,
+          rationale: insurance.rationale,
+        } : null,
+      };
+    });
+
+    const summary = {
+      total: enriched.length,
+      complianceClear: enriched.filter((s) => s.compliance?.status === "CLEAR").length,
+      lowRisk: enriched.filter((s) => (s.risk?.compositeScore ?? 1) < 0.3).length,
+      insured: enriched.filter((s) => s.insurance != null).length,
+      avgRiskScore: enriched.filter((s) => s.risk).length > 0
+        ? enriched.reduce((sum, s) => sum + (s.risk?.compositeScore || 0), 0) / enriched.filter((s) => s.risk).length
+        : null,
+    };
+
+    res.json({ data: { shipments: enriched, summary } });
+  } catch (err) {
+    console.error("[demo-intelligence] error:", err);
+    res.status(500).json({ error: "Failed to load intelligence data" });
+  }
+});
+
 export default router;
