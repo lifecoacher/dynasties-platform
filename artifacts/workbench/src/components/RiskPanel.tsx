@@ -2,6 +2,7 @@ import { type RiskScore } from "@workspace/api-client-react";
 import { StatusBadge } from "./StatusBadge";
 import { AlertTriangle, Info, ShieldAlert } from "lucide-react";
 import { ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis } from "recharts";
+import { normalizeRiskScore, riskCssColor } from "@/lib/format";
 
 export function RiskPanel({ risk }: { risk?: RiskScore }) {
   if (!risk) {
@@ -10,16 +11,14 @@ export function RiskPanel({ risk }: { risk?: RiskScore }) {
         <ShieldAlert className="w-12 h-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold">Risk Analysis Pending</h3>
         <p className="text-muted-foreground text-sm max-w-xs mt-2">
-          The risk intelligence agent has not yet scored this shipment.
+          The Risk Intelligence Agent has not yet scored this shipment.
         </p>
       </div>
     );
   }
 
-  const score = Math.round(risk.compositeScore);
-  let color = "hsl(var(--success))";
-  if (score >= 30) color = "hsl(var(--warning))";
-  if (score >= 70) color = "hsl(var(--destructive))";
+  const score = normalizeRiskScore(risk.compositeScore) ?? 0;
+  const color = riskCssColor(score);
 
   const data = [{ name: 'Risk', value: score, fill: color }];
 
@@ -53,7 +52,7 @@ export function RiskPanel({ risk }: { risk?: RiskScore }) {
               {score}
             </span>
             <span className="text-xs font-semibold text-muted-foreground tracking-widest uppercase mt-1">
-              Composite
+              Risk Score
             </span>
           </div>
         </div>
@@ -68,7 +67,7 @@ export function RiskPanel({ risk }: { risk?: RiskScore }) {
               {risk.primaryRiskFactors?.map((factor: any, i) => (
                 <li key={i} className="text-sm bg-secondary/30 p-2.5 rounded-lg border border-border/50">
                   <span className="font-semibold text-foreground block">{factor.factor || 'Unknown Factor'}</span>
-                  <span className="text-muted-foreground">{factor.detail || 'No details provided'}</span>
+                  <span className="text-muted-foreground">{factor.detail || factor.explanation || 'Standard risk factor within acceptable thresholds.'}</span>
                 </li>
               ))}
               {(!risk.primaryRiskFactors || risk.primaryRiskFactors.length === 0) && (

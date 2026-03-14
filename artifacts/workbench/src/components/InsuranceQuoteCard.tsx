@@ -1,5 +1,6 @@
 import { type InsuranceQuote } from "@workspace/api-client-react";
 import { Shield, FileText, CheckCircle2 } from "lucide-react";
+import { formatCurrency, humanizeCoverageType } from "@/lib/format";
 
 export function InsuranceQuoteCard({ quote }: { quote?: InsuranceQuote }) {
   if (!quote) {
@@ -8,7 +9,7 @@ export function InsuranceQuoteCard({ quote }: { quote?: InsuranceQuote }) {
         <Shield className="w-12 h-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold">No Quote Available</h3>
         <p className="text-muted-foreground text-sm max-w-xs mt-2">
-          Insurance agent has not processed this shipment.
+          Insurance Agent has not processed this shipment.
         </p>
       </div>
     );
@@ -22,12 +23,12 @@ export function InsuranceQuoteCard({ quote }: { quote?: InsuranceQuote }) {
             Cargo Insurance
           </h3>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-bold mt-2 border border-primary/20">
-            {quote.coverageType.replace(/_/g, ' ')}
+            {humanizeCoverageType(quote.coverageType)}
           </span>
         </div>
         <div className="text-right">
           <div className="text-3xl font-display font-bold text-foreground">
-            {quote.currency || 'USD'} {quote.estimatedPremium.toLocaleString()}
+            {formatCurrency(quote.estimatedPremium, quote.currency || 'USD')}
           </div>
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">
             Estimated Premium
@@ -38,7 +39,7 @@ export function InsuranceQuoteCard({ quote }: { quote?: InsuranceQuote }) {
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-3 bg-background rounded-lg border border-border/50">
           <div className="text-xs text-muted-foreground mb-1">Insured Value</div>
-          <div className="font-semibold">{quote.currency || 'USD'} {quote.estimatedInsuredValue.toLocaleString()}</div>
+          <div className="font-semibold">{formatCurrency(quote.estimatedInsuredValue, quote.currency || 'USD')}</div>
         </div>
         <div className="p-3 bg-background rounded-lg border border-border/50">
           <div className="text-xs text-muted-foreground mb-1">AI Confidence</div>

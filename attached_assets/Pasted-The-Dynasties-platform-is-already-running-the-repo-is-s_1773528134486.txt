@@ -1,0 +1,245 @@
+The Dynasties platform is already running, the repo is synchronized with GitHub, and the current app is the source of truth.
+
+Do NOT redesign the architecture.
+Do NOT do infrastructure work.
+Do NOT touch queues, S3, ECS, migrations, auth model, or deployment.
+Do NOT create new branches.
+Work only inside the existing codebase.
+
+Your task is to implement a single demo-readiness polish pass across the current Dynasties product so the platform is credible, modern, AI-native, and presentation-ready for a live demo.
+
+Priority:
+1. fix demo-breaking credibility issues
+2. improve agent visibility and AI-native UX
+3. polish labels, formatting, and consistency
+4. keep all functionality intact
+
+Implement the following changes in one batch.
+
+==================================================
+A. CRITICAL DEMO BLOCKERS
+==================================================
+
+1. STANDARDIZE RISK SCORE RENDERING
+Fix all risk score rendering inconsistencies across:
+- intelligence table
+- dashboard cards
+- shipment detail page
+- risk dial
+- trace view
+
+Requirements:
+- use one canonical 0–100 integer display everywhere
+- do not show 2250%, 5800%, 1200%, or any multiplied percentage artifacts
+- if underlying data is 0–1, normalize once and display consistently
+- if some shipments currently show 0 while trace/detail has non-zero values, fix the data binding so all views use the same canonical risk field
+
+2. FIX SHP DETAIL PAGE RISK DIALS
+For SHP-HLCU2847561 and SHP-OOLU7829345:
+- remove the false “0” risk score if risk factors exist
+- ensure the detail page reads the same composite risk value as the trace/intelligence source
+- keep recommendation status aligned with score logic
+
+3. POPULATE RISK FACTOR DESCRIPTIONS
+For all shipments, especially SHP shipments:
+- replace “No details provided” with meaningful explanations
+- use the same style and quality as the good DYN demo shipments
+- every visible risk factor must have a readable explanation
+
+4. REMOVE 100% AI CONFIDENCE
+For insurance quotes:
+- replace impossible 100% confidence values with realistic demo-safe values between 75% and 96%
+- keep confidence believable and aligned with case quality
+- the clean shipment can be high confidence, the flagged shipment should be lower
+
+5. MAKE DEV BANNER NON-ISSUE
+For demo purposes:
+- hide, dismiss, or visually suppress the Replit development preview banner if feasible from the app layer
+- if it cannot be suppressed in code, provide a clear note in the final output telling me exactly how to remove or avoid it during demo
+
+==================================================
+B. HIGH PRIORITY DATA / UI FIXES
+==================================================
+
+6. STANDARDIZE SHIPMENT IDS
+Make all demo shipment IDs use one professional format:
+- DYN-YYYY-NNNNN
+Do not leave mixed SHP- and DYN- formats in the visible demo dataset.
+
+7. REMOVE EMPTY PLACEHOLDER FIELDS
+For fields such as B/L Number:
+- do not show “Enter b/l number” or similar placeholder text on demo detail pages
+- either populate demo-safe values or hide empty optional fields
+
+8. HANDLE EMPTY INCOTERMS PROPERLY
+- populate Incoterms where needed for demo shipments
+- or hide the field when blank
+- do not leave visible blanks that the system then criticizes as incomplete
+
+9. FIX PIPELINE LOG ORDERING
+Ensure pipeline timelines follow causal order:
+CREATED → COMPLIANCE SCREENED → RISK SCORED → INSURANCE QUOTED → APPROVED/REJECTED or PRICING where applicable
+
+Correct any obviously backwards timestamps in demo-visible logs.
+
+10. FIX TRACE VIEW DATA GAPS
+The trace view should be the best proof of the agentic system, not the weakest view.
+
+Populate missing trace data, especially:
+- compliance screening values instead of N/A
+- parties screened
+- screening date
+- cargo value
+- premium rate
+- insurance inputs
+- risk factor breakdown
+- extraction confidence where available
+
+11. EXPAND TRUNCATED CARD DATA
+Reduce credibility-damaging truncation on dashboard cards:
+- party names
+- route names
+- ports
+
+Use one or more of:
+- more card width
+- two-line truncation
+- better abbreviated display
+- tooltips
+
+==================================================
+C. WORLD-CLASS MODERN UI / AI-NATIVE POLISH
+==================================================
+
+12. DEFAULT HOMEPAGE TO ALL
+Open the operator workbench on ALL shipments by default, not DRAFT.
+
+13. MAKE THE UI FEEL MORE MODERN AND AI-NATIVE
+Without redesigning the whole product, improve the existing interface so it feels closer to modern AI products like Anthropic, OpenAI, Stripe, Linear, or Vercel.
+
+Focus on:
+- cleaner hierarchy
+- less clutter
+- stronger information emphasis
+- better spacing and readability
+- more intentional typography and metric presentation
+- subtle “live system” feel without gimmicks
+
+14. ADD SYSTEM / AGENT LIVENESS SIGNAL
+Add a subtle, credible indicator that the AI platform is active, such as:
+- “Agents active”
+- “Last processed X min ago”
+- small activity pulse
+- recent agent action text
+
+Keep it minimal and elegant, not flashy.
+
+15. IMPROVE AGENT IDENTITY IN THE TIMELINE
+Replace raw backend-style labels like:
+- compliance-screening
+- shipment-construction
+- pricing
+
+with human-readable agent labels like:
+- Compliance Agent
+- Shipment Construction Agent
+- Risk Intelligence Agent
+- Insurance Agent
+
+Keep technical correctness, but present them like real product features rather than internal service names.
+
+16. SURFACE THE AI DECISION TRACE MORE CLEARLY
+Make the trace easier to discover from the shipment detail page.
+Add a prominent button or CTA such as:
+- View AI Decision Trace
+- View Agent Reasoning
+
+This should feel like a core feature, not a hidden technical link.
+
+17. IMPROVE TRACE CLARITY
+Inside the trace:
+- replace meaningless “UNVERIFIED” with an explanatory version where possible
+- show what the entity resolution agent attempted
+- show extraction confidence values where available
+- show compliance work product per party
+- show risk factor reasoning and contribution clearly
+
+18. REMOVE CODE-LIKE LANGUAGE FROM UI
+Clean up human-facing text such as:
+- ALL_RISK
+- NAMED_PERILS
+- composite
+- raw service identifiers
+
+Replace with readable operator/investor-friendly wording:
+- All Risk
+- Named Perils
+- Risk Score
+- Processing Timeline
+
+19. ADD CONSISTENT NUMBER FORMATTING
+Use proper formatting everywhere:
+- USD 92,000.00 not USD 92000.00
+- comma separators on money
+- consistent percentage formatting
+- rounded volume / weight values
+- consistent units inline where useful
+
+20. SOURCE DOCUMENTS MUST SUPPORT THE INGESTION STORY
+For visible demo shipments:
+- do not show “No documents linked” if that undermines the product story
+- attach demo-safe document references where appropriate
+- document types should be meaningful, not UNKNOWN
+
+==================================================
+D. DEMO SAFETY
+==================================================
+
+21. AUDIT THE DEMO BUTTON
+Check what the Demo button does.
+If it can disrupt the prepared demo state:
+- hide it
+- relabel it
+- or protect it from accidental use during demo
+
+22. PRESERVE THE CLEAN DEMO FLOW
+Keep the following shipments usable for demo:
+- clean / low-risk shipment
+- flagged / review-required shipment
+
+Do not break the working demo path.
+Do not remove key contrast between clean and flagged cases.
+
+==================================================
+E. FINAL DELIVERABLE
+==================================================
+
+After implementing, do the following:
+
+1. run the app
+2. verify the affected screens render correctly
+3. verify the clean shipment and flagged shipment still support the demo story
+4. confirm there are no obvious formatting regressions
+
+Then return a structured report with:
+
+CHANGES IMPLEMENTED
+- every issue fixed
+
+FILES CHANGED
+- concise list
+
+REMAINING LIMITATIONS
+- anything that could not be fixed cleanly
+
+FINAL DEMO PATH
+- exact click path for the live demo
+
+FINAL DEMO NOTES
+- any last instructions for me before presenting
+
+Important:
+Do all fixes in a single coherent pass.
+Prefer consistent polish over patchy hacks.
+Do not narrate plans only.
+Actually implement the changes.

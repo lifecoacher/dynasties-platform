@@ -143,14 +143,14 @@ router.get("/shipments", async (req, res) => {
         : null,
       risk: risk
         ? {
-            compositeScore: risk.compositeScore,
+            compositeScore: Number(risk.compositeScore),
             recommendedAction: risk.recommendedAction,
           }
         : null,
       insurance: insurance
         ? {
             coverageType: insurance.coverageType,
-            estimatedPremium: insurance.estimatedPremium,
+            estimatedPremium: Number(insurance.estimatedPremium),
             currency: insurance.currency,
           }
         : null,
@@ -224,7 +224,11 @@ router.get("/shipments/:id/risk", async (req, res) => {
     .from(riskScoresTable)
     .where(and(eq(riskScoresTable.shipmentId, id), eq(riskScoresTable.companyId, companyId)))
     .limit(1);
-  res.json({ data: riskScore ?? null });
+  if (!riskScore) {
+    res.json({ data: null });
+    return;
+  }
+  res.json({ data: { ...riskScore, compositeScore: Number(riskScore.compositeScore) } });
 });
 
 router.get("/shipments/:id/insurance", async (req, res) => {
@@ -235,7 +239,11 @@ router.get("/shipments/:id/insurance", async (req, res) => {
     .from(insuranceQuotesTable)
     .where(and(eq(insuranceQuotesTable.shipmentId, id), eq(insuranceQuotesTable.companyId, companyId)))
     .limit(1);
-  res.json({ data: quote ?? null });
+  if (!quote) {
+    res.json({ data: null });
+    return;
+  }
+  res.json({ data: { ...quote, estimatedInsuredValue: Number(quote.estimatedInsuredValue), estimatedPremium: Number(quote.estimatedPremium) } });
 });
 
 router.get("/shipments/:id/documents", async (req, res) => {

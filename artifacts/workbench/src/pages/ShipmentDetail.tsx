@@ -16,8 +16,9 @@ import { CompliancePanel } from "@/components/CompliancePanel";
 import { InsuranceQuoteCard } from "@/components/InsuranceQuoteCard";
 import { AgentActionLog } from "@/components/AgentActionLog";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
-import { ArrowLeft, Save, CheckCircle2, XCircle, Loader2, FileBox, ExternalLink, Pencil } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle2, XCircle, Loader2, FileBox, ExternalLink, Pencil, Brain } from "lucide-react";
 import { motion } from "framer-motion";
+import { humanizeDocType } from "@/lib/format";
 
 const EDITABLE_FIELDS = [
   { key: "commodity", label: "Commodity", type: "text" },
@@ -74,7 +75,6 @@ export default function ShipmentDetail() {
 
   const handleSave = () => {
     const cleanData = { ...formData };
-    // Convert number fields
     EDITABLE_FIELDS.filter(f => f.type === 'number').forEach(f => {
       if (cleanData[f.key] !== "") {
         cleanData[f.key] = Number(cleanData[f.key]);
@@ -98,9 +98,13 @@ export default function ShipmentDetail() {
     );
   }
 
+  const visibleFields = EDITABLE_FIELDS.filter(field => {
+    const val = formData[field.key];
+    return isPendingReview || (val !== "" && val != null);
+  });
+
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-[1400px] mx-auto pb-24">
-      {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Link href="/" className="p-2 rounded-full hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-6 h-6" />
@@ -115,6 +119,14 @@ export default function ShipmentDetail() {
           </p>
         </div>
         
+        <Link
+          href={`/shipments/${id}/trace`}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-semibold text-sm transition-all border border-violet-500/20"
+        >
+          <Brain className="w-4 h-4" />
+          View AI Decision Trace
+        </Link>
+
         {isPendingReview && (
           <div className="flex items-center gap-3">
             <button
@@ -136,17 +148,15 @@ export default function ShipmentDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Core Data */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* Parties Summary (Resolved Entities) */}
           <div className="glass-panel rounded-xl p-6 grid grid-cols-2 gap-6">
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Shipper</div>
               {shipment.shipper ? (
                 <div>
                   <div className="font-bold text-lg text-primary">{shipment.shipper.name}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{shipment.shipper.address || 'No address provided'}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{shipment.shipper.address || ''}</div>
                 </div>
               ) : <div className="text-muted-foreground italic">Unresolved</div>}
             </div>
@@ -155,13 +165,12 @@ export default function ShipmentDetail() {
               {shipment.consignee ? (
                 <div>
                   <div className="font-bold text-lg text-primary">{shipment.consignee.name}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{shipment.consignee.address || 'No address provided'}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{shipment.consignee.address || ''}</div>
                 </div>
               ) : <div className="text-muted-foreground italic">Unresolved</div>}
             </div>
           </div>
 
-          {/* Editable Fields Form */}
           <div className="glass-panel rounded-xl p-6 relative">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-display font-bold">Extracted Fields</h3>
@@ -178,7 +187,7 @@ export default function ShipmentDetail() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-              {EDITABLE_FIELDS.map((field) => {
+              {visibleFields.map((field) => {
                 const confidence = shipment.extractionConfidence?.[field.key] as number | undefined;
                 return (
                   <div key={field.key} className="space-y-1.5">
@@ -186,13 +195,18 @@ export default function ShipmentDetail() {
                       {field.label}
                       <ConfidenceIndicator confidence={confidence} fieldName={field.label} />
                     </label>
-                    <input
-                      type={field.type}
-                      value={formData[field.key] ?? ''}
-                      onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm"
-                      placeholder={`Enter ${field.label.toLowerCase()}`}
-                    />
+                    {isPendingReview ? (
+                      <input
+                        type={field.type}
+                        value={formData[field.key] ?? ''}
+                        onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm"
+                      />
+                    ) : (
+                      <div className="px-3 py-2.5 rounded-lg bg-background/50 border border-border/30 text-sm text-foreground">
+                        {formData[field.key] || <span className="text-muted-foreground italic">Not specified</span>}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -219,13 +233,11 @@ export default function ShipmentDetail() {
 
         </div>
 
-        {/* Right Column - Agent Panels */}
         <div className="space-y-6">
           <CompliancePanel screenings={complianceRes?.data} />
           <RiskPanel risk={riskRes?.data} />
           <InsuranceQuoteCard quote={insuranceRes?.data} />
           
-          {/* Linked Documents */}
           <div className="glass-panel rounded-xl p-6">
             <h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
               <FileBox className="w-5 h-5 text-primary" /> Source Documents
@@ -236,7 +248,7 @@ export default function ShipmentDetail() {
                   <div key={doc.id} className="p-3 rounded-lg bg-secondary/50 border border-border/50 flex items-center justify-between group hover:border-primary/50 transition-colors">
                     <div className="truncate pr-4">
                       <div className="text-sm font-semibold truncate" title={doc.fileName}>{doc.fileName}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{doc.documentType}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{humanizeDocType(doc.documentType)}</div>
                     </div>
                     <button className="p-1.5 rounded bg-background text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover:opacity-100">
                       <ExternalLink className="w-4 h-4" />
@@ -245,14 +257,13 @@ export default function ShipmentDetail() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No documents linked.</p>
+              <p className="text-sm text-muted-foreground">Documents processed via pipeline ingestion.</p>
             )}
           </div>
 
         </div>
       </div>
 
-      {/* Reject Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <motion.div 
