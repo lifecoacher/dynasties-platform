@@ -70,7 +70,7 @@ export async function matchEntity(
     return {
       matched: true,
       entityId: exactMatches[0].id,
-      candidates: exactMatches.map((e) => ({
+      candidates: exactMatches.map((e: any) => ({
         id: e.id,
         name: e.name,
         normalizedName: e.normalizedName,
@@ -99,7 +99,7 @@ export async function matchEntity(
     return {
       matched: true,
       entityId: normalizedMatches[0].id,
-      candidates: normalizedMatches.map((e) => ({
+      candidates: normalizedMatches.map((e: any) => ({
         id: e.id,
         name: e.name,
         normalizedName: e.normalizedName,

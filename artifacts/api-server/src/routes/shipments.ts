@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db } from "@workspace/db";
+import { db, type DbTransaction } from "@workspace/db";
 import {
   shipmentsTable,
   complianceScreeningsTable,
@@ -18,74 +18,151 @@ import {
   claimsTable,
   claimCommunicationsTable,
 } from "@workspace/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { publishPricingJob, publishClaimsJob } from "@workspace/queue";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
+import { parsePagination, paginatedResponse } from "../middlewares/pagination.js";
+import { validateBody } from "../middlewares/validate.js";
+import {
+  approveShipmentSchema,
+  rejectShipmentSchema,
+  patchShipmentFieldsSchema,
+  createRateTableSchema,
+  patchExceptionSchema,
+  createClaimSchema,
+  patchClaimSchema,
+} from "../schemas/index.js";
 
 const router: IRouter = Router();
 
+function paramId(req: { params: Record<string, unknown> }): string {
+  return req.params.id as string;
+}
+
 router.get("/shipments", async (req, res) => {
   const companyId = getCompanyId(req);
+  const pg = parsePagination(req);
   const shipments = await db
     .select()
     .from(shipmentsTable)
     .where(eq(shipmentsTable.companyId, companyId))
     .orderBy(desc(shipmentsTable.createdAt))
-    .limit(50);
+    .limit(pg.limit)
+    .offset(pg.offset);
 
-  const enriched = await Promise.all(
-    shipments.map(async (shipment) => {
-      const [compliance] = await db
+  const shipmentIds = shipments.map((s: any) => s.id);
+  if (shipmentIds.length === 0) {
+    res.json(paginatedResponse([], pg));
+    return;
+  }
+
+  const entityIds = [
+    ...new Set(
+      shipments
+        .flatMap((s: any) => [s.shipperId, s.consigneeId])
+        .filter(Boolean) as string[],
+    ),
+  ];
+
+  const [complianceRows, riskRows, insuranceRows, entityRows] =
+    await Promise.all([
+      db
         .select()
         .from(complianceScreeningsTable)
-        .where(and(eq(complianceScreeningsTable.shipmentId, shipment.id), eq(complianceScreeningsTable.companyId, companyId)))
-        .limit(1);
-
-      const [risk] = await db
+        .where(
+          and(
+            inArray(complianceScreeningsTable.shipmentId, shipmentIds),
+            eq(complianceScreeningsTable.companyId, companyId),
+          ),
+        ),
+      db
         .select()
         .from(riskScoresTable)
-        .where(and(eq(riskScoresTable.shipmentId, shipment.id), eq(riskScoresTable.companyId, companyId)))
-        .limit(1);
-
-      const [insurance] = await db
+        .where(
+          and(
+            inArray(riskScoresTable.shipmentId, shipmentIds),
+            eq(riskScoresTable.companyId, companyId),
+          ),
+        ),
+      db
         .select()
         .from(insuranceQuotesTable)
-        .where(and(eq(insuranceQuotesTable.shipmentId, shipment.id), eq(insuranceQuotesTable.companyId, companyId)))
-        .limit(1);
+        .where(
+          and(
+            inArray(insuranceQuotesTable.shipmentId, shipmentIds),
+            eq(insuranceQuotesTable.companyId, companyId),
+          ),
+        ),
+      entityIds.length > 0
+        ? db
+            .select()
+            .from(entitiesTable)
+            .where(
+              and(
+                inArray(entitiesTable.id, entityIds),
+                eq(entitiesTable.companyId, companyId),
+              ),
+            )
+        : Promise.resolve([]),
+    ]);
 
-      const shipper = shipment.shipperId
-        ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.shipperId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
-        : null;
-
-      const consignee = shipment.consigneeId
-        ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.consigneeId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
-        : null;
-
-      return {
-        ...shipment,
-        shipper: shipper ? { id: shipper.id, name: shipper.name } : null,
-        consignee: consignee ? { id: consignee.id, name: consignee.name } : null,
-        compliance: compliance
-          ? { status: compliance.status, matchCount: compliance.matchCount, screenedParties: compliance.screenedParties }
-          : null,
-        risk: risk
-          ? { compositeScore: risk.compositeScore, recommendedAction: risk.recommendedAction }
-          : null,
-        insurance: insurance
-          ? { coverageType: insurance.coverageType, estimatedPremium: insurance.estimatedPremium, currency: insurance.currency }
-          : null,
-      };
-    }),
+  const complianceMap = new Map(
+    complianceRows.map((c: any) => [c.shipmentId, c]),
   );
+  const riskMap = new Map(riskRows.map((r: any) => [r.shipmentId, r]));
+  const insuranceMap = new Map(
+    insuranceRows.map((i: any) => [i.shipmentId, i]),
+  );
+  const entityMap = new Map(entityRows.map((e: any) => [e.id, e]));
 
-  res.json({ data: enriched });
+  const enriched = shipments.map((shipment: any) => {
+    const compliance = complianceMap.get(shipment.id);
+    const risk = riskMap.get(shipment.id);
+    const insurance = insuranceMap.get(shipment.id);
+    const shipper = shipment.shipperId
+      ? entityMap.get(shipment.shipperId)
+      : null;
+    const consignee = shipment.consigneeId
+      ? entityMap.get(shipment.consigneeId)
+      : null;
+
+    return {
+      ...shipment,
+      shipper: shipper ? { id: shipper.id, name: shipper.name } : null,
+      consignee: consignee
+        ? { id: consignee.id, name: consignee.name }
+        : null,
+      compliance: compliance
+        ? {
+            status: compliance.status,
+            matchCount: compliance.matchCount,
+            screenedParties: compliance.screenedParties,
+          }
+        : null,
+      risk: risk
+        ? {
+            compositeScore: risk.compositeScore,
+            recommendedAction: risk.recommendedAction,
+          }
+        : null,
+      insurance: insurance
+        ? {
+            coverageType: insurance.coverageType,
+            estimatedPremium: insurance.estimatedPremium,
+            currency: insurance.currency,
+          }
+        : null,
+    };
+  });
+
+  res.json(paginatedResponse(enriched, pg));
 });
 
 router.get("/shipments/:id", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const [shipment] = await db
     .select()
     .from(shipmentsTable)
@@ -123,7 +200,7 @@ router.get("/shipments/:id", async (req, res) => {
 
 router.get("/shipments/:id/compliance", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const screenings = await db
     .select()
     .from(complianceScreeningsTable)
@@ -133,7 +210,7 @@ router.get("/shipments/:id/compliance", async (req, res) => {
 
 router.get("/shipments/:id/risk", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const [riskScore] = await db
     .select()
     .from(riskScoresTable)
@@ -144,7 +221,7 @@ router.get("/shipments/:id/risk", async (req, res) => {
 
 router.get("/shipments/:id/insurance", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const [quote] = await db
     .select()
     .from(insuranceQuotesTable)
@@ -155,13 +232,13 @@ router.get("/shipments/:id/insurance", async (req, res) => {
 
 router.get("/shipments/:id/documents", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const links = await db
     .select()
     .from(shipmentDocumentsTable)
     .where(and(eq(shipmentDocumentsTable.shipmentId, id), eq(shipmentDocumentsTable.companyId, companyId)));
 
-  const docIds = links.map((l) => l.documentId).filter(Boolean) as string[];
+  const docIds = links.map((l: any) => l.documentId).filter(Boolean) as string[];
   if (docIds.length === 0) {
     res.json({ data: [] });
     return;
@@ -173,9 +250,9 @@ router.get("/shipments/:id/documents", async (req, res) => {
     .where(eq(ingestedDocumentsTable.companyId, companyId));
 
   const linkedDocs = docs
-    .filter((d) => docIds.includes(d.id))
-    .map((doc) => {
-      const link = links.find((l) => l.documentId === doc.id);
+    .filter((d: any) => docIds.includes(d.id))
+    .map((doc: any) => {
+      const link = links.find((l: any) => l.documentId === doc.id);
       return {
         ...doc,
         shipmentDocumentId: link?.id,
@@ -188,7 +265,7 @@ router.get("/shipments/:id/documents", async (req, res) => {
 
 router.get("/shipments/:id/corrections", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const corrections = await db
     .select()
     .from(operatorCorrectionsTable)
@@ -199,19 +276,21 @@ router.get("/shipments/:id/corrections", async (req, res) => {
 
 router.get("/shipments/:id/events", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
+  const pg = parsePagination(req);
   const events = await db
     .select()
     .from(eventsTable)
     .where(and(eq(eventsTable.entityId, id), eq(eventsTable.companyId, companyId)))
     .orderBy(desc(eventsTable.createdAt))
-    .limit(100);
-  res.json({ data: events });
+    .limit(pg.limit)
+    .offset(pg.offset);
+  res.json(paginatedResponse(events, pg));
 });
 
-router.post("/shipments/:id/approve", requireMinRole("OPERATOR"), async (req, res) => {
+router.post("/shipments/:id/approve", requireMinRole("OPERATOR"), validateBody(approveShipmentSchema), async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
 
   const [shipment] = await db
     .select()
@@ -232,26 +311,28 @@ router.post("/shipments/:id/approve", requireMinRole("OPERATOR"), async (req, re
   const now = new Date();
   const actorId = req.user!.userId;
 
-  await db
-    .update(shipmentsTable)
-    .set({
-      status: "APPROVED",
-      approvedAt: now,
-      approvedBy: actorId,
-    })
-    .where(eq(shipmentsTable.id, id));
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx
+      .update(shipmentsTable)
+      .set({
+        status: "APPROVED",
+        approvedAt: now,
+        approvedBy: actorId,
+      })
+      .where(eq(shipmentsTable.id, id));
 
-  await db.insert(eventsTable).values({
-    id: generateId(),
-    companyId,
-    eventType: "SHIPMENT_APPROVED",
-    entityType: "shipment",
-    entityId: id,
-    actorType: "USER",
-    userId: actorId,
-    beforeState: { status: shipment.status },
-    afterState: { status: "APPROVED" },
-    metadata: { approvedAt: now.toISOString() },
+    await tx.insert(eventsTable).values({
+      id: generateId(),
+      companyId,
+      eventType: "SHIPMENT_APPROVED",
+      entityType: "shipment",
+      entityId: id,
+      actorType: "USER",
+      userId: actorId,
+      beforeState: { status: shipment.status },
+      afterState: { status: "APPROVED" },
+      metadata: { approvedAt: now.toISOString() },
+    });
   });
 
   publishPricingJob({ companyId, shipmentId: id, trigger: "shipment_approved" });
@@ -259,10 +340,10 @@ router.post("/shipments/:id/approve", requireMinRole("OPERATOR"), async (req, re
   res.json({ data: { id, status: "APPROVED", approvedAt: now } });
 });
 
-router.post("/shipments/:id/reject", requireMinRole("OPERATOR"), async (req, res) => {
+router.post("/shipments/:id/reject", requireMinRole("OPERATOR"), validateBody(rejectShipmentSchema), async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
-  const { reason } = req.body as { reason?: string };
+  const id = paramId(req);
+  const { reason } = req.body;
 
   const [shipment] = await db
     .select()
@@ -282,22 +363,24 @@ router.post("/shipments/:id/reject", requireMinRole("OPERATOR"), async (req, res
 
   const actorId = req.user!.userId;
 
-  await db
-    .update(shipmentsTable)
-    .set({ status: "REJECTED" })
-    .where(eq(shipmentsTable.id, id));
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx
+      .update(shipmentsTable)
+      .set({ status: "REJECTED" })
+      .where(eq(shipmentsTable.id, id));
 
-  await db.insert(eventsTable).values({
-    id: generateId(),
-    companyId,
-    eventType: "SHIPMENT_REJECTED",
-    entityType: "shipment",
-    entityId: id,
-    actorType: "USER",
-    userId: actorId,
-    beforeState: { status: shipment.status },
-    afterState: { status: "REJECTED" },
-    metadata: { reason: reason || "No reason provided" },
+    await tx.insert(eventsTable).values({
+      id: generateId(),
+      companyId,
+      eventType: "SHIPMENT_REJECTED",
+      entityType: "shipment",
+      entityId: id,
+      actorType: "USER",
+      userId: actorId,
+      beforeState: { status: shipment.status },
+      afterState: { status: "REJECTED" },
+      metadata: { reason: reason || "No reason provided" },
+    });
   });
 
   res.json({ data: { id, status: "REJECTED", reason } });
@@ -310,15 +393,10 @@ const EDITABLE_FIELDS = new Set([
   "incoterms", "operatorNotes",
 ]);
 
-router.patch("/shipments/:id/fields", requireMinRole("OPERATOR"), async (req, res) => {
+router.patch("/shipments/:id/fields", requireMinRole("OPERATOR"), validateBody(patchShipmentFieldsSchema), async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
-  const { fields } = req.body as { fields: Record<string, unknown> };
-
-  if (!fields || typeof fields !== "object") {
-    res.status(400).json({ error: "fields object is required" });
-    return;
-  }
+  const id = paramId(req);
+  const { fields } = req.body;
 
   const [shipment] = await db
     .select()
@@ -354,35 +432,37 @@ router.patch("/shipments/:id/fields", requireMinRole("OPERATOR"), async (req, re
     return;
   }
 
-  await db
-    .update(shipmentsTable)
-    .set(updateData as Record<string, unknown>)
-    .where(eq(shipmentsTable.id, id));
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx
+      .update(shipmentsTable)
+      .set(updateData as Record<string, unknown>)
+      .where(eq(shipmentsTable.id, id));
 
-  for (const correction of corrections) {
-    await db.insert(operatorCorrectionsTable).values({
+    for (const correction of corrections) {
+      await tx.insert(operatorCorrectionsTable).values({
+        id: generateId(),
+        companyId,
+        shipmentId: id,
+        fieldName: correction.fieldName,
+        originalValue: correction.original as Record<string, unknown> | null,
+        correctedValue: correction.corrected as Record<string, unknown> | null,
+        correctedBy: actorId,
+      });
+    }
+
+    await tx.insert(eventsTable).values({
       id: generateId(),
       companyId,
-      shipmentId: id,
-      fieldName: correction.fieldName,
-      originalValue: correction.original as Record<string, unknown> | null,
-      correctedValue: correction.corrected as Record<string, unknown> | null,
-      correctedBy: actorId,
+      eventType: "OPERATOR_CORRECTION",
+      entityType: "shipment",
+      entityId: id,
+      actorType: "USER",
+      userId: actorId,
+      metadata: {
+        correctionCount: corrections.length,
+        fields: corrections.map((c) => c.fieldName),
+      },
     });
-  }
-
-  await db.insert(eventsTable).values({
-    id: generateId(),
-    companyId,
-    eventType: "OPERATOR_CORRECTION",
-    entityType: "shipment",
-    entityId: id,
-    actorType: "USER",
-    userId: actorId,
-    metadata: {
-      correctionCount: corrections.length,
-      fields: corrections.map((c) => c.fieldName),
-    },
   });
 
   res.json({
@@ -396,7 +476,7 @@ router.patch("/shipments/:id/fields", requireMinRole("OPERATOR"), async (req, re
 
 router.get("/shipments/:id/charges", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const charges = await db
     .select()
     .from(shipmentChargesTable)
@@ -406,7 +486,7 @@ router.get("/shipments/:id/charges", async (req, res) => {
 
 router.get("/shipments/:id/invoice", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const [invoice] = await db
     .select()
     .from(invoicesTable)
@@ -421,27 +501,31 @@ router.get("/shipments/:id/invoice", async (req, res) => {
 
 router.get("/invoices", async (req, res) => {
   const companyId = getCompanyId(req);
+  const pg = parsePagination(req);
   const invoices = await db
     .select()
     .from(invoicesTable)
     .where(eq(invoicesTable.companyId, companyId))
     .orderBy(desc(invoicesTable.issuedAt))
-    .limit(100);
-  res.json({ data: invoices });
+    .limit(pg.limit)
+    .offset(pg.offset);
+  res.json(paginatedResponse(invoices, pg));
 });
 
 router.get("/rate-tables", async (req, res) => {
   const companyId = getCompanyId(req);
+  const pg = parsePagination(req, 100, 500);
   const rates = await db
     .select()
     .from(rateTablesTable)
     .where(eq(rateTablesTable.companyId, companyId))
     .orderBy(desc(rateTablesTable.createdAt))
-    .limit(200);
-  res.json({ data: rates });
+    .limit(pg.limit)
+    .offset(pg.offset);
+  res.json(paginatedResponse(rates, pg));
 });
 
-router.post("/rate-tables", requireMinRole("MANAGER"), async (req, res) => {
+router.post("/rate-tables", requireMinRole("MANAGER"), validateBody(createRateTableSchema), async (req, res) => {
   const companyId = getCompanyId(req);
   const {
     chargeCode,
@@ -503,7 +587,7 @@ router.post("/rate-tables", requireMinRole("MANAGER"), async (req, res) => {
 
 router.get("/shipments/:id/exceptions", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const exceptions = await db
     .select()
     .from(exceptionsTable)
@@ -512,12 +596,12 @@ router.get("/shipments/:id/exceptions", async (req, res) => {
   res.json({ data: exceptions });
 });
 
-router.patch("/exceptions/:id", requireMinRole("OPERATOR"), async (req, res) => {
+router.patch("/exceptions/:id", requireMinRole("OPERATOR"), validateBody(patchExceptionSchema), async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
-  const { status, resolutionNotes } = req.body as {
-    status?: string;
-    resolutionNotes?: string;
+  const id = paramId(req);
+  const { status, resolution: resolutionNotes } = req.body as {
+    status: string;
+    resolution?: string;
   };
 
   const [exception] = await db
@@ -531,31 +615,41 @@ router.patch("/exceptions/:id", requireMinRole("OPERATOR"), async (req, res) => 
     return;
   }
 
+  const VALID_EXCEPTION_STATUSES = ["OPEN", "INVESTIGATING", "RESOLVED", "ESCALATED", "DISMISSED"];
+
   const actorId = req.user!.userId;
   const updateData: Record<string, unknown> = {};
-  if (status) updateData.status = status;
+  if (status) {
+    if (!VALID_EXCEPTION_STATUSES.includes(status)) {
+      res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_EXCEPTION_STATUSES.join(", ")}` });
+      return;
+    }
+    updateData.status = status;
+  }
   if (resolutionNotes) updateData.resolutionNotes = resolutionNotes;
   if (status === "RESOLVED") {
     updateData.resolvedAt = new Date();
     updateData.resolvedBy = actorId;
   }
 
-  await db
-    .update(exceptionsTable)
-    .set(updateData)
-    .where(eq(exceptionsTable.id, id));
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx
+      .update(exceptionsTable)
+      .set(updateData)
+      .where(eq(exceptionsTable.id, id));
 
-  await db.insert(eventsTable).values({
-    id: generateId(),
-    companyId,
-    eventType: "EXCEPTION_UPDATED",
-    entityType: "exception",
-    entityId: id,
-    actorType: "USER",
-    userId: actorId,
-    beforeState: { status: exception.status },
-    afterState: { status: status || exception.status },
-    metadata: { resolutionNotes },
+    await tx.insert(eventsTable).values({
+      id: generateId(),
+      companyId,
+      eventType: "EXCEPTION_UPDATED",
+      entityType: "exception",
+      entityId: id,
+      actorType: "USER",
+      userId: actorId,
+      beforeState: { status: exception.status },
+      afterState: { status: status || exception.status },
+      metadata: { resolutionNotes },
+    });
   });
 
   const [updated] = await db
@@ -569,7 +663,7 @@ router.patch("/exceptions/:id", requireMinRole("OPERATOR"), async (req, res) => 
 
 router.get("/exceptions/:id", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const [exception] = await db
     .select()
     .from(exceptionsTable)
@@ -585,29 +679,33 @@ router.get("/exceptions/:id", async (req, res) => {
 
 router.get("/exceptions", async (req, res) => {
   const companyId = getCompanyId(req);
+  const pg = parsePagination(req);
   const exceptions = await db
     .select()
     .from(exceptionsTable)
     .where(eq(exceptionsTable.companyId, companyId))
     .orderBy(desc(exceptionsTable.createdAt))
-    .limit(100);
-  res.json({ data: exceptions });
+    .limit(pg.limit)
+    .offset(pg.offset);
+  res.json(paginatedResponse(exceptions, pg));
 });
 
 router.get("/trade-lanes", async (req, res) => {
   const companyId = getCompanyId(req);
+  const pg = parsePagination(req);
   const lanes = await db
     .select()
     .from(tradeLaneStatsTable)
     .where(eq(tradeLaneStatsTable.companyId, companyId))
     .orderBy(desc(tradeLaneStatsTable.lastUpdated))
-    .limit(100);
-  res.json({ data: lanes });
+    .limit(pg.limit)
+    .offset(pg.offset);
+  res.json(paginatedResponse(lanes, pg));
 });
 
 router.get("/trade-lanes/:id", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const [lane] = await db
     .select()
     .from(tradeLaneStatsTable)
@@ -623,7 +721,7 @@ router.get("/trade-lanes/:id", async (req, res) => {
 
 router.get("/shipments/:id/claims", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const claims = await db
     .select()
     .from(claimsTable)
@@ -632,18 +730,10 @@ router.get("/shipments/:id/claims", async (req, res) => {
   res.json({ data: claims });
 });
 
-router.post("/shipments/:id/claims", requireMinRole("OPERATOR"), async (req, res) => {
+router.post("/shipments/:id/claims", requireMinRole("OPERATOR"), validateBody(createClaimSchema), async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
-  const { claimType, incidentDescription } = req.body as {
-    claimType: string;
-    incidentDescription: string;
-  };
-
-  if (!claimType || !incidentDescription) {
-    res.status(400).json({ error: "claimType and incidentDescription are required" });
-    return;
-  }
+  const id = paramId(req);
+  const { claimType, incidentDescription } = req.body;
 
   const [shipment] = await db
     .select()
@@ -669,18 +759,20 @@ router.post("/shipments/:id/claims", requireMinRole("OPERATOR"), async (req, res
 
 router.get("/claims", async (req, res) => {
   const companyId = getCompanyId(req);
+  const pg = parsePagination(req);
   const claims = await db
     .select()
     .from(claimsTable)
     .where(eq(claimsTable.companyId, companyId))
     .orderBy(desc(claimsTable.createdAt))
-    .limit(100);
-  res.json({ data: claims });
+    .limit(pg.limit)
+    .offset(pg.offset);
+  res.json(paginatedResponse(claims, pg));
 });
 
 router.get("/claims/:id", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const [claim] = await db
     .select()
     .from(claimsTable)
@@ -696,7 +788,7 @@ router.get("/claims/:id", async (req, res) => {
 
 router.get("/claims/:id/communications", async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
+  const id = paramId(req);
   const comms = await db
     .select()
     .from(claimCommunicationsTable)
@@ -705,10 +797,10 @@ router.get("/claims/:id/communications", async (req, res) => {
   res.json({ data: comms });
 });
 
-router.patch("/claims/:id", requireMinRole("OPERATOR"), async (req, res) => {
+router.patch("/claims/:id", requireMinRole("OPERATOR"), validateBody(patchClaimSchema), async (req, res) => {
   const companyId = getCompanyId(req);
-  const { id } = req.params;
-  const { status } = req.body as { status?: string };
+  const id = paramId(req);
+  const { status } = req.body;
 
   const [claim] = await db
     .select()
@@ -721,25 +813,35 @@ router.patch("/claims/:id", requireMinRole("OPERATOR"), async (req, res) => {
     return;
   }
 
+  const VALID_CLAIM_STATUSES = ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "DENIED", "CLOSED"];
+
   const actorId = req.user!.userId;
   const updateData: Record<string, unknown> = {};
-  if (status) updateData.status = status;
+  if (status) {
+    if (!VALID_CLAIM_STATUSES.includes(status)) {
+      res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_CLAIM_STATUSES.join(", ")}` });
+      return;
+    }
+    updateData.status = status;
+  }
 
-  await db
-    .update(claimsTable)
-    .set(updateData)
-    .where(eq(claimsTable.id, id));
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx
+      .update(claimsTable)
+      .set(updateData)
+      .where(eq(claimsTable.id, id));
 
-  await db.insert(eventsTable).values({
-    id: generateId(),
-    companyId,
-    eventType: "CLAIM_UPDATED",
-    entityType: "claim",
-    entityId: id,
-    actorType: "USER",
-    userId: actorId,
-    beforeState: { status: claim.status },
-    afterState: { status: status || claim.status },
+    await tx.insert(eventsTable).values({
+      id: generateId(),
+      companyId,
+      eventType: "CLAIM_UPDATED",
+      entityType: "claim",
+      entityId: id,
+      actorType: "USER",
+      userId: actorId,
+      beforeState: { status: claim.status },
+      afterState: { status: status || claim.status },
+    });
   });
 
   const [updated] = await db

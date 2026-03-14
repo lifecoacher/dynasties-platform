@@ -5,6 +5,7 @@ import {
   real,
   jsonb,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { companiesTable } from "./companies";
 import { shipmentsTable } from "./shipments";
@@ -42,7 +43,7 @@ export const riskScoresTable = pgTable(
   },
   (table) => [
     index("risk_scores_company_id_idx").on(table.companyId),
-    index("risk_scores_shipment_id_idx").on(table.shipmentId),
+    uniqueIndex("risk_scores_shipment_id_uniq").on(table.shipmentId),
   ],
 );
 

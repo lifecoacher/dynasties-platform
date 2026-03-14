@@ -232,7 +232,7 @@ async function storeAndLink(
     fileName,
     mimeType: "text/plain",
     s3Key: key,
-    documentType: docType,
+    documentType: docType as "BOL" | "COMMERCIAL_INVOICE" | "PACKING_LIST" | "CERTIFICATE_OF_ORIGIN" | "ARRIVAL_NOTICE" | "CUSTOMS_DECLARATION" | "RATE_CONFIRMATION" | "HBL" | "SHIPMENT_SUMMARY" | "INVOICE" | "UNKNOWN",
     extractionStatus: "EXTRACTED",
     extractedData: { generatedDocument: true, type: docType },
     createdAt: new Date(),
@@ -264,18 +264,18 @@ export async function runDocumentGeneration(
     .where(eq(shipmentDocumentsTable.shipmentId, shipmentId));
 
   const existingDocs = await Promise.all(
-    existingLinks.map(async (link) => {
+    existingLinks.filter((link: any) => link.documentId != null).map(async (link: any) => {
       const [doc] = await db
         .select()
         .from(ingestedDocumentsTable)
-        .where(eq(ingestedDocumentsTable.id, link.documentId))
+        .where(eq(ingestedDocumentsTable.id, link.documentId!))
         .limit(1);
       return doc;
     }),
   );
 
   const hasGenerated = existingDocs.some(
-    (d) => d && (d.extractedData as Record<string, unknown>)?.generatedDocument === true,
+    (d: any) => d && (d.extractedData as Record<string, unknown>)?.generatedDocument === true,
   );
 
   if (hasGenerated) {
@@ -293,29 +293,63 @@ export async function runDocumentGeneration(
   const docTypes: string[] = [];
 
   const hblContent = generateHBLContent(ctx);
-  await storeAndLink(companyId, shipmentId, "HBL", `HBL_${ref}.txt`, hblContent);
-  docTypes.push("HBL");
+  const hblBuffer = Buffer.from(hblContent, "utf-8");
+  const { key: hblKey } = await storeFile(hblBuffer, `HBL_${ref}.txt`, "generated-docs");
 
   const arrivalContent = generateArrivalNoticeContent(ctx);
-  await storeAndLink(companyId, shipmentId, "ARRIVAL_NOTICE", `AN_${ref}.txt`, arrivalContent);
-  docTypes.push("ARRIVAL_NOTICE");
+  const arrivalBuffer = Buffer.from(arrivalContent, "utf-8");
+  const { key: arrivalKey } = await storeFile(arrivalBuffer, `AN_${ref}.txt`, "generated-docs");
 
   const summaryContent = generateShipmentSummaryContent(ctx);
-  await storeAndLink(companyId, shipmentId, "SHIPMENT_SUMMARY", `SUMMARY_${ref}.txt`, summaryContent);
-  docTypes.push("SHIPMENT_SUMMARY");
+  const summaryBuffer = Buffer.from(summaryContent, "utf-8");
+  const { key: summaryKey } = await storeFile(summaryBuffer, `SUMMARY_${ref}.txt`, "generated-docs");
 
-  await db.insert(eventsTable).values({
-    actorType: "SERVICE",
-    id: generateId(),
-    companyId,
-    eventType: "DOCUMENT_GENERATED" as string,
-    entityType: "shipment",
-    entityId: shipmentId,
-    serviceId: "document-generation",
-    metadata: {
-      documentsGenerated: docTypes.length,
-      documentTypes: docTypes,
-    },
+  await db.transaction(async (tx: any) => {
+    const docsToLink = [
+      { type: "HBL", fileName: `HBL_${ref}.txt`, key: hblKey },
+      { type: "ARRIVAL_NOTICE", fileName: `AN_${ref}.txt`, key: arrivalKey },
+      { type: "SHIPMENT_SUMMARY", fileName: `SUMMARY_${ref}.txt`, key: summaryKey },
+    ] as const;
+
+    for (const docDef of docsToLink) {
+      const docId = generateId();
+      await tx.insert(ingestedDocumentsTable).values({
+        id: docId,
+        companyId,
+        fileName: docDef.fileName,
+        mimeType: "text/plain",
+        s3Key: docDef.key,
+        documentType: docDef.type,
+        extractionStatus: "EXTRACTED",
+        extractedData: { generatedDocument: true, type: docDef.type },
+        createdAt: new Date(),
+      });
+
+      await tx.insert(shipmentDocumentsTable).values({
+        id: generateId(),
+        companyId,
+        shipmentId,
+        documentId: docId,
+        documentType: docDef.type as "HBL" | "ARRIVAL_NOTICE" | "SHIPMENT_SUMMARY" | "INVOICE",
+        isGenerated: true,
+        generatedAt: new Date(),
+      });
+      docTypes.push(docDef.type);
+    }
+
+    await tx.insert(eventsTable).values({
+      actorType: "SERVICE",
+      id: generateId(),
+      companyId,
+      eventType: "DOCUMENT_GENERATED" as string,
+      entityType: "shipment",
+      entityId: shipmentId,
+      serviceId: "document-generation",
+      metadata: {
+        documentsGenerated: docTypes.length,
+        documentTypes: docTypes,
+      },
+    });
   });
 
   publishBillingJob({ companyId, shipmentId, trigger: "documents_generated" });

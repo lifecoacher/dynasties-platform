@@ -137,7 +137,7 @@ export async function runBilling(
     ? (await db.select().from(entitiesTable).where(eq(entitiesTable.id, shipment.consigneeId)).limit(1))[0]
     : null;
 
-  const lineItems = charges.map((c) => ({
+  const lineItems = charges.map((c: any) => ({
     chargeCode: c.chargeCode,
     description: c.description,
     chargeType: c.chargeType,
@@ -147,8 +147,8 @@ export async function runBilling(
     totalAmount: c.totalAmount,
   }));
 
-  const subtotal = charges.reduce((sum, c) => sum + c.totalAmount, 0);
-  const taxTotal = charges.reduce((sum, c) => sum + (c.taxAmount || 0), 0);
+  const subtotal = charges.reduce((sum: any, c: any) => sum + c.totalAmount, 0);
+  const taxTotal = charges.reduce((sum: any, c: any) => sum + (c.taxAmount || 0), 0);
   const grandTotal = subtotal + taxTotal;
 
   const invoiceNumber = generateInvoiceNumber();
@@ -174,39 +174,42 @@ export async function runBilling(
   dueDate.setDate(dueDate.getDate() + 30);
 
   const invoiceId = generateId();
-  await db.insert(invoicesTable).values({
-    id: invoiceId,
-    companyId,
-    shipmentId,
-    invoiceNumber,
-    status: "ISSUED",
-    billToEntityId: billTo?.id || null,
-    subtotal,
-    taxTotal,
-    grandTotal,
-    currency: "USD",
-    lineItems,
-    dueDate,
-    issuedAt: new Date(),
-    pdfStorageKey: pdfKey,
-    metadata: null,
-  });
 
-  await db.insert(eventsTable).values({
-    actorType: "SERVICE",
-    id: generateId(),
-    companyId,
-    eventType: "INVOICE_CREATED" as string,
-    entityType: "shipment",
-    entityId: shipmentId,
-    serviceId: "billing",
-    metadata: {
-      invoiceId,
+  await db.transaction(async (tx: any) => {
+    await tx.insert(invoicesTable).values({
+      id: invoiceId,
+      companyId,
+      shipmentId,
       invoiceNumber,
+      status: "ISSUED",
+      billToEntityId: billTo?.id || null,
+      subtotal,
+      taxTotal,
       grandTotal,
       currency: "USD",
-      lineItemCount: lineItems.length,
-    },
+      lineItems,
+      dueDate,
+      issuedAt: new Date(),
+      pdfStorageKey: pdfKey,
+      metadata: null,
+    });
+
+    await tx.insert(eventsTable).values({
+      actorType: "SERVICE",
+      id: generateId(),
+      companyId,
+      eventType: "INVOICE_CREATED" as string,
+      entityType: "shipment",
+      entityId: shipmentId,
+      serviceId: "billing",
+      metadata: {
+        invoiceId,
+        invoiceNumber,
+        grandTotal,
+        currency: "USD",
+        lineItemCount: lineItems.length,
+      },
+    });
   });
 
   publishExceptionJob({ companyId, shipmentId, trigger: "invoice_created" });

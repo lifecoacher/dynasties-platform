@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import crypto from "node:crypto";
 
 export interface ExtractionJob {
   documentId: string;
@@ -84,6 +85,130 @@ type ExceptionHandler = (job: ExceptionJob) => Promise<void>;
 type TradeLaneHandler = (job: TradeLaneJob) => Promise<void>;
 type ClaimsHandler = (job: ClaimsJob) => Promise<void>;
 
+interface QueueMessage<T> {
+  id: string;
+  body: T;
+  receiptHandle?: string;
+  attempt: number;
+}
+
+const QUEUE_URLS: Record<string, string> = {};
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [1000, 5000, 15000];
+
+let sqsClient: import("@aws-sdk/client-sqs").SQSClient | null = null;
+let sqsLoaded = false;
+let useSqs = false;
+
+async function getSqs(): Promise<import("@aws-sdk/client-sqs").SQSClient | null> {
+  if (sqsLoaded) return sqsClient;
+  sqsLoaded = true;
+
+  if (process.env.QUEUE_BACKEND === "local" || !process.env.SQS_ENDPOINT) {
+    console.log("[queue] using in-memory EventEmitter backend");
+    return null;
+  }
+
+  try {
+    const { SQSClient } = await import("@aws-sdk/client-sqs");
+    sqsClient = new SQSClient({
+      region: process.env.AWS_REGION || "us-east-1",
+      ...(process.env.SQS_ENDPOINT ? { endpoint: process.env.SQS_ENDPOINT } : {}),
+    });
+    useSqs = true;
+    console.log("[queue] using SQS backend");
+    return sqsClient;
+  } catch {
+    console.warn("[queue] @aws-sdk/client-sqs not available, falling back to EventEmitter");
+    return null;
+  }
+}
+
+function resolveQueueUrl(queueName: string): string {
+  const endpoint = process.env.SQS_ENDPOINT || "https://sqs.us-east-1.amazonaws.com";
+  const accountId = process.env.AWS_ACCOUNT_ID || "000000000000";
+  return `${endpoint}/${accountId}/dynasties-${queueName}`;
+}
+
+function generateIdempotencyToken(job: Record<string, unknown>): string {
+  const data = JSON.stringify(job);
+  return crypto.createHash("sha256").update(data).digest("hex").slice(0, 32);
+}
+
+async function sqsPublish(queueName: string, body: Record<string, unknown>): Promise<void> {
+  const client = await getSqs();
+  if (!client) return;
+
+  const { SendMessageCommand } = await import("@aws-sdk/client-sqs");
+  const queueUrl = QUEUE_URLS[queueName] || resolveQueueUrl(queueName);
+  QUEUE_URLS[queueName] = queueUrl;
+
+  await client.send(
+    new SendMessageCommand({
+      QueueUrl: queueUrl,
+      MessageBody: JSON.stringify(body),
+      MessageGroupId: (body.companyId as string) || "default",
+      MessageDeduplicationId: generateIdempotencyToken(body),
+    }),
+  );
+}
+
+type AnyHandler = (job: any) => Promise<void>;
+const handlers: Record<string, AnyHandler> = {};
+const pollingIntervals: Record<string, ReturnType<typeof setInterval>> = {};
+
+async function sqsStartPolling(queueName: string): Promise<void> {
+  const client = await getSqs();
+  if (!client) return;
+
+  const { ReceiveMessageCommand, DeleteMessageCommand } = await import("@aws-sdk/client-sqs");
+  const queueUrl = QUEUE_URLS[queueName] || resolveQueueUrl(queueName);
+  QUEUE_URLS[queueName] = queueUrl;
+
+  if (pollingIntervals[queueName]) return;
+
+  const poll = async () => {
+    const handler = handlers[queueName];
+    if (!handler) return;
+
+    try {
+      const resp = await client.send(
+        new ReceiveMessageCommand({
+          QueueUrl: queueUrl,
+          MaxNumberOfMessages: 5,
+          WaitTimeSeconds: 10,
+          VisibilityTimeout: 300,
+        }),
+      );
+
+      if (!resp.Messages?.length) return;
+
+      for (const msg of resp.Messages) {
+        if (!msg.Body || !msg.ReceiptHandle) continue;
+
+        try {
+          const body = JSON.parse(msg.Body);
+          await handler(body);
+
+          await client.send(
+            new DeleteMessageCommand({
+              QueueUrl: queueUrl,
+              ReceiptHandle: msg.ReceiptHandle,
+            }),
+          );
+        } catch (err) {
+          console.error(`[queue:sqs] ${queueName} message processing failed:`, err);
+        }
+      }
+    } catch (err) {
+      console.error(`[queue:sqs] ${queueName} polling error:`, err);
+    }
+  };
+
+  pollingIntervals[queueName] = setInterval(poll, 1000);
+  poll();
+}
+
 const emitter = new EventEmitter();
 const EXTRACTION_QUEUE = "extraction-jobs";
 const PIPELINE_QUEUE = "shipment-pipeline-jobs";
@@ -109,191 +234,155 @@ let exceptionWrapper: ((job: ExceptionJob) => void) | null = null;
 let tradeLaneWrapper: ((job: TradeLaneJob) => void) | null = null;
 let claimsWrapper: ((job: ClaimsJob) => void) | null = null;
 
-export function registerExtractionConsumer(fn: ExtractionHandler): void {
-  if (extractionWrapper) {
-    emitter.removeListener(EXTRACTION_QUEUE, extractionWrapper);
-  }
-  const wrapper = (job: ExtractionJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] extraction job failed for doc=${job.documentId}:`, err);
-    });
+function wrapWithRetry<T>(
+  queueName: string,
+  fn: (job: T) => Promise<void>,
+): (job: T) => void {
+  return (job: T) => {
+    const attempt = async (retryCount: number) => {
+      try {
+        await fn(job);
+      } catch (err) {
+        if (retryCount < MAX_RETRIES) {
+          const delay = RETRY_DELAYS[retryCount] || 15000;
+          console.error(
+            `[queue] ${queueName} job failed (attempt ${retryCount + 1}/${MAX_RETRIES}), retrying in ${delay}ms:`,
+            err,
+          );
+          setTimeout(() => attempt(retryCount + 1), delay);
+        } else {
+          console.error(
+            `[queue:dlq] ${queueName} job exhausted retries, sending to DLQ:`,
+            err,
+            JSON.stringify(job),
+          );
+        }
+      }
+    };
+    attempt(0);
   };
-  extractionWrapper = wrapper;
-  emitter.on(EXTRACTION_QUEUE, wrapper);
+}
+
+function registerConsumer<T>(
+  queueName: string,
+  fn: (job: T) => Promise<void>,
+  currentWrapper: ((job: T) => void) | null,
+): (job: T) => void {
+  if (currentWrapper) {
+    emitter.removeListener(queueName, currentWrapper);
+  }
+  const wrapper = wrapWithRetry(queueName, fn);
+  emitter.on(queueName, wrapper);
+
+  handlers[queueName] = fn as AnyHandler;
+  getSqs().then((client) => {
+    if (client) sqsStartPolling(queueName);
+  });
+
+  return wrapper;
+}
+
+export function registerExtractionConsumer(fn: ExtractionHandler): void {
+  extractionWrapper = registerConsumer(EXTRACTION_QUEUE, fn, extractionWrapper);
 }
 
 export function registerPipelineConsumer(fn: PipelineHandler): void {
-  if (pipelineWrapper) {
-    emitter.removeListener(PIPELINE_QUEUE, pipelineWrapper);
-  }
-  const wrapper = (job: ShipmentPipelineJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] pipeline job failed for docs=${job.documentIds.join(",")}:`, err);
-    });
-  };
-  pipelineWrapper = wrapper;
-  emitter.on(PIPELINE_QUEUE, wrapper);
+  pipelineWrapper = registerConsumer(PIPELINE_QUEUE, fn, pipelineWrapper);
 }
 
 export function registerComplianceConsumer(fn: ComplianceHandler): void {
-  if (complianceWrapper) {
-    emitter.removeListener(COMPLIANCE_QUEUE, complianceWrapper);
-  }
-  const wrapper = (job: ComplianceJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] compliance job failed for shipment=${job.shipmentId}:`, err);
-    });
-  };
-  complianceWrapper = wrapper;
-  emitter.on(COMPLIANCE_QUEUE, wrapper);
+  complianceWrapper = registerConsumer(COMPLIANCE_QUEUE, fn, complianceWrapper);
 }
 
 export function registerRiskConsumer(fn: RiskHandler): void {
-  if (riskWrapper) {
-    emitter.removeListener(RISK_QUEUE, riskWrapper);
-  }
-  const wrapper = (job: RiskJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] risk job failed for shipment=${job.shipmentId}:`, err);
-    });
-  };
-  riskWrapper = wrapper;
-  emitter.on(RISK_QUEUE, wrapper);
+  riskWrapper = registerConsumer(RISK_QUEUE, fn, riskWrapper);
 }
 
 export function registerInsuranceConsumer(fn: InsuranceHandler): void {
-  if (insuranceWrapper) {
-    emitter.removeListener(INSURANCE_QUEUE, insuranceWrapper);
-  }
-  const wrapper = (job: InsuranceJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] insurance job failed for shipment=${job.shipmentId}:`, err);
-    });
-  };
-  insuranceWrapper = wrapper;
-  emitter.on(INSURANCE_QUEUE, wrapper);
+  insuranceWrapper = registerConsumer(INSURANCE_QUEUE, fn, insuranceWrapper);
 }
 
 export function registerPricingConsumer(fn: PricingHandler): void {
-  if (pricingWrapper) {
-    emitter.removeListener(PRICING_QUEUE, pricingWrapper);
-  }
-  const wrapper = (job: PricingJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] pricing job failed for shipment=${job.shipmentId}:`, err);
-    });
-  };
-  pricingWrapper = wrapper;
-  emitter.on(PRICING_QUEUE, wrapper);
+  pricingWrapper = registerConsumer(PRICING_QUEUE, fn, pricingWrapper);
 }
 
 export function registerDocGenConsumer(fn: DocGenHandler): void {
-  if (docgenWrapper) {
-    emitter.removeListener(DOCGEN_QUEUE, docgenWrapper);
-  }
-  const wrapper = (job: DocGenJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] docgen job failed for shipment=${job.shipmentId}:`, err);
-    });
-  };
-  docgenWrapper = wrapper;
-  emitter.on(DOCGEN_QUEUE, wrapper);
+  docgenWrapper = registerConsumer(DOCGEN_QUEUE, fn, docgenWrapper);
 }
 
 export function registerBillingConsumer(fn: BillingHandler): void {
-  if (billingWrapper) {
-    emitter.removeListener(BILLING_QUEUE, billingWrapper);
-  }
-  const wrapper = (job: BillingJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] billing job failed for shipment=${job.shipmentId}:`, err);
-    });
-  };
-  billingWrapper = wrapper;
-  emitter.on(BILLING_QUEUE, wrapper);
-}
-
-export function publishExtractionJob(job: ExtractionJob): void {
-  setImmediate(() => { emitter.emit(EXTRACTION_QUEUE, job); });
-}
-
-export function publishPipelineJob(job: ShipmentPipelineJob): void {
-  setImmediate(() => { emitter.emit(PIPELINE_QUEUE, job); });
-}
-
-export function publishComplianceJob(job: ComplianceJob): void {
-  setImmediate(() => { emitter.emit(COMPLIANCE_QUEUE, job); });
-}
-
-export function publishRiskJob(job: RiskJob): void {
-  setImmediate(() => { emitter.emit(RISK_QUEUE, job); });
-}
-
-export function publishInsuranceJob(job: InsuranceJob): void {
-  setImmediate(() => { emitter.emit(INSURANCE_QUEUE, job); });
-}
-
-export function publishPricingJob(job: PricingJob): void {
-  setImmediate(() => { emitter.emit(PRICING_QUEUE, job); });
-}
-
-export function publishDocGenJob(job: DocGenJob): void {
-  setImmediate(() => { emitter.emit(DOCGEN_QUEUE, job); });
-}
-
-export function publishBillingJob(job: BillingJob): void {
-  setImmediate(() => { emitter.emit(BILLING_QUEUE, job); });
+  billingWrapper = registerConsumer(BILLING_QUEUE, fn, billingWrapper);
 }
 
 export function registerExceptionConsumer(fn: ExceptionHandler): void {
-  if (exceptionWrapper) {
-    emitter.removeListener(EXCEPTION_QUEUE, exceptionWrapper);
-  }
-  const wrapper = (job: ExceptionJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] exception job failed for shipment=${job.shipmentId}:`, err);
-    });
-  };
-  exceptionWrapper = wrapper;
-  emitter.on(EXCEPTION_QUEUE, wrapper);
+  exceptionWrapper = registerConsumer(EXCEPTION_QUEUE, fn, exceptionWrapper);
 }
 
 export function registerTradeLaneConsumer(fn: TradeLaneHandler): void {
-  if (tradeLaneWrapper) {
-    emitter.removeListener(TRADE_LANE_QUEUE, tradeLaneWrapper);
-  }
-  const wrapper = (job: TradeLaneJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] trade-lane job failed for shipment=${job.shipmentId}:`, err);
-    });
-  };
-  tradeLaneWrapper = wrapper;
-  emitter.on(TRADE_LANE_QUEUE, wrapper);
+  tradeLaneWrapper = registerConsumer(TRADE_LANE_QUEUE, fn, tradeLaneWrapper);
 }
 
 export function registerClaimsConsumer(fn: ClaimsHandler): void {
-  if (claimsWrapper) {
-    emitter.removeListener(CLAIMS_QUEUE, claimsWrapper);
+  claimsWrapper = registerConsumer(CLAIMS_QUEUE, fn, claimsWrapper);
+}
+
+async function publish(queueName: string, job: Record<string, unknown>): Promise<void> {
+  const client = await getSqs();
+  if (client) {
+    try {
+      await sqsPublish(queueName, job);
+      return;
+    } catch (err) {
+      console.error(`[queue] SQS publish failed for ${queueName}, falling back to local:`, err);
+    }
   }
-  const wrapper = (job: ClaimsJob) => {
-    fn(job).catch((err) => {
-      console.error(`[queue] claims job failed for shipment=${job.shipmentId}:`, err);
-    });
-  };
-  claimsWrapper = wrapper;
-  emitter.on(CLAIMS_QUEUE, wrapper);
+  setImmediate(() => {
+    emitter.emit(queueName, job);
+  });
+}
+
+export function publishExtractionJob(job: ExtractionJob): void {
+  publish(EXTRACTION_QUEUE, job as unknown as Record<string, unknown>);
+}
+
+export function publishPipelineJob(job: ShipmentPipelineJob): void {
+  publish(PIPELINE_QUEUE, job as unknown as Record<string, unknown>);
+}
+
+export function publishComplianceJob(job: ComplianceJob): void {
+  publish(COMPLIANCE_QUEUE, job as unknown as Record<string, unknown>);
+}
+
+export function publishRiskJob(job: RiskJob): void {
+  publish(RISK_QUEUE, job as unknown as Record<string, unknown>);
+}
+
+export function publishInsuranceJob(job: InsuranceJob): void {
+  publish(INSURANCE_QUEUE, job as unknown as Record<string, unknown>);
+}
+
+export function publishPricingJob(job: PricingJob): void {
+  publish(PRICING_QUEUE, job as unknown as Record<string, unknown>);
+}
+
+export function publishDocGenJob(job: DocGenJob): void {
+  publish(DOCGEN_QUEUE, job as unknown as Record<string, unknown>);
+}
+
+export function publishBillingJob(job: BillingJob): void {
+  publish(BILLING_QUEUE, job as unknown as Record<string, unknown>);
 }
 
 export function publishExceptionJob(job: ExceptionJob): void {
-  setImmediate(() => { emitter.emit(EXCEPTION_QUEUE, job); });
+  publish(EXCEPTION_QUEUE, job as unknown as Record<string, unknown>);
 }
 
 export function publishTradeLaneJob(job: TradeLaneJob): void {
-  setImmediate(() => { emitter.emit(TRADE_LANE_QUEUE, job); });
+  publish(TRADE_LANE_QUEUE, job as unknown as Record<string, unknown>);
 }
 
 export function publishClaimsJob(job: ClaimsJob): void {
-  setImmediate(() => { emitter.emit(CLAIMS_QUEUE, job); });
+  publish(CLAIMS_QUEUE, job as unknown as Record<string, unknown>);
 }
 
 export function publishM4Jobs(companyId: string, shipmentId: string): void {
@@ -302,8 +391,9 @@ export function publishM4Jobs(companyId: string, shipmentId: string): void {
   publishInsuranceJob({ companyId, shipmentId, trigger: "shipment_created" });
 }
 
-export function getQueueStats(): Record<string, number> {
+export function getQueueStats(): Record<string, number | string> {
   return {
+    backend: useSqs ? "sqs" : "event-emitter",
     extractionListeners: emitter.listenerCount(EXTRACTION_QUEUE),
     pipelineListeners: emitter.listenerCount(PIPELINE_QUEUE),
     complianceListeners: emitter.listenerCount(COMPLIANCE_QUEUE),

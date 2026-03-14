@@ -67,7 +67,7 @@ Explain why this coverage type is appropriate and list applicable exclusions. Re
     system: SYSTEM_PROMPT,
   });
 
-  const textBlock = response.content.find((b) => b.type === "text");
+  const textBlock = response.content.find((b: any) => b.type === "text");
   const raw = textBlock?.text || '{"coverageRationale":"","exclusions":[]}';
 
   return {

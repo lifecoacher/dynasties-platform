@@ -5,16 +5,13 @@ import { eq } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import bcrypt from "bcryptjs";
 import { signToken, requireAuth } from "../middlewares/auth.js";
+import { validateBody } from "../middlewares/validate.js";
+import { loginSchema } from "../schemas/index.js";
 
 const router: IRouter = Router();
 
-router.post("/auth/login", async (req, res) => {
-  const { email, password } = req.body as { email?: string; password?: string };
-
-  if (!email || !password) {
-    res.status(400).json({ error: "Email and password are required" });
-    return;
-  }
+router.post("/auth/login", validateBody(loginSchema), async (req, res) => {
+  const { email, password } = req.body;
 
   const [user] = await db
     .select()

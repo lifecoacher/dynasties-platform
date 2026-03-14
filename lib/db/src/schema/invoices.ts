@@ -1,4 +1,4 @@
-import { pgTable, text, real, integer, jsonb, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, text, real, numeric, integer, jsonb, timestamp, index } from "drizzle-orm/pg-core";
 import { companiesTable } from "./companies";
 import { shipmentsTable } from "./shipments";
 
@@ -17,9 +17,9 @@ export const invoicesTable = pgTable(
       enum: ["DRAFT", "ISSUED", "SENT", "PAID", "CANCELLED", "OVERDUE"],
     }).notNull(),
     billToEntityId: text("bill_to_entity_id"),
-    subtotal: real("subtotal").notNull(),
-    taxTotal: real("tax_total").notNull().default(0),
-    grandTotal: real("grand_total").notNull(),
+    subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
+    taxTotal: numeric("tax_total", { precision: 12, scale: 2 }).notNull().default("0"),
+    grandTotal: numeric("grand_total", { precision: 12, scale: 2 }).notNull(),
     currency: text("currency").notNull().default("USD"),
     lineItems: jsonb("line_items").notNull(),
     dueDate: timestamp("due_date"),

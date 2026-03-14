@@ -1,4 +1,4 @@
-import { pgTable, text, real, jsonb, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, text, real, numeric, jsonb, timestamp, index } from "drizzle-orm/pg-core";
 import { companiesTable } from "./companies";
 
 export const rateTablesTable = pgTable(
@@ -14,7 +14,7 @@ export const rateTablesTable = pgTable(
     containerType: text("container_type"),
     chargeCode: text("charge_code").notNull(),
     description: text("description").notNull(),
-    unitPrice: real("unit_price").notNull(),
+    unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
     currency: text("currency").notNull().default("USD"),
     validFrom: timestamp("valid_from"),
     validTo: timestamp("valid_to"),

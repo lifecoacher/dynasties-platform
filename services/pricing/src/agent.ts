@@ -44,6 +44,6 @@ export async function runPricingAgent(shipmentContext: string): Promise<{ raw: s
     ],
   });
 
-  const textBlock = response.content.find((b) => b.type === "text");
+  const textBlock = response.content.find((b: any) => b.type === "text");
   return { raw: textBlock?.text || "{}" };
 }

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, index, real, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, index, real, numeric, integer } from "drizzle-orm/pg-core";
 import { companiesTable } from "./companies";
 
 export const tradeLaneStatsTable = pgTable(
@@ -12,9 +12,9 @@ export const tradeLaneStatsTable = pgTable(
     destination: text("destination").notNull(),
     carrier: text("carrier"),
     shipmentCount: integer("shipment_count").notNull().default(0),
-    avgCost: real("avg_cost"),
-    minCost: real("min_cost"),
-    maxCost: real("max_cost"),
+    avgCost: numeric("avg_cost", { precision: 12, scale: 2 }),
+    minCost: numeric("min_cost", { precision: 12, scale: 2 }),
+    maxCost: numeric("max_cost", { precision: 12, scale: 2 }),
     avgTransitDays: real("avg_transit_days"),
     delayCount: integer("delay_count").notNull().default(0),
     delayFrequency: real("delay_frequency"),

@@ -6,7 +6,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1008.0"
+  },
   "devDependencies": {
     "@types/node": "catalog:"
   }

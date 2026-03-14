@@ -48,7 +48,7 @@ export async function runTradeLaneUpdate(
     .from(shipmentChargesTable)
     .where(eq(shipmentChargesTable.shipmentId, shipmentId));
 
-  const totalCost = charges.reduce((sum, c) => sum + c.totalAmount, 0);
+  const totalCost = charges.reduce((sum: any, c: any) => sum + c.totalAmount, 0);
 
   const docs = await db
     .select()
@@ -68,7 +68,7 @@ export async function runTradeLaneUpdate(
     );
 
   const laneShipments = allLaneShipments.filter(
-    (s) =>
+    (s: any) =>
       (s.portOfLoading || "").toUpperCase().trim() === origin &&
       (s.portOfDischarge || "").toUpperCase().trim() === destination,
   );
@@ -85,7 +85,7 @@ export async function runTradeLaneUpdate(
       .from(shipmentChargesTable)
       .where(eq(shipmentChargesTable.shipmentId, ls.id));
 
-    const cost = lsCharges.reduce((sum, c) => sum + c.totalAmount, 0);
+    const cost = lsCharges.reduce((sum: any, c: any) => sum + c.totalAmount, 0);
     if (cost > 0) laneCosts.push(cost);
 
     if (ls.etd && ls.eta) {

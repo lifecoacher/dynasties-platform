@@ -3,8 +3,10 @@ import {
   text,
   timestamp,
   real,
+  numeric,
   jsonb,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { companiesTable } from "./companies";
 import { shipmentsTable } from "./shipments";
@@ -22,8 +24,8 @@ export const insuranceQuotesTable = pgTable(
     coverageType: text("coverage_type", {
       enum: ["ALL_RISK", "NAMED_PERILS", "TOTAL_LOSS"],
     }).notNull(),
-    estimatedInsuredValue: real("estimated_insured_value").notNull(),
-    estimatedPremium: real("estimated_premium").notNull(),
+    estimatedInsuredValue: numeric("estimated_insured_value", { precision: 12, scale: 2 }).notNull(),
+    estimatedPremium: numeric("estimated_premium", { precision: 12, scale: 2 }).notNull(),
     currency: text("currency").notNull().default("USD"),
     coverageRationale: text("coverage_rationale").notNull(),
     exclusions: jsonb("exclusions")
@@ -36,7 +38,7 @@ export const insuranceQuotesTable = pgTable(
   },
   (table) => [
     index("insurance_quotes_company_id_idx").on(table.companyId),
-    index("insurance_quotes_shipment_id_idx").on(table.shipmentId),
+    uniqueIndex("insurance_quotes_shipment_id_uniq").on(table.shipmentId),
   ],
 );
 
