@@ -5,11 +5,43 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const registerSchema = z.object({
+  companyName: z.string().min(1).max(255),
+  industry: z.string().max(100).optional(),
+  country: z.string().max(100).optional(),
+  tradeLanes: z.array(z.string()).optional(),
+  contactPhone: z.string().max(50).optional(),
+  name: z.string().min(1).max(255),
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+export const inviteUserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1).max(255),
+  role: z.enum(["ADMIN", "MANAGER", "OPERATOR", "VIEWER"]),
+});
+
 export const createCompanySchema = z.object({
   name: z.string().min(1).max(255),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
   contactEmail: z.string().email().optional(),
+  industry: z.string().max(100).optional(),
+  country: z.string().max(100).optional(),
+  tradeLanes: z.array(z.string()).optional(),
+  contactPhone: z.string().max(50).optional(),
   sesEmailAddress: z.string().email().optional(),
+});
+
+export const customerImportRowSchema = z.object({
+  customerName: z.string().min(1).max(255),
+  companyName: z.string().max(255).optional(),
+  email: z.string().email().optional(),
+  phone: z.string().max(50).optional(),
+  country: z.string().max(100).optional(),
+  address: z.string().max(500).optional(),
+  city: z.string().max(100).optional(),
+  taxId: z.string().max(100).optional(),
 });
 
 export const createUserSchema = z.object({

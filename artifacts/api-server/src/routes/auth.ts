@@ -1,14 +1,107 @@
 import { Router, type IRouter } from "express";
-import { db } from "@workspace/db";
-import { usersTable, companiesTable } from "@workspace/db/schema";
+import { db, type DbTransaction } from "@workspace/db";
+import { usersTable, companiesTable, eventsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import bcrypt from "bcryptjs";
 import { signToken, requireAuth } from "../middlewares/auth.js";
 import { validateBody } from "../middlewares/validate.js";
-import { loginSchema } from "../schemas/index.js";
+import { loginSchema, registerSchema } from "../schemas/index.js";
 
 const router: IRouter = Router();
+
+router.post("/auth/register", validateBody(registerSchema), async (req, res) => {
+  try {
+    const { companyName, industry, country, tradeLanes, contactPhone, name, email, password } = req.body;
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const [existingUser] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.email, normalizedEmail))
+      .limit(1);
+
+    if (existingUser) {
+      res.status(409).json({ error: "An account with this email already exists" });
+      return;
+    }
+
+    const slug = companyName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 100);
+
+    const [existingCompany] = await db
+      .select({ id: companiesTable.id })
+      .from(companiesTable)
+      .where(eq(companiesTable.slug, slug))
+      .limit(1);
+
+    if (existingCompany) {
+      res.status(409).json({ error: "An organization with a similar name already exists" });
+      return;
+    }
+
+    const companyId = generateId();
+    const userId = generateId();
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await db.transaction(async (tx: DbTransaction) => {
+      await tx.insert(companiesTable).values({
+        id: companyId,
+        name: companyName,
+        slug,
+        industry: industry || null,
+        country: country || null,
+        tradeLanes: tradeLanes || null,
+        contactEmail: normalizedEmail,
+        contactPhone: contactPhone || null,
+        settings: {},
+      });
+
+      await tx.insert(usersTable).values({
+        id: userId,
+        companyId,
+        email: normalizedEmail,
+        name,
+        passwordHash,
+        role: "ADMIN",
+        isActive: true,
+      });
+
+      await tx.insert(eventsTable).values({
+        id: generateId(),
+        companyId,
+        eventType: "COMPANY_CREATED",
+        entityType: "company",
+        entityId: companyId,
+        actorType: "USER",
+        userId,
+        metadata: { name: companyName, industry, country },
+      });
+    });
+
+    const token = signToken({
+      userId,
+      companyId,
+      email: normalizedEmail,
+      role: "ADMIN",
+    });
+
+    res.status(201).json({
+      data: {
+        token,
+        user: { id: userId, email: normalizedEmail, name, role: "ADMIN", companyId },
+        company: { id: companyId, name: companyName, slug },
+      },
+    });
+  } catch (err) {
+    console.error("[auth/register] error:", err);
+    res.status(500).json({ error: "Registration failed" });
+  }
+});
 
 router.post("/auth/login", validateBody(loginSchema), async (req, res) => {
   const { email, password } = req.body;

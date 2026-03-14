@@ -1,0 +1,127 @@
+Perform a customer onboarding and ingestion readiness implementation pass for the Dynasties platform.
+
+The goal is to make the system fully demoable for a prospective client or customer by supporting:
+
+1. tenant/company setup
+2. user account creation or invitation
+3. customer/contact list import
+4. tenant-scoped email ingestion testing
+5. first-run workflow from onboarding through shipment processing
+
+Do NOT redesign the platform.
+Do NOT change infrastructure architecture unless required for demo functionality.
+Work inside the existing codebase and tenant model.
+
+Implement the following in one coherent pass.
+
+==================================================
+A. TENANT / ACCOUNT SETUP
+==================================================
+
+Ensure the platform supports creation of a new tenant/company for demo purposes.
+
+Minimum requirements:
+- create company/tenant record
+- create primary admin user for that tenant
+- ensure all imported data and shipments are scoped to companyId
+- provide a clean starter workspace for the new tenant
+
+If a self-serve signup flow already exists, verify and wire it cleanly.
+If it does not exist, implement a minimal demo-safe admin onboarding flow.
+
+==================================================
+B. USER CREATION / INVITE FLOW
+==================================================
+
+Ensure the platform supports at least one usable way to add users to a tenant.
+
+Acceptable options:
+- create user directly
+- invite user by email
+- demo-seeded login for the tenant
+
+Return exactly what is supported and how it works.
+
+==================================================
+C. CUSTOMER / CONTACT IMPORT
+==================================================
+
+Implement a tenant-scoped customer/contact import flow using CSV.
+
+Requirements:
+- upload CSV
+- preview imported rows before save
+- map basic fields
+- detect duplicates by email and/or company name
+- import into a tenant-scoped contacts/customers table or equivalent
+- make imported contacts visible in the UI
+
+Minimum fields to support:
+- company name
+- contact name
+- email
+- type/role
+- country
+- notes or tags
+
+If a customer/entity model already exists, reuse it instead of creating redundant structures.
+
+==================================================
+D. TENANT-SCOPED EMAIL INGESTION READINESS
+==================================================
+
+Make it possible to demonstrate email ingestion for a newly created tenant.
+
+Support one or more of the following:
+- upload .eml file into a tenant
+- trigger demo email ingestion into a tenant
+- tenant-specific inbound email address or simulation
+
+Requirements:
+- email/document ingestion must attach to the correct companyId
+- processed shipments must appear only in that tenant’s workspace
+- no cross-tenant leakage
+
+==================================================
+E. FIRST-RUN DEMO FLOW
+==================================================
+
+Create a clear first-run flow that can be demonstrated as:
+
+1. create tenant
+2. create/admin access user
+3. import customer/contact CSV
+4. verify imported contacts appear in the workspace
+5. ingest sample shipment email into that tenant
+6. show resulting shipment through extraction, compliance, risk, insurance, and trace
+
+If helpful, add a demo-safe onboarding page or admin utility page for this flow.
+
+==================================================
+F. DEMO DATA / SAFETY
+==================================================
+
+Provide:
+- a sample CSV for customer/contact import
+- a sample .eml shipment file or triggerable demo email for ingestion
+- seeded demo tenant/user if useful
+
+Do not use destructive reset behavior.
+Do not disturb the existing verified demo dataset unless isolated into a separate demo tenant.
+
+==================================================
+G. FINAL OUTPUT
+==================================================
+
+After implementation, return:
+
+1. what was added
+2. where the tenant/account creation flow lives
+3. where the CSV import flow lives
+4. where email ingestion for a tenant is triggered
+5. exact demo steps for showing:
+   - account creation
+   - contact import
+   - shipment email ingestion
+   - resulting shipment lifecycle
+6. any limitations that still remain

@@ -11,9 +11,11 @@
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
     "generate": "drizzle-kit generate --config ./drizzle.config.ts",
-    "migrate": "drizzle-kit migrate --config ./drizzle.config.ts"
+    "migrate": "drizzle-kit migrate --config ./drizzle.config.ts",
+    "seed": "npx tsx src/seed.ts"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "drizzle-orm": "catalog:",
     "drizzle-zod": "^0.8.3",
     "pg": "^8.20.0",
