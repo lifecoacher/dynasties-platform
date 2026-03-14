@@ -23,7 +23,7 @@ The project includes a React-based Operator Workbench UI (`workbench/`) for mana
 - Risk thresholds: <30 = Low (emerald), 30-60 = Medium (amber), ≥60 = High (red).
 - Drizzle `numeric` columns return strings — all API responses cast with `Number()` before sending.
 - All shipment references use DYN-2026-XXXXX format.
-- 5 canonical demo shipments: DYN-2026-00138 (APPROVED), DYN-2026-00147 (DRAFT), DYN-2026-00152 (PENDING_REVIEW), DYN-2026-00201 (DRAFT), DYN-2026-00202 (DRAFT).
+- 20 demo shipments across 5 companies. Dynasties Global: DYN-2026-*, Pacific Rim: PRT-2026-*, EuroFreight: EFS-2026-*, Atlas: ATL-2026-*, Mumbai Maritime: MMS-2026-*.
 - Formatting helpers centralized in `artifacts/workbench/src/lib/format.ts`.
 
 **Frontend Routes:**
@@ -60,6 +60,9 @@ The project includes a React-based Operator Workbench UI (`workbench/`) for mana
 - **JWT Secret:** `JWT_SECRET` env var, minimum 32 characters, validated at startup via Zod.
 - **JWT Role Refresh:** `refreshRole` middleware fetches live role from DB on each request and handles deactivated users.
 - **Seed Admin:** `admin@dynasties.io` / `DynastiesAdmin2026!` in `cmp_seed_001`.
+- **Registration:** `POST /api/auth/register` — creates company + admin user in one step (no auth required). Auto-generates slug from company name.
+- **Team Invite:** `POST /api/admin/invite` — admin invites team member with auto-generated temporary password.
+- **All demo users** share password `DynastiesDemo2026!` (5 companies, 11 users total).
 
 **Security & Rate Limiting:**
 - **Rate Limiting:** `express-rate-limit` — `loginLimiter` (15 requests/15min on auth), `apiLimiter` (200 requests/60s global).
@@ -87,6 +90,8 @@ The system processes various stages of freight forwarding, including:
 - **Exception Management:** Automated detection of 6 exception types (extraction failures, document conflicts, compliance alerts, high risk, missing documents, billing discrepancies) with AI agent classification and severity assessment. Triggered after billing completion.
 - **Trade Lane Intelligence:** Aggregation of shipment statistics per origin-destination lane with AI advisory on cost ranges, transit times, delay probability, and seasonal factors. Triggered after billing completion.
 - **Claims Management:** On-demand claim preparation with AI agent for claim narrative generation, coverage analysis, and submission recommendations. Initiated via API.
+- **Customer Import:** `POST /api/customers/import` — batch import up to 500 customers via JSON rows (CSV/Excel parsing done client-side). Creates CUSTOMER entities. `GET /api/customers` lists customers for the current company.
+- **Reference Data:** Public endpoints at `GET /api/reference/{hs-codes|ports|container-types|currencies|countries|incoterms}` with search support (?q=). No auth required. Seeded with 50 HS codes, 50 ports, 12 container types, 24 currencies, 40 countries, 11 incoterms.
 
 **System Design Choices:**
 - **Modular Services:** The architecture is broken down into distinct services (e.g., `email-ingestion`, `document-extraction`, `entity-resolution`) to promote separation of concerns and scalability.

@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 import { requireAuth, requireRole, refreshRole } from "../middlewares/auth.js";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { validateBody } from "../middlewares/validate.js";
-import { createCompanySchema, createUserSchema } from "../schemas/index.js";
+import { createCompanySchema, createUserSchema, inviteUserSchema } from "../schemas/index.js";
 
 const router: IRouter = Router();
 
@@ -138,6 +138,63 @@ router.post("/admin/users", ...adminGuard, validateBody(createUserSchema), async
       role,
       companyId,
       isActive: true,
+    },
+  });
+});
+
+router.post("/admin/invite", ...adminGuard, validateBody(inviteUserSchema), async (req, res) => {
+  const { email, name, role } = req.body;
+  const companyId = getCompanyId(req);
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const [existing] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.email, normalizedEmail))
+    .limit(1);
+
+  if (existing) {
+    res.status(409).json({ error: "User with this email already exists" });
+    return;
+  }
+
+  const crypto = await import("node:crypto");
+  const tempPassword = `Dyn-${crypto.randomBytes(8).toString("base64url")}!`;
+  const passwordHash = await bcrypt.hash(tempPassword, 12);
+  const userId = generateId();
+
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.insert(usersTable).values({
+      id: userId,
+      companyId,
+      email: normalizedEmail,
+      name,
+      passwordHash,
+      role: role as "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER",
+      isActive: true,
+    });
+
+    await tx.insert(eventsTable).values({
+      id: generateId(),
+      companyId,
+      eventType: "USER_INVITED",
+      entityType: "user",
+      entityId: userId,
+      actorType: "USER",
+      userId: req.user!.userId,
+      metadata: { email: normalizedEmail, role },
+    });
+  });
+
+  res.status(201).json({
+    data: {
+      id: userId,
+      email: normalizedEmail,
+      name,
+      role,
+      companyId,
+      temporaryPassword: tempPassword,
+      message: "User invited. Share the temporary password with them securely.",
     },
   });
 });

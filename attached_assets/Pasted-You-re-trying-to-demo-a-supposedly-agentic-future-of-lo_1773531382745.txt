@@ -1,0 +1,247 @@
+You’re trying to demo a supposedly “agentic future of logistics,” yet the interface still behaves like a 2014 SaaS dashboard. Spectacular strategy if the goal is to impress absolutely nobody.
+
+Fix the foundation first. If the UI is rebuilt before the system can ingest users, customers, and shipments, you’ll end up polishing a very pretty empty box.
+
+Order of operations:
+	1.	Infrastructure completion
+	2.	Agent pipeline completion
+	3.	Account + ingestion
+	4.	Demo data
+	5.	UI redesign
+
+The UI comes last, once the system actually works end-to-end.
+
+The prompt below instructs Replit to finish the entire demo infrastructure, including account creation, data ingestion, shipment simulation, agent orchestration, and demo readiness.
+
+Give this to Replit.
+
+⸻
+
+You are the lead systems engineer and product architect responsible for preparing the Dynasties platform for a full investor and customer demonstration.
+
+Your objective is to ensure the system is fully demoable end-to-end before any UI redesign occurs.
+
+The demo must simulate a real logistics workflow from account creation through shipment completion, with the AI agents operating visibly within the pipeline.
+
+Follow these steps precisely.
+
+⸻
+
+PHASE 1 — ACCOUNT SYSTEM
+
+Implement a full multi-tenant account system.
+
+Capabilities required:
+
+User registration
+User authentication
+Organization creation
+Team member invitations
+Role permissions (Admin / Operator / Viewer)
+
+Required fields for organizations:
+
+Company Name
+Industry
+Country
+Primary Trade Lanes
+Contact Email
+Contact Phone
+
+Persist organizations and users in the main database.
+
+Every shipment, document, customer, and workflow must belong to an organization.
+
+⸻
+
+PHASE 2 — CUSTOMER DATA IMPORT
+
+Create a customer import system so a demo user can upload their customer list.
+
+Supported formats:
+
+CSV
+Excel
+
+Fields supported:
+
+Customer Name
+Company Name
+Email
+Phone
+Country
+Address
+
+After upload:
+
+Store customers in the database
+Link them to the organization
+Enable them to be referenced in shipments
+
+⸻
+
+PHASE 3 — EMAIL INGESTION SYSTEM
+
+Implement the email ingestion pipeline.
+
+Capabilities:
+
+Upload email samples
+Forward email into the system
+Paste raw email content
+
+The system must trigger the email-ingestion agent.
+
+Expected output:
+
+Extracted shipment details
+Identified entities
+Linked customer
+Shipment draft
+
+⸻
+
+PHASE 4 — GLOBAL TRADE DATA FOUNDATION
+
+Create the datasets required to simulate real shipments.
+
+Datasets must include:
+
+HS Codes
+Port codes (UN/LOCODE)
+Airports (IATA)
+Countries
+Currencies
+Trade lanes
+Container types
+
+Store these in database tables so agents can reference them.
+
+⸻
+
+PHASE 5 — SHIPMENT CREATION
+
+Allow shipments to be created through:
+
+Manual entry
+Email ingestion
+API simulation
+
+Shipment fields:
+
+Shipper
+Consignee
+Origin Port
+Destination Port
+Cargo Description
+HS Code
+Weight
+Container Type
+Incoterms
+Insurance Requested
+
+⸻
+
+PHASE 6 — AGENT PIPELINE
+
+Ensure the following agents exist and can execute in sequence:
+
+email-ingestion
+document-extraction
+entity-resolution
+shipment-construction
+compliance-screening
+risk-intelligence
+insurance
+pricing
+document-generation
+billing
+exception-management
+trade-lane-intelligence
+claims-management
+workflow-orchestrator
+agent-worker
+
+Each agent must:
+
+Receive structured input
+Produce structured output
+Log execution results
+
+⸻
+
+PHASE 7 — AGENT VISIBILITY
+
+Create an agent activity stream.
+
+When a shipment is processed the system must display:
+
+Agent name
+Start time
+Completion time
+Result summary
+
+This will allow observers to see the agentic workflow during the demo.
+
+⸻
+
+PHASE 8 — DEMO SHIPMENT PIPELINE
+
+Create a simulated shipment that runs through the entire system.
+
+Steps:
+
+Email ingestion
+Shipment creation
+Compliance check
+Risk scoring
+Insurance quote
+Pricing calculation
+Document generation
+Invoice creation
+
+⸻
+
+PHASE 9 — DEMO DATA SEEDING
+
+Automatically seed the system with demo data:
+
+5 organizations
+50 customers
+20 shipments
+10 example emails
+Sample documents
+
+⸻
+
+PHASE 10 — SYSTEM VERIFICATION
+
+Run a complete verification of the platform.
+
+Confirm:
+
+Account creation works
+Customer import works
+Email ingestion works
+Shipment creation works
+Agents execute correctly
+Agent pipeline completes successfully
+Shipment workflow completes end-to-end
+
+⸻
+
+OUTPUT REQUIRED
+
+Return a full report containing:
+	1.	Account system status
+	2.	Customer import status
+	3.	Email ingestion status
+	4.	Shipment creation status
+	5.	Global trade data readiness
+	6.	Agent pipeline verification
+	7.	Demo shipment results
+	8.	Missing components if any
+
+Do not redesign the UI in this step.
+
+Your sole objective is to make the Dynasties platform fully functional and demo-ready from a backend and workflow perspective.
