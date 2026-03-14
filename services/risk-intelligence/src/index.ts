@@ -91,32 +91,34 @@ export async function runRiskIntelligence(
 
   const riskScoreId = generateId();
 
-  await db.insert(riskScoresTable).values({
-    id: riskScoreId,
-    companyId,
-    shipmentId,
-    compositeScore: scoreResult.compositeScore,
-    subScores: scoreResult.subScores,
-    primaryRiskFactors: riskFactors,
-    recommendedAction: scoreResult.recommendedAction,
-    scoredAt: new Date(),
-  });
-
-  await db.insert(eventsTable).values({
-    actorType: "SERVICE",
-    id: generateId(),
-    companyId,
-    eventType: "RISK_SCORED",
-    entityType: "shipment",
-    entityId: shipmentId,
-    serviceId: "risk-intelligence",
-    metadata: {
-      riskScoreId,
+  await db.transaction(async (tx) => {
+    await tx.insert(riskScoresTable).values({
+      id: riskScoreId,
+      companyId,
+      shipmentId,
       compositeScore: scoreResult.compositeScore,
-      recommendedAction: scoreResult.recommendedAction,
       subScores: scoreResult.subScores,
-      factorCount: riskFactors.length,
-    },
+      primaryRiskFactors: riskFactors,
+      recommendedAction: scoreResult.recommendedAction,
+      scoredAt: new Date(),
+    });
+
+    await tx.insert(eventsTable).values({
+      actorType: "SERVICE",
+      id: generateId(),
+      companyId,
+      eventType: "RISK_SCORED",
+      entityType: "shipment",
+      entityId: shipmentId,
+      serviceId: "risk-intelligence",
+      metadata: {
+        riskScoreId,
+        compositeScore: scoreResult.compositeScore,
+        recommendedAction: scoreResult.recommendedAction,
+        subScores: scoreResult.subScores,
+        factorCount: riskFactors.length,
+      },
+    });
   });
 
   console.log(

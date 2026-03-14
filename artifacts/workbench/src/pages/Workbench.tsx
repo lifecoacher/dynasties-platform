@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useListShipments } from "@workspace/api-client-react";
 import { ShipmentCard } from "@/components/ShipmentCard";
-import { Ship, Filter, Search, Loader2 } from "lucide-react";
+import { Ship, Filter, Search, Loader2, Zap } from "lucide-react";
+import { Link } from "wouter";
 import { motion } from "framer-motion";
 
 type FilterTab = 'ALL' | 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
@@ -47,6 +48,13 @@ export default function Workbench() {
         </div>
         
         <div className="flex items-center gap-4 w-full md:w-auto">
+          <Link
+            href="/demo"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-semibold text-sm transition-all border border-primary/20 shrink-0"
+          >
+            <Zap className="w-4 h-4" />
+            Demo
+          </Link>
           <div className="relative flex-grow md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input 

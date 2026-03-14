@@ -207,6 +207,17 @@ export async function runExceptionDetection(
   }
 
   const createdTypes: string[] = [];
+  const exceptionRows: Array<{
+    id: string;
+    exceptionType: string;
+    severity: string;
+    title: string;
+    description: string;
+    impactSummary: string;
+    recommendedAction: string;
+    requiresEscalation: boolean;
+    agentClassification: Record<string, unknown> | null;
+  }> = [];
 
   for (const condition of conditions) {
     let agentClassification: Record<string, unknown> | null = null;
@@ -232,38 +243,54 @@ export async function runExceptionDetection(
       console.error(`[exceptions] agent failed for ${condition.type}:`, err);
     }
 
-    await db.insert(exceptionsTable).values({
+    exceptionRows.push({
       id: generateId(),
-      companyId,
-      shipmentId,
       exceptionType: condition.type,
-      severity: severity as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
-      status: "OPEN",
+      severity,
       title: condition.title,
       description: condition.description,
-      detectedBy: "exception-management",
       impactSummary,
       recommendedAction,
       requiresEscalation,
       agentClassification,
-      metadata: null,
     });
 
     createdTypes.push(condition.type);
   }
 
-  await db.insert(eventsTable).values({
-    actorType: "SERVICE",
-    id: generateId(),
-    companyId,
-    eventType: "EXCEPTION_DETECTED" as string,
-    entityType: "shipment",
-    entityId: shipmentId,
-    serviceId: "exception-management",
-    metadata: {
-      exceptionsFound: createdTypes.length,
-      types: createdTypes,
-    },
+  await db.transaction(async (tx) => {
+    for (const row of exceptionRows) {
+      await tx.insert(exceptionsTable).values({
+        id: row.id,
+        companyId,
+        shipmentId,
+        exceptionType: row.exceptionType,
+        severity: row.severity as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
+        status: "OPEN",
+        title: row.title,
+        description: row.description,
+        detectedBy: "exception-management",
+        impactSummary: row.impactSummary,
+        recommendedAction: row.recommendedAction,
+        requiresEscalation: row.requiresEscalation,
+        agentClassification: row.agentClassification,
+        metadata: null,
+      });
+    }
+
+    await tx.insert(eventsTable).values({
+      actorType: "SERVICE",
+      id: generateId(),
+      companyId,
+      eventType: "EXCEPTION_DETECTED" as string,
+      entityType: "shipment",
+      entityId: shipmentId,
+      serviceId: "exception-management",
+      metadata: {
+        exceptionsFound: createdTypes.length,
+        types: createdTypes,
+      },
+    });
   });
 
   console.log(`[exceptions] complete: shipment=${shipmentId} exceptions=${createdTypes.length} types=${createdTypes.join(",")}`);

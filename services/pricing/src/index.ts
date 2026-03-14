@@ -211,7 +211,7 @@ export async function runPricing(
       `Incoterms: ${shipment.incoterms || "Unknown"}`,
       `Shipper: ${shipper?.name || "Unknown"}`,
       `Consignee: ${consignee?.name || "Unknown"}`,
-      `Existing charges: ${charges.map((c) => `${c.chargeCode}: $${c.totalAmount}`).join(", ")}`,
+      `Existing charges: ${charges.map((c) => `${c.chargeCode}: $${Number(c.totalAmount)}`).join(", ")}`,
     ].join("\n");
 
     const agentResult = await runPricingAgent(context);

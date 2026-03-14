@@ -8,6 +8,13 @@
       "when": 1773505239606,
       "tag": "0000_neat_microchip",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773516027011,
+      "tag": "0001_fix-claims-estimated-loss",
+      "breakpoints": true
     }
   ]
 }

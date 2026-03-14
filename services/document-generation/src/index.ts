@@ -152,7 +152,7 @@ function generateArrivalNoticeContent(ctx: ShipmentContext): string {
 
   let totalCharges = 0;
   for (const charge of ctx.charges) {
-    const amount = charge.totalAmount as number;
+    const amount = Number(charge.totalAmount);
     totalCharges += amount;
     lines.push(
       `  ${charge.chargeCode}: ${charge.description} — ${formatCurrency(amount, charge.currency as string)}`,
@@ -202,7 +202,7 @@ function generateShipmentSummaryContent(ctx: ShipmentContext): string {
 
   let totalCharges = 0;
   for (const charge of ctx.charges) {
-    const amount = charge.totalAmount as number;
+    const amount = Number(charge.totalAmount);
     totalCharges += amount;
     lines.push(
       `  ${String(charge.chargeCode).padEnd(8)} ${String(charge.description).padEnd(35)} ${formatCurrency(amount, charge.currency as string)}`,

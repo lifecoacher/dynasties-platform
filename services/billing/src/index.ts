@@ -141,14 +141,14 @@ export async function runBilling(
     chargeCode: c.chargeCode,
     description: c.description,
     chargeType: c.chargeType,
-    quantity: c.quantity,
-    unitPrice: c.unitPrice,
+    quantity: Number(c.quantity),
+    unitPrice: Number(c.unitPrice),
     currency: c.currency,
-    totalAmount: c.totalAmount,
+    totalAmount: Number(c.totalAmount),
   }));
 
-  const subtotal = charges.reduce((sum: any, c: any) => sum + c.totalAmount, 0);
-  const taxTotal = charges.reduce((sum: any, c: any) => sum + (c.taxAmount || 0), 0);
+  const subtotal = charges.reduce((sum: number, c: any) => sum + Number(c.totalAmount), 0);
+  const taxTotal = charges.reduce((sum: number, c: any) => sum + Number(c.taxAmount || 0), 0);
   const grandTotal = subtotal + taxTotal;
 
   const invoiceNumber = generateInvoiceNumber();

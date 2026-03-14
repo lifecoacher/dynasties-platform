@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Workbench from "./pages/Workbench";
 import ShipmentDetail from "./pages/ShipmentDetail";
 import LoginPage from "./pages/LoginPage";
+import DemoControls from "./pages/DemoControls";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -27,6 +28,7 @@ function AuthenticatedRouter() {
     <Switch>
       <Route path="/" component={Workbench} />
       <Route path="/shipments/:id" component={ShipmentDetail} />
+      <Route path="/demo" component={DemoControls} />
       <Route component={NotFound} />
     </Switch>
   );
