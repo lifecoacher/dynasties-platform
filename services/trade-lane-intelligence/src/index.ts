@@ -196,6 +196,7 @@ export async function runTradeLaneUpdate(
   }
 
   await db.insert(eventsTable).values({
+    actorType: "SERVICE",
     id: generateId(),
     companyId,
     eventType: "TRADE_LANE_UPDATED" as string,

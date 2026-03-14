@@ -5,8 +5,35 @@
  * Dynasties API specification
  * OpenAPI spec version: 0.1.0
  */
+export type HealthStatusStatus =
+  (typeof HealthStatusStatus)[keyof typeof HealthStatusStatus];
+
+export const HealthStatusStatus = {
+  ok: "ok",
+  degraded: "degraded",
+} as const;
+
+export type HealthStatusChecks = {
+  [key: string]: {
+    status?: string;
+    latencyMs?: number;
+    error?: string | null;
+  };
+};
+
+export type HealthStatusMemory = {
+  rss?: number;
+  heapUsed?: number;
+  heapTotal?: number;
+};
+
 export interface HealthStatus {
-  status: string;
+  status: HealthStatusStatus;
+  timestamp?: string;
+  version?: string;
+  environment?: string;
+  checks?: HealthStatusChecks;
+  memory?: HealthStatusMemory;
 }
 
 export interface EntitySummary {
@@ -745,7 +772,6 @@ export interface ClaimCommunication {
 }
 
 export interface CreateRateTableEntry {
-  companyId: string;
   carrier: string;
   chargeCode: string;
   description: string;
@@ -756,6 +782,149 @@ export interface CreateRateTableEntry {
   validFrom?: string;
   validTo?: string;
 }
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export type LoginResponseUserRole =
+  (typeof LoginResponseUserRole)[keyof typeof LoginResponseUserRole];
+
+export const LoginResponseUserRole = {
+  ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
+  OPERATOR: "OPERATOR",
+  VIEWER: "VIEWER",
+} as const;
+
+export type LoginResponseUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: LoginResponseUserRole;
+  companyId: string;
+};
+
+export interface LoginResponse {
+  token: string;
+  user: LoginResponseUser;
+}
+
+export type UserProfileRole =
+  (typeof UserProfileRole)[keyof typeof UserProfileRole];
+
+export const UserProfileRole = {
+  ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
+  OPERATOR: "OPERATOR",
+  VIEWER: "VIEWER",
+} as const;
+
+export type UserProfileCompany = {
+  id: string;
+  name: string;
+  slug: string;
+} | null;
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: UserProfileRole;
+  companyId: string;
+  isActive: boolean;
+  lastLoginAt?: string | null;
+  createdAt: string;
+  company?: UserProfileCompany;
+}
+
+export type CompanySettings = { [key: string]: unknown };
+
+export interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  contactEmail?: string | null;
+  sesEmailAddress?: string | null;
+  settings?: CompanySettings;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateCompanyRequest {
+  name: string;
+  slug: string;
+  contactEmail?: string;
+  sesEmailAddress?: string;
+}
+
+export type UserSummaryRole =
+  (typeof UserSummaryRole)[keyof typeof UserSummaryRole];
+
+export const UserSummaryRole = {
+  ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
+  OPERATOR: "OPERATOR",
+  VIEWER: "VIEWER",
+} as const;
+
+export interface UserSummary {
+  id: string;
+  email: string;
+  name: string;
+  role: UserSummaryRole;
+  companyId: string;
+  isActive: boolean;
+  lastLoginAt?: string | null;
+  createdAt?: string;
+}
+
+export type CreateUserRequestRole =
+  (typeof CreateUserRequestRole)[keyof typeof CreateUserRequestRole];
+
+export const CreateUserRequestRole = {
+  ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
+  OPERATOR: "OPERATOR",
+  VIEWER: "VIEWER",
+} as const;
+
+export interface CreateUserRequest {
+  email: string;
+  name: string;
+  password: string;
+  role: CreateUserRequestRole;
+  companyId: string;
+}
+
+export type ReadinessCheck200 = {
+  status: string;
+};
+
+export type Login200 = {
+  data: LoginResponse;
+};
+
+export type GetMe200 = {
+  data: UserProfile;
+};
+
+export type ListCompanies200 = {
+  data: Company[];
+};
+
+export type CreateCompany201 = {
+  data: Company;
+};
+
+export type ListUsers200 = {
+  data: UserSummary[];
+};
+
+export type CreateUser201 = {
+  data: UserSummary;
+};
 
 export type ListShipments200 = {
   data: EnrichedShipment[];

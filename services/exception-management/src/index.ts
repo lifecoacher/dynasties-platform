@@ -194,6 +194,7 @@ export async function runExceptionDetection(
   if (conditions.length === 0) {
     console.log(`[exceptions] no exceptions detected for shipment=${shipmentId}`);
     await db.insert(eventsTable).values({
+    actorType: "SERVICE",
       id: generateId(),
       companyId,
       eventType: "EXCEPTIONS_SCANNED" as string,
@@ -252,6 +253,7 @@ export async function runExceptionDetection(
   }
 
   await db.insert(eventsTable).values({
+    actorType: "SERVICE",
     id: generateId(),
     companyId,
     eventType: "EXCEPTION_DETECTED" as string,

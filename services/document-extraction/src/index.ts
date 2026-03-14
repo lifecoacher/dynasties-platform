@@ -37,6 +37,7 @@ export async function processExtractionJob(job: ExtractionJob): Promise<void> {
         .where(eq(ingestedDocumentsTable.id, documentId));
 
       await db.insert(eventsTable).values({
+    actorType: "SERVICE",
         id: generateId(),
         companyId,
         eventType: "EXTRACTION_FAILED",
@@ -66,6 +67,7 @@ export async function processExtractionJob(job: ExtractionJob): Promise<void> {
         .where(eq(ingestedDocumentsTable.id, documentId));
 
       await db.insert(eventsTable).values({
+    actorType: "SERVICE",
         id: generateId(),
         companyId,
         eventType: "AGENT_VALIDATION_FAILURE",
@@ -92,6 +94,7 @@ export async function processExtractionJob(job: ExtractionJob): Promise<void> {
       .where(eq(ingestedDocumentsTable.id, documentId));
 
     await db.insert(eventsTable).values({
+    actorType: "SERVICE",
       id: generateId(),
       companyId,
       eventType: "EXTRACTION_COMPLETED",
@@ -126,6 +129,7 @@ export async function processExtractionJob(job: ExtractionJob): Promise<void> {
       .where(eq(ingestedDocumentsTable.id, documentId));
 
     await db.insert(eventsTable).values({
+    actorType: "SERVICE",
       id: generateId(),
       companyId,
       eventType: "EXTRACTION_FAILED",

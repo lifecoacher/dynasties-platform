@@ -1,11 +1,12 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { ingestedDocumentsTable, ingestedEmailsTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { storeFile } from "@workspace/storage";
 import { publishExtractionJob } from "@workspace/queue";
 import { generateId, classifyDocumentType } from "@workspace/shared-utils";
 import multer from "multer";
+import { getCompanyId } from "../middlewares/tenant.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -14,21 +15,24 @@ const upload = multer({
 
 const router: IRouter = Router();
 
-router.get("/documents", async (_req, res) => {
+router.get("/documents", async (req, res) => {
+  const companyId = getCompanyId(req);
   const documents = await db
     .select()
     .from(ingestedDocumentsTable)
+    .where(eq(ingestedDocumentsTable.companyId, companyId))
     .orderBy(ingestedDocumentsTable.createdAt)
     .limit(50);
   res.json({ data: documents });
 });
 
 router.get("/documents/:id", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const [doc] = await db
     .select()
     .from(ingestedDocumentsTable)
-    .where(eq(ingestedDocumentsTable.id, id))
+    .where(and(eq(ingestedDocumentsTable.id, id), eq(ingestedDocumentsTable.companyId, companyId)))
     .limit(1);
 
   if (!doc) {
@@ -46,12 +50,7 @@ router.post("/documents/upload", upload.single("file"), async (req, res) => {
       return;
     }
 
-    const companyId = (req.body as Record<string, string>).companyId;
-    if (!companyId || typeof companyId !== "string" || companyId.length > 30) {
-      res.status(400).json({ error: "companyId is required and must be a valid ID." });
-      return;
-    }
-
+    const companyId = getCompanyId(req);
     const docId = generateId();
     const fileName = file.originalname || `upload_${docId}`;
     const mimeType = file.mimetype || "application/octet-stream";
@@ -94,10 +93,12 @@ router.post("/documents/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-router.get("/emails", async (_req, res) => {
+router.get("/emails", async (req, res) => {
+  const companyId = getCompanyId(req);
   const emails = await db
     .select()
     .from(ingestedEmailsTable)
+    .where(eq(ingestedEmailsTable.companyId, companyId))
     .orderBy(ingestedEmailsTable.createdAt)
     .limit(50);
   res.json({ data: emails });
@@ -111,12 +112,7 @@ router.post("/emails/ingest", upload.single("email"), async (req, res) => {
       return;
     }
 
-    const companyId = (req.body as Record<string, string>).companyId;
-    if (!companyId || typeof companyId !== "string" || companyId.length > 30) {
-      res.status(400).json({ error: "companyId is required and must be a valid ID." });
-      return;
-    }
-
+    const companyId = getCompanyId(req);
     const { ingestEmail } = await import("@workspace/svc-email-ingestion");
     const result = await ingestEmail(file.buffer, companyId);
 

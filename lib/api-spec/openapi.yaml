@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: admin
+    description: Admin operations (ADMIN role required)
   - name: shipments
     description: Shipment operations
   - name: entities
@@ -24,12 +28,17 @@ tags:
     description: Trade lane intelligence operations
   - name: claims
     description: Claims management operations
+
+security:
+  - bearerAuth: []
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
+      security: []
       description: Returns server health status
       responses:
         "200":
@@ -38,6 +47,155 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /healthz/ready:
+    get:
+      operationId: readinessCheck
+      tags: [health]
+      summary: Readiness probe
+      security: []
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                required:
+                  - status
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Authenticate user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LoginResponse"
+                required:
+                  - data
+        "401":
+          description: Invalid credentials
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/UserProfile"
+                required:
+                  - data
+        "401":
+          description: Not authenticated
+  /admin/companies:
+    get:
+      operationId: listCompanies
+      tags: [admin]
+      summary: List all companies (ADMIN only)
+      responses:
+        "200":
+          description: List of companies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Company"
+                required:
+                  - data
+    post:
+      operationId: createCompany
+      tags: [admin]
+      summary: Create a new company (ADMIN only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompanyRequest"
+      responses:
+        "201":
+          description: Company created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Company"
+                required:
+                  - data
+        "409":
+          description: Slug already exists
+  /admin/users:
+    get:
+      operationId: listUsers
+      tags: [admin]
+      summary: List all users (ADMIN only)
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserSummary"
+                required:
+                  - data
+    post:
+      operationId: createUser
+      tags: [admin]
+      summary: Create a new user (ADMIN only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/UserSummary"
+                required:
+                  - data
+        "409":
+          description: Email already exists
   /shipments:
     get:
       operationId: listShipments
@@ -856,12 +1014,46 @@ paths:
                 required:
                   - data
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
+          enum: [ok, degraded]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        environment:
+          type: string
+        checks:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+              latencyMs:
+                type: number
+              error:
+                type: string
+                nullable: true
+        memory:
+          type: object
+          properties:
+            rss:
+              type: number
+            heapUsed:
+              type: number
+            heapTotal:
+              type: number
       required:
         - status
     EntitySummary:
@@ -1952,8 +2144,6 @@ components:
     CreateRateTableEntry:
       type: object
       properties:
-        companyId:
-          type: string
         carrier:
           type: string
         chargeCode:
@@ -1975,10 +2165,186 @@ components:
           type: string
           format: date-time
       required:
-        - companyId
         - carrier
         - chargeCode
         - description
         - origin
         - destination
         - unitPrice
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+            name:
+              type: string
+            role:
+              type: string
+              enum: [ADMIN, MANAGER, OPERATOR, VIEWER]
+            companyId:
+              type: string
+          required:
+            - id
+            - email
+            - name
+            - role
+            - companyId
+      required:
+        - token
+        - user
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, MANAGER, OPERATOR, VIEWER]
+        companyId:
+          type: string
+        isActive:
+          type: boolean
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        company:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            slug:
+              type: string
+          required:
+            - id
+            - name
+            - slug
+      required:
+        - id
+        - email
+        - name
+        - role
+        - companyId
+        - isActive
+        - createdAt
+    Company:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        contactEmail:
+          type: string
+          nullable: true
+        sesEmailAddress:
+          type: string
+          nullable: true
+        settings:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - createdAt
+    CreateCompanyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        contactEmail:
+          type: string
+        sesEmailAddress:
+          type: string
+      required:
+        - name
+        - slug
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, MANAGER, OPERATOR, VIEWER]
+        companyId:
+          type: string
+        isActive:
+          type: boolean
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - name
+        - role
+        - companyId
+        - isActive
+    CreateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, MANAGER, OPERATOR, VIEWER]
+        companyId:
+          type: string
+      required:
+        - email
+        - name
+        - password
+        - role
+        - companyId

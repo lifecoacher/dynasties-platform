@@ -263,6 +263,7 @@ export async function runPricing(
   }
 
   await db.insert(eventsTable).values({
+    actorType: "SERVICE",
     id: generateId(),
     companyId,
     eventType: "CHARGES_CALCULATED" as string,

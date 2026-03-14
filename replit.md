@@ -26,8 +26,22 @@ The project includes a React-based Operator Workbench UI (`workbench/`) for mana
 - **Build System:** esbuild for CJS bundling.
 - **Logging:** pino for efficient logging.
 - **ID Generation:** ULID for unique identifiers across the system.
-- **Multi-tenancy:** All database tables include `company_id`.
+- **Multi-tenancy:** All database tables include `company_id`. All route handlers scope queries by `companyId` from JWT claims via `getCompanyId(req)`.
 - **API:** All routes are exposed under `/api` and defined via OpenAPI specification, from which React Query hooks and Zod schemas are generated.
+
+**Authentication & Authorization:**
+- **JWT Auth:** Bearer token auth via `Authorization` header. Tokens include `userId`, `companyId`, `email`, `role`.
+- **Password Hashing:** bcryptjs with 12 rounds.
+- **Roles:** ADMIN (level 4), MANAGER (level 3), OPERATOR (level 2), VIEWER (level 1).
+- **Middleware Chain:** `requireAuth` → `requireTenant` → route handlers. Health and auth routes are public.
+- **Role Guards:** `requireRole(...roles)` for exact role match, `requireMinRole(role)` for hierarchy-based access.
+- **Admin Routes:** Inline `[requireAuth, requireRole("ADMIN")]` per-route (not router-level to avoid Express 5 middleware leaking).
+- **JWT Secret:** `JWT_SECRET` env var, minimum 32 characters, validated at startup via Zod.
+- **Seed Admin:** `admin@dynasties.io` / `DynastiesAdmin2026!` in `cmp_seed_001`.
+
+**Audit Logging:**
+- All events include `actorType`: `USER` (API routes), `SERVICE` (queue consumers), `AGENT` (AI agents), `SYSTEM` (automated).
+- Events table uses plain `text` for `eventType` (not enum) for extensibility.
 
 **Feature Specifications:**
 The system processes various stages of freight forwarding, including:
@@ -52,6 +66,12 @@ The system processes various stages of freight forwarding, including:
 - **Agent Output Validation:** All AI agents return structured JSON, which is then validated against Zod schemas. If validation fails, services fall back to deterministic output, ensuring no silent failures.
 - **Composite TypeScript Projects:** The monorepo leverages TypeScript's composite project feature for efficient type-checking and building across shared libraries.
 
+**Deployment Architecture (M8):**
+- **Docker:** Multi-stage `Dockerfile` for API server, `Dockerfile.frontend` for nginx-served frontend.
+- **docker-compose.yml:** Local dev with PostgreSQL 16, LocalStack (S3/SQS), API, and frontend services.
+- **Terraform IaC (`infra/main.tf`):** AWS production: VPC, ECS Fargate (2 tasks), RDS PostgreSQL 16 (multi-AZ), S3 (raw + generated docs + frontend), SQS (11 queues + DLQs), ALB, CloudFront, SSM Parameter Store for secrets, CloudWatch alarms (5xx, RDS CPU, DLQ depth).
+- **CI/CD (`.github/workflows/deploy.yml`):** GitHub Actions: lint/typecheck → build/push ECR → deploy ECS → sync frontend to S3 + CloudFront invalidation.
+
 ## External Dependencies
 - **AI Integration:** Anthropic Claude Sonnet (via Replit AI Integrations) for AI agent capabilities in document extraction, compliance, risk intelligence, insurance, and pricing.
 - **Database:** PostgreSQL.
@@ -62,3 +82,20 @@ The system processes various stages of freight forwarding, including:
 - **Validation Library:** Zod (`zod/v4`).
 - **OpenAPI Codegen:** Orval.
 - **Logging Library:** pino.
+- **Auth:** jsonwebtoken, bcryptjs.
+
+## Environment Variables
+Required:
+- `DATABASE_URL` — PostgreSQL connection string
+- `JWT_SECRET` — JWT signing key (minimum 32 characters)
+
+Optional:
+- `PORT` — Server port (default: 8080 for API, 22653 for workbench)
+- `NODE_ENV` — development | production | test
+- `LOG_LEVEL` — fatal | error | warn | info | debug | trace
+- `ANTHROPIC_API_KEY` — Anthropic API key for AI agents
+- `AWS_REGION` — AWS region (default: us-east-1)
+- `S3_ENDPOINT` — Custom S3 endpoint (for LocalStack)
+- `SQS_ENDPOINT` — Custom SQS endpoint (for LocalStack)
+- `S3_BUCKET_RAW_DOCUMENTS` — S3 bucket for raw documents
+- `S3_BUCKET_GENERATED_DOCUMENTS` — S3 bucket for generated documents

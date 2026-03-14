@@ -110,6 +110,7 @@ export async function runInsuranceQuoteGeneration(
   });
 
   await db.insert(eventsTable).values({
+    actorType: "SERVICE",
     id: generateId(),
     companyId,
     eventType: "INSURANCE_QUOTED",

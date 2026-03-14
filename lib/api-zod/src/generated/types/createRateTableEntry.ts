@@ -7,7 +7,6 @@
  */
 
 export interface CreateRateTableEntry {
-  companyId: string;
   carrier: string;
   chargeCode: string;
   description: string;

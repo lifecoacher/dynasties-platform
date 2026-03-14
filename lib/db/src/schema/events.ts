@@ -14,27 +14,12 @@ export const eventsTable = pgTable(
     companyId: text("company_id")
       .notNull()
       .references(() => companiesTable.id),
-    eventType: text("event_type", {
-      enum: [
-        "SHIPMENT_CREATED",
-        "SHIPMENT_UPDATED",
-        "SHIPMENT_APPROVED",
-        "SHIPMENT_REJECTED",
-        "EXTRACTION_COMPLETED",
-        "EXTRACTION_FAILED",
-        "ENTITY_RESOLVED",
-        "ENTITY_CREATED",
-        "COMPLIANCE_SCREENED",
-        "COMPLIANCE_ALERT",
-        "RISK_SCORED",
-        "INSURANCE_QUOTED",
-        "DOCUMENT_CONFLICT",
-        "OPERATOR_CORRECTION",
-        "AGENT_VALIDATION_FAILURE",
-      ],
-    }).notNull(),
+    eventType: text("event_type").notNull(),
     entityType: text("entity_type").notNull(),
     entityId: text("entity_id").notNull(),
+    actorType: text("actor_type", {
+      enum: ["USER", "SERVICE", "AGENT", "SYSTEM"],
+    }),
     userId: text("user_id"),
     serviceId: text("service_id"),
     beforeState: jsonb("before_state"),
@@ -47,6 +32,7 @@ export const eventsTable = pgTable(
     index("events_event_type_idx").on(table.eventType),
     index("events_entity_id_idx").on(table.entityId),
     index("events_created_at_idx").on(table.createdAt),
+    index("events_actor_type_idx").on(table.actorType),
   ],
 );
 
