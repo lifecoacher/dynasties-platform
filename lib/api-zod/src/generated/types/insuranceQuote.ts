@@ -14,7 +14,7 @@ export interface InsuranceQuote {
   estimatedInsuredValue: number;
   estimatedPremium: number;
   currency?: string;
-  coverageRationale?: string;
+  coverageRationale?: string | null;
   exclusions?: string[];
   confidenceScore?: number;
   quotedAt?: Date;

@@ -5,8 +5,8 @@
  * Dynasties API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { Shipment } from "./shipment";
+import type { EnrichedShipment } from "./enrichedShipment";
 
 export type ListShipments200 = {
-  data: Shipment[];
+  data: EnrichedShipment[];
 };

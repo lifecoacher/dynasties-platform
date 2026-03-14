@@ -5,18 +5,26 @@
  * Dynasties API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
 import type {
+  ApproveShipment200,
+  ApproveShipmentBody,
   GetEntity200,
   GetShipment200,
   GetShipmentCompliance200,
+  GetShipmentCorrections200,
+  GetShipmentDocuments200,
+  GetShipmentEvents200,
   GetShipmentInsurance200,
   GetShipmentRisk200,
   HealthStatus,
@@ -26,10 +34,14 @@ import type {
   ListEvents200,
   ListEventsParams,
   ListShipments200,
+  RejectShipment200,
+  RejectShipmentBody,
+  UpdateShipmentFields200,
+  UpdateShipmentFieldsBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -114,7 +126,7 @@ export function useHealthCheck<
 }
 
 /**
- * @summary List shipments
+ * @summary List shipments with enriched summaries
  */
 export const getListShipmentsUrl = () => {
   return `/api/shipments`;
@@ -165,7 +177,7 @@ export type ListShipmentsQueryResult = NonNullable<
 export type ListShipmentsQueryError = ErrorType<unknown>;
 
 /**
- * @summary List shipments
+ * @summary List shipments with enriched summaries
  */
 
 export function useListShipments<
@@ -189,7 +201,7 @@ export function useListShipments<
 }
 
 /**
- * @summary Get a shipment by ID
+ * @summary Get a shipment by ID with resolved parties
  */
 export const getGetShipmentUrl = (id: string) => {
   return `/api/shipments/${id}`;
@@ -249,7 +261,7 @@ export type GetShipmentQueryResult = NonNullable<
 export type GetShipmentQueryError = ErrorType<void>;
 
 /**
- * @summary Get a shipment by ID
+ * @summary Get a shipment by ID with resolved parties
  */
 
 export function useGetShipment<
@@ -540,6 +552,534 @@ export function useGetShipmentInsurance<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Get linked documents for a shipment
+ */
+export const getGetShipmentDocumentsUrl = (id: string) => {
+  return `/api/shipments/${id}/documents`;
+};
+
+export const getShipmentDocuments = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetShipmentDocuments200> => {
+  return customFetch<GetShipmentDocuments200>(getGetShipmentDocumentsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetShipmentDocumentsQueryKey = (id: string) => {
+  return [`/api/shipments/${id}/documents`] as const;
+};
+
+export const getGetShipmentDocumentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getShipmentDocuments>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentDocuments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetShipmentDocumentsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getShipmentDocuments>>
+  > = ({ signal }) => getShipmentDocuments(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getShipmentDocuments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetShipmentDocumentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShipmentDocuments>>
+>;
+export type GetShipmentDocumentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get linked documents for a shipment
+ */
+
+export function useGetShipmentDocuments<
+  TData = Awaited<ReturnType<typeof getShipmentDocuments>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentDocuments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetShipmentDocumentsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get operator correction history for a shipment
+ */
+export const getGetShipmentCorrectionsUrl = (id: string) => {
+  return `/api/shipments/${id}/corrections`;
+};
+
+export const getShipmentCorrections = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetShipmentCorrections200> => {
+  return customFetch<GetShipmentCorrections200>(
+    getGetShipmentCorrectionsUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetShipmentCorrectionsQueryKey = (id: string) => {
+  return [`/api/shipments/${id}/corrections`] as const;
+};
+
+export const getGetShipmentCorrectionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getShipmentCorrections>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentCorrections>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetShipmentCorrectionsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getShipmentCorrections>>
+  > = ({ signal }) => getShipmentCorrections(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getShipmentCorrections>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetShipmentCorrectionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShipmentCorrections>>
+>;
+export type GetShipmentCorrectionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get operator correction history for a shipment
+ */
+
+export function useGetShipmentCorrections<
+  TData = Awaited<ReturnType<typeof getShipmentCorrections>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentCorrections>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetShipmentCorrectionsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get event log for a shipment
+ */
+export const getGetShipmentEventsUrl = (id: string) => {
+  return `/api/shipments/${id}/events`;
+};
+
+export const getShipmentEvents = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetShipmentEvents200> => {
+  return customFetch<GetShipmentEvents200>(getGetShipmentEventsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetShipmentEventsQueryKey = (id: string) => {
+  return [`/api/shipments/${id}/events`] as const;
+};
+
+export const getGetShipmentEventsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getShipmentEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetShipmentEventsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getShipmentEvents>>
+  > = ({ signal }) => getShipmentEvents(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getShipmentEvents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetShipmentEventsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShipmentEvents>>
+>;
+export type GetShipmentEventsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get event log for a shipment
+ */
+
+export function useGetShipmentEvents<
+  TData = Awaited<ReturnType<typeof getShipmentEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetShipmentEventsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Approve a DRAFT shipment
+ */
+export const getApproveShipmentUrl = (id: string) => {
+  return `/api/shipments/${id}/approve`;
+};
+
+export const approveShipment = async (
+  id: string,
+  approveShipmentBody: ApproveShipmentBody,
+  options?: RequestInit,
+): Promise<ApproveShipment200> => {
+  return customFetch<ApproveShipment200>(getApproveShipmentUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(approveShipmentBody),
+  });
+};
+
+export const getApproveShipmentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveShipment>>,
+    TError,
+    { id: string; data: BodyType<ApproveShipmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approveShipment>>,
+  TError,
+  { id: string; data: BodyType<ApproveShipmentBody> },
+  TContext
+> => {
+  const mutationKey = ["approveShipment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approveShipment>>,
+    { id: string; data: BodyType<ApproveShipmentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return approveShipment(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApproveShipmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approveShipment>>
+>;
+export type ApproveShipmentMutationBody = BodyType<ApproveShipmentBody>;
+export type ApproveShipmentMutationError = ErrorType<void>;
+
+/**
+ * @summary Approve a DRAFT shipment
+ */
+export const useApproveShipment = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveShipment>>,
+    TError,
+    { id: string; data: BodyType<ApproveShipmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approveShipment>>,
+  TError,
+  { id: string; data: BodyType<ApproveShipmentBody> },
+  TContext
+> => {
+  return useMutation(getApproveShipmentMutationOptions(options));
+};
+
+/**
+ * @summary Reject a DRAFT shipment with reason
+ */
+export const getRejectShipmentUrl = (id: string) => {
+  return `/api/shipments/${id}/reject`;
+};
+
+export const rejectShipment = async (
+  id: string,
+  rejectShipmentBody: RejectShipmentBody,
+  options?: RequestInit,
+): Promise<RejectShipment200> => {
+  return customFetch<RejectShipment200>(getRejectShipmentUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(rejectShipmentBody),
+  });
+};
+
+export const getRejectShipmentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectShipment>>,
+    TError,
+    { id: string; data: BodyType<RejectShipmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rejectShipment>>,
+  TError,
+  { id: string; data: BodyType<RejectShipmentBody> },
+  TContext
+> => {
+  const mutationKey = ["rejectShipment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rejectShipment>>,
+    { id: string; data: BodyType<RejectShipmentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return rejectShipment(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RejectShipmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rejectShipment>>
+>;
+export type RejectShipmentMutationBody = BodyType<RejectShipmentBody>;
+export type RejectShipmentMutationError = ErrorType<void>;
+
+/**
+ * @summary Reject a DRAFT shipment with reason
+ */
+export const useRejectShipment = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectShipment>>,
+    TError,
+    { id: string; data: BodyType<RejectShipmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rejectShipment>>,
+  TError,
+  { id: string; data: BodyType<RejectShipmentBody> },
+  TContext
+> => {
+  return useMutation(getRejectShipmentMutationOptions(options));
+};
+
+/**
+ * @summary Edit shipment fields with operator corrections
+ */
+export const getUpdateShipmentFieldsUrl = (id: string) => {
+  return `/api/shipments/${id}/fields`;
+};
+
+export const updateShipmentFields = async (
+  id: string,
+  updateShipmentFieldsBody: UpdateShipmentFieldsBody,
+  options?: RequestInit,
+): Promise<UpdateShipmentFields200> => {
+  return customFetch<UpdateShipmentFields200>(getUpdateShipmentFieldsUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateShipmentFieldsBody),
+  });
+};
+
+export const getUpdateShipmentFieldsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateShipmentFields>>,
+    TError,
+    { id: string; data: BodyType<UpdateShipmentFieldsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateShipmentFields>>,
+  TError,
+  { id: string; data: BodyType<UpdateShipmentFieldsBody> },
+  TContext
+> => {
+  const mutationKey = ["updateShipmentFields"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateShipmentFields>>,
+    { id: string; data: BodyType<UpdateShipmentFieldsBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateShipmentFields(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateShipmentFieldsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateShipmentFields>>
+>;
+export type UpdateShipmentFieldsMutationBody =
+  BodyType<UpdateShipmentFieldsBody>;
+export type UpdateShipmentFieldsMutationError = ErrorType<void>;
+
+/**
+ * @summary Edit shipment fields with operator corrections
+ */
+export const useUpdateShipmentFields = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateShipmentFields>>,
+    TError,
+    { id: string; data: BodyType<UpdateShipmentFieldsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateShipmentFields>>,
+  TError,
+  { id: string; data: BodyType<UpdateShipmentFieldsBody> },
+  TContext
+> => {
+  return useMutation(getUpdateShipmentFieldsMutationOptions(options));
+};
 
 /**
  * @summary List entities

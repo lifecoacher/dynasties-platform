@@ -5,6 +5,8 @@
  * Dynasties API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { EventAfterState } from "./eventAfterState";
+import type { EventBeforeState } from "./eventBeforeState";
 import type { EventMetadata } from "./eventMetadata";
 
 export interface Event {
@@ -13,6 +15,10 @@ export interface Event {
   eventType: string;
   entityType: string;
   entityId: string;
+  userId?: string | null;
+  serviceId?: string | null;
+  beforeState?: EventBeforeState;
+  afterState?: EventAfterState;
   metadata?: EventMetadata;
   createdAt: Date;
 }

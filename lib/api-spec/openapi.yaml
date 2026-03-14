@@ -36,10 +36,10 @@ paths:
     get:
       operationId: listShipments
       tags: [shipments]
-      summary: List shipments
+      summary: List shipments with enriched summaries
       responses:
         "200":
-          description: List of shipments
+          description: List of shipments with compliance/risk/insurance summaries
           content:
             application/json:
               schema:
@@ -48,14 +48,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Shipment"
+                      $ref: "#/components/schemas/EnrichedShipment"
                 required:
                   - data
   /shipments/{id}:
     get:
       operationId: getShipment
       tags: [shipments]
-      summary: Get a shipment by ID
+      summary: Get a shipment by ID with resolved parties
       parameters:
         - name: id
           in: path
@@ -64,14 +64,14 @@ paths:
             type: string
       responses:
         "200":
-          description: Shipment details
+          description: Shipment details with resolved entity data
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/Shipment"
+                    $ref: "#/components/schemas/ShipmentDetail"
                 required:
                   - data
         "404":
@@ -143,6 +143,194 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/InsuranceQuote"
+  /shipments/{id}/documents:
+    get:
+      operationId: getShipmentDocuments
+      tags: [shipments]
+      summary: Get linked documents for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Linked documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LinkedDocument"
+                required:
+                  - data
+  /shipments/{id}/corrections:
+    get:
+      operationId: getShipmentCorrections
+      tags: [shipments]
+      summary: Get operator correction history for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Correction history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/OperatorCorrection"
+                required:
+                  - data
+  /shipments/{id}/events:
+    get:
+      operationId: getShipmentEvents
+      tags: [shipments]
+      summary: Get event log for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Event log
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Event"
+                required:
+                  - data
+  /shipments/{id}/approve:
+    post:
+      operationId: approveShipment
+      tags: [shipments]
+      summary: Approve a DRAFT shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+      responses:
+        "200":
+          description: Shipment approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ApprovalResult"
+                required:
+                  - data
+        "400":
+          description: Invalid status transition
+        "404":
+          description: Shipment not found
+  /shipments/{id}/reject:
+    post:
+      operationId: rejectShipment
+      tags: [shipments]
+      summary: Reject a DRAFT shipment with reason
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: Shipment rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/RejectionResult"
+                required:
+                  - data
+        "400":
+          description: Invalid status transition
+        "404":
+          description: Shipment not found
+  /shipments/{id}/fields:
+    patch:
+      operationId: updateShipmentFields
+      tags: [shipments]
+      summary: Edit shipment fields with operator corrections
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fields:
+                  type: object
+                  additionalProperties: true
+                userId:
+                  type: string
+              required:
+                - fields
+      responses:
+        "200":
+          description: Fields updated with correction records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FieldUpdateResult"
+                required:
+                  - data
+        "400":
+          description: Invalid or non-editable fields
+        "404":
+          description: Shipment not found
   /entities:
     get:
       operationId: listEntities
@@ -259,6 +447,245 @@ components:
           type: string
       required:
         - status
+    EntitySummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+    ComplianceSummary:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [CLEAR, ALERT, BLOCKED]
+        matchCount:
+          type: integer
+        screenedParties:
+          type: integer
+      required:
+        - status
+        - matchCount
+        - screenedParties
+    RiskSummary:
+      type: object
+      properties:
+        compositeScore:
+          type: number
+        recommendedAction:
+          type: string
+          enum: [AUTO_APPROVE, OPERATOR_REVIEW, ESCALATE]
+      required:
+        - compositeScore
+        - recommendedAction
+    InsuranceSummary:
+      type: object
+      properties:
+        coverageType:
+          type: string
+          enum: [ALL_RISK, NAMED_PERILS, TOTAL_LOSS]
+        estimatedPremium:
+          type: number
+        currency:
+          type: string
+      required:
+        - coverageType
+        - estimatedPremium
+    EnrichedShipment:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        reference:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, PENDING_REVIEW, APPROVED, REJECTED, IN_TRANSIT, DELIVERED, CLOSED, CANCELLED]
+        shipperId:
+          type: string
+          nullable: true
+        consigneeId:
+          type: string
+          nullable: true
+        portOfLoading:
+          type: string
+          nullable: true
+        portOfDischarge:
+          type: string
+          nullable: true
+        vessel:
+          type: string
+          nullable: true
+        voyage:
+          type: string
+          nullable: true
+        commodity:
+          type: string
+          nullable: true
+        hsCode:
+          type: string
+          nullable: true
+        grossWeight:
+          type: number
+          nullable: true
+        freightTerms:
+          type: string
+          nullable: true
+        bookingNumber:
+          type: string
+          nullable: true
+        blNumber:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        shipper:
+          $ref: "#/components/schemas/EntitySummary"
+          nullable: true
+        consignee:
+          $ref: "#/components/schemas/EntitySummary"
+          nullable: true
+        compliance:
+          $ref: "#/components/schemas/ComplianceSummary"
+          nullable: true
+        risk:
+          $ref: "#/components/schemas/RiskSummary"
+          nullable: true
+        insurance:
+          $ref: "#/components/schemas/InsuranceSummary"
+          nullable: true
+      required:
+        - id
+        - companyId
+        - reference
+        - status
+        - createdAt
+        - updatedAt
+    ShipmentDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        reference:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, PENDING_REVIEW, APPROVED, REJECTED, IN_TRANSIT, DELIVERED, CLOSED, CANCELLED]
+        shipperId:
+          type: string
+          nullable: true
+        consigneeId:
+          type: string
+          nullable: true
+        notifyPartyId:
+          type: string
+          nullable: true
+        carrierId:
+          type: string
+          nullable: true
+        portOfLoading:
+          type: string
+          nullable: true
+        portOfDischarge:
+          type: string
+          nullable: true
+        vessel:
+          type: string
+          nullable: true
+        voyage:
+          type: string
+          nullable: true
+        commodity:
+          type: string
+          nullable: true
+        hsCode:
+          type: string
+          nullable: true
+        grossWeight:
+          type: number
+          nullable: true
+        weightUnit:
+          type: string
+          nullable: true
+        volume:
+          type: number
+          nullable: true
+        volumeUnit:
+          type: string
+          nullable: true
+        packageCount:
+          type: integer
+          nullable: true
+        incoterms:
+          type: string
+          nullable: true
+        freightTerms:
+          type: string
+          nullable: true
+        bookingNumber:
+          type: string
+          nullable: true
+        blNumber:
+          type: string
+          nullable: true
+        etd:
+          type: string
+          format: date-time
+          nullable: true
+        eta:
+          type: string
+          format: date-time
+          nullable: true
+        operatorNotes:
+          type: string
+          nullable: true
+        extractionConfidence:
+          type: object
+          nullable: true
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        approvedBy:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        shipper:
+          $ref: "#/components/schemas/Entity"
+          nullable: true
+        consignee:
+          $ref: "#/components/schemas/Entity"
+          nullable: true
+        notifyParty:
+          $ref: "#/components/schemas/Entity"
+          nullable: true
+        carrier:
+          $ref: "#/components/schemas/Entity"
+          nullable: true
+      required:
+        - id
+        - companyId
+        - reference
+        - status
+        - createdAt
+        - updatedAt
     Shipment:
       type: object
       properties:
@@ -342,6 +769,9 @@ components:
           type: array
           items:
             type: string
+        agentExplanation:
+          type: string
+          nullable: true
         screenedAt:
           type: string
           format: date-time
@@ -369,6 +799,9 @@ components:
         recommendedAction:
           type: string
           enum: [AUTO_APPROVE, OPERATOR_REVIEW, ESCALATE]
+        agentExplanation:
+          type: string
+          nullable: true
         scoredAt:
           type: string
           format: date-time
@@ -395,6 +828,7 @@ components:
           type: string
         coverageRationale:
           type: string
+          nullable: true
         exclusions:
           type: array
           items:
@@ -527,6 +961,18 @@ components:
           type: string
         entityId:
           type: string
+        userId:
+          type: string
+          nullable: true
+        serviceId:
+          type: string
+          nullable: true
+        beforeState:
+          type: object
+          nullable: true
+        afterState:
+          type: object
+          nullable: true
         metadata:
           type: object
           nullable: true
@@ -540,3 +986,110 @@ components:
         - entityType
         - entityId
         - createdAt
+    LinkedDocument:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        documentType:
+          type: string
+        extractionStatus:
+          type: string
+          enum: [PENDING, PROCESSING, EXTRACTED, FAILED]
+        extractedData:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        shipmentDocumentId:
+          type: string
+        linkedDocumentType:
+          type: string
+          nullable: true
+      required:
+        - id
+        - companyId
+        - fileName
+        - documentType
+        - extractionStatus
+        - createdAt
+    OperatorCorrection:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        shipmentId:
+          type: string
+        fieldName:
+          type: string
+        originalValue:
+          nullable: true
+        correctedValue:
+          nullable: true
+        originalConfidence:
+          type: number
+          nullable: true
+        correctedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - shipmentId
+        - fieldName
+        - correctedBy
+        - createdAt
+    ApprovalResult:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [APPROVED]
+        approvedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - status
+        - approvedAt
+    RejectionResult:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [REJECTED]
+        reason:
+          type: string
+          nullable: true
+      required:
+        - id
+        - status
+    FieldUpdateResult:
+      type: object
+      properties:
+        id:
+          type: string
+        corrections:
+          type: integer
+        correctedFields:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - corrections

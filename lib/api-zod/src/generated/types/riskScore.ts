@@ -16,5 +16,6 @@ export interface RiskScore {
   subScores?: RiskScoreSubScores;
   primaryRiskFactors?: RiskScorePrimaryRiskFactorsItem[];
   recommendedAction: RiskScoreRecommendedAction;
+  agentExplanation?: string | null;
   scoredAt?: Date;
 }

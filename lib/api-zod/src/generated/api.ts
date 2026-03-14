@@ -16,7 +16,7 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * @summary List shipments
+ * @summary List shipments with enriched summaries
  */
 export const ListShipmentsResponse = zod.object({
   data: zod.array(
@@ -48,12 +48,48 @@ export const ListShipmentsResponse = zod.object({
       blNumber: zod.string().nullish(),
       createdAt: zod.date(),
       updatedAt: zod.date(),
+      shipper: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+        })
+        .nullish(),
+      consignee: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+        })
+        .nullish(),
+      compliance: zod
+        .object({
+          status: zod.enum(["CLEAR", "ALERT", "BLOCKED"]),
+          matchCount: zod.number(),
+          screenedParties: zod.number(),
+        })
+        .nullish(),
+      risk: zod
+        .object({
+          compositeScore: zod.number(),
+          recommendedAction: zod.enum([
+            "AUTO_APPROVE",
+            "OPERATOR_REVIEW",
+            "ESCALATE",
+          ]),
+        })
+        .nullish(),
+      insurance: zod
+        .object({
+          coverageType: zod.enum(["ALL_RISK", "NAMED_PERILS", "TOTAL_LOSS"]),
+          estimatedPremium: zod.number(),
+          currency: zod.string().optional(),
+        })
+        .nullish(),
     }),
   ),
 });
 
 /**
- * @summary Get a shipment by ID
+ * @summary Get a shipment by ID with resolved parties
  */
 export const GetShipmentParams = zod.object({
   id: zod.coerce.string(),
@@ -76,6 +112,8 @@ export const GetShipmentResponse = zod.object({
     ]),
     shipperId: zod.string().nullish(),
     consigneeId: zod.string().nullish(),
+    notifyPartyId: zod.string().nullish(),
+    carrierId: zod.string().nullish(),
     portOfLoading: zod.string().nullish(),
     portOfDischarge: zod.string().nullish(),
     vessel: zod.string().nullish(),
@@ -83,11 +121,118 @@ export const GetShipmentResponse = zod.object({
     commodity: zod.string().nullish(),
     hsCode: zod.string().nullish(),
     grossWeight: zod.number().nullish(),
+    weightUnit: zod.string().nullish(),
+    volume: zod.number().nullish(),
+    volumeUnit: zod.string().nullish(),
+    packageCount: zod.number().nullish(),
+    incoterms: zod.string().nullish(),
     freightTerms: zod.string().nullish(),
     bookingNumber: zod.string().nullish(),
     blNumber: zod.string().nullish(),
+    etd: zod.date().nullish(),
+    eta: zod.date().nullish(),
+    operatorNotes: zod.string().nullish(),
+    extractionConfidence: zod.object({}).passthrough().nullish(),
+    approvedAt: zod.date().nullish(),
+    approvedBy: zod.string().nullish(),
     createdAt: zod.date(),
     updatedAt: zod.date(),
+    shipper: zod
+      .object({
+        id: zod.string(),
+        companyId: zod.string(),
+        name: zod.string(),
+        normalizedName: zod.string().optional(),
+        entityType: zod.enum([
+          "SHIPPER",
+          "CONSIGNEE",
+          "CARRIER",
+          "NOTIFY_PARTY",
+          "FORWARDER",
+          "AGENT",
+          "VENDOR",
+          "CUSTOMER",
+        ]),
+        status: zod.enum(["VERIFIED", "UNVERIFIED"]),
+        address: zod.string().nullish(),
+        city: zod.string().nullish(),
+        country: zod.string().nullish(),
+        createdAt: zod.date(),
+        updatedAt: zod.date(),
+      })
+      .nullish(),
+    consignee: zod
+      .object({
+        id: zod.string(),
+        companyId: zod.string(),
+        name: zod.string(),
+        normalizedName: zod.string().optional(),
+        entityType: zod.enum([
+          "SHIPPER",
+          "CONSIGNEE",
+          "CARRIER",
+          "NOTIFY_PARTY",
+          "FORWARDER",
+          "AGENT",
+          "VENDOR",
+          "CUSTOMER",
+        ]),
+        status: zod.enum(["VERIFIED", "UNVERIFIED"]),
+        address: zod.string().nullish(),
+        city: zod.string().nullish(),
+        country: zod.string().nullish(),
+        createdAt: zod.date(),
+        updatedAt: zod.date(),
+      })
+      .nullish(),
+    notifyParty: zod
+      .object({
+        id: zod.string(),
+        companyId: zod.string(),
+        name: zod.string(),
+        normalizedName: zod.string().optional(),
+        entityType: zod.enum([
+          "SHIPPER",
+          "CONSIGNEE",
+          "CARRIER",
+          "NOTIFY_PARTY",
+          "FORWARDER",
+          "AGENT",
+          "VENDOR",
+          "CUSTOMER",
+        ]),
+        status: zod.enum(["VERIFIED", "UNVERIFIED"]),
+        address: zod.string().nullish(),
+        city: zod.string().nullish(),
+        country: zod.string().nullish(),
+        createdAt: zod.date(),
+        updatedAt: zod.date(),
+      })
+      .nullish(),
+    carrier: zod
+      .object({
+        id: zod.string(),
+        companyId: zod.string(),
+        name: zod.string(),
+        normalizedName: zod.string().optional(),
+        entityType: zod.enum([
+          "SHIPPER",
+          "CONSIGNEE",
+          "CARRIER",
+          "NOTIFY_PARTY",
+          "FORWARDER",
+          "AGENT",
+          "VENDOR",
+          "CUSTOMER",
+        ]),
+        status: zod.enum(["VERIFIED", "UNVERIFIED"]),
+        address: zod.string().nullish(),
+        city: zod.string().nullish(),
+        country: zod.string().nullish(),
+        createdAt: zod.date(),
+        updatedAt: zod.date(),
+      })
+      .nullish(),
   }),
 });
 
@@ -108,6 +253,7 @@ export const GetShipmentComplianceResponse = zod.object({
       matchCount: zod.number(),
       matches: zod.array(zod.object({}).passthrough()).optional(),
       listsChecked: zod.array(zod.string()).optional(),
+      agentExplanation: zod.string().nullish(),
       screenedAt: zod.date().optional(),
     }),
   ),
@@ -133,6 +279,7 @@ export const GetShipmentRiskResponse = zod.object({
         "OPERATOR_REVIEW",
         "ESCALATE",
       ]),
+      agentExplanation: zod.string().nullish(),
       scoredAt: zod.date().optional(),
     })
     .optional(),
@@ -154,12 +301,148 @@ export const GetShipmentInsuranceResponse = zod.object({
       estimatedInsuredValue: zod.number(),
       estimatedPremium: zod.number(),
       currency: zod.string().optional(),
-      coverageRationale: zod.string().optional(),
+      coverageRationale: zod.string().nullish(),
       exclusions: zod.array(zod.string()).optional(),
       confidenceScore: zod.number().optional(),
       quotedAt: zod.date().optional(),
     })
     .optional(),
+});
+
+/**
+ * @summary Get linked documents for a shipment
+ */
+export const GetShipmentDocumentsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetShipmentDocumentsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      fileName: zod.string(),
+      mimeType: zod.string().optional(),
+      documentType: zod.string(),
+      extractionStatus: zod.enum([
+        "PENDING",
+        "PROCESSING",
+        "EXTRACTED",
+        "FAILED",
+      ]),
+      extractedData: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+      shipmentDocumentId: zod.string().optional(),
+      linkedDocumentType: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get operator correction history for a shipment
+ */
+export const GetShipmentCorrectionsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetShipmentCorrectionsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      shipmentId: zod.string(),
+      fieldName: zod.string(),
+      originalValue: zod.unknown().nullish(),
+      correctedValue: zod.unknown().nullish(),
+      originalConfidence: zod.number().nullish(),
+      correctedBy: zod.string(),
+      createdAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get event log for a shipment
+ */
+export const GetShipmentEventsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetShipmentEventsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      eventType: zod.string(),
+      entityType: zod.string(),
+      entityId: zod.string(),
+      userId: zod.string().nullish(),
+      serviceId: zod.string().nullish(),
+      beforeState: zod.object({}).passthrough().nullish(),
+      afterState: zod.object({}).passthrough().nullish(),
+      metadata: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Approve a DRAFT shipment
+ */
+export const ApproveShipmentParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ApproveShipmentBody = zod.object({
+  userId: zod.string().optional(),
+});
+
+export const ApproveShipmentResponse = zod.object({
+  data: zod.object({
+    id: zod.string(),
+    status: zod.enum(["APPROVED"]),
+    approvedAt: zod.date(),
+  }),
+});
+
+/**
+ * @summary Reject a DRAFT shipment with reason
+ */
+export const RejectShipmentParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RejectShipmentBody = zod.object({
+  userId: zod.string().optional(),
+  reason: zod.string().optional(),
+});
+
+export const RejectShipmentResponse = zod.object({
+  data: zod.object({
+    id: zod.string(),
+    status: zod.enum(["REJECTED"]),
+    reason: zod.string().nullish(),
+  }),
+});
+
+/**
+ * @summary Edit shipment fields with operator corrections
+ */
+export const UpdateShipmentFieldsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateShipmentFieldsBody = zod.object({
+  fields: zod.record(zod.string(), zod.unknown()),
+  userId: zod.string().optional(),
+});
+
+export const UpdateShipmentFieldsResponse = zod.object({
+  data: zod.object({
+    id: zod.string(),
+    corrections: zod.number(),
+    correctedFields: zod.array(zod.string()).optional(),
+  }),
 });
 
 /**
@@ -282,6 +565,10 @@ export const ListEventsResponse = zod.object({
       eventType: zod.string(),
       entityType: zod.string(),
       entityId: zod.string(),
+      userId: zod.string().nullish(),
+      serviceId: zod.string().nullish(),
+      beforeState: zod.object({}).passthrough().nullish(),
+      afterState: zod.object({}).passthrough().nullish(),
       metadata: zod.object({}).passthrough().nullish(),
       createdAt: zod.date(),
     }),

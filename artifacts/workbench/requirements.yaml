@@ -1,0 +1,11 @@
+packages:
+  "framer-motion": "For premium smooth animations and page transitions"
+  "date-fns": "For formatting dates in the action log and shipment details"
+  "recharts": "For the risk score gauge and visualizations"
+  "lucide-react": "For beautiful enterprise icons"
+  "clsx": "For conditional class names"
+  "tailwind-merge": "For merging tailwind classes safely"
+
+notes:
+  - Using generated hooks from @workspace/api-client-react
+  - Assuming @/hooks/use-toast exists from standard shadcn installation

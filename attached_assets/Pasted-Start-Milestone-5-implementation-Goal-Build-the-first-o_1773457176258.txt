@@ -1,0 +1,97 @@
+Start Milestone 5 implementation.
+
+Goal:
+Build the first operator-facing Workbench UI so the existing backend pipeline becomes visible, reviewable, and approvable.
+
+The target end-to-end flow is:
+
+document upload or email
+→ extraction
+→ entity resolution
+→ shipment draft created
+→ compliance result stored
+→ risk score stored
+→ insurance quote stored
+→ operator sees everything in the Workbench
+→ operator reviews and approves or rejects
+
+Prioritize this exact sequence:
+	1.	Workbench page
+
+	•	build the main Workbench view showing all DRAFT shipments
+	•	each shipment card must display:
+	•	shipment reference
+	•	shipper → consignee
+	•	trade lane
+	•	compliance status
+	•	risk score
+	•	insurance quote summary
+	•	review / approve action
+
+	2.	Shipment detail page
+
+	•	show:
+	•	extracted shipment fields
+	•	confidence indicators
+	•	linked documents
+	•	resolved parties
+	•	compliance results
+	•	risk score with explanation
+	•	insurance quote with rationale
+	•	agent action log
+
+	3.	Inline review/edit flow
+
+	•	operators can edit extracted shipment fields
+	•	corrections must write operator_corrections records
+	•	corrected values must update shipment draft data
+	•	low-confidence fields must be visually highlighted
+
+	4.	Approval / rejection flow
+
+	•	implement approve action for DRAFT shipments
+	•	implement reject / return-for-review action with reason
+	•	approval must transition shipment status cleanly
+	•	no downstream pricing/invoicing/docs yet unless already required for status handling
+
+	5.	Shared UI components
+
+	•	build only the minimum needed:
+	•	ShipmentCard
+	•	RiskPanel
+	•	CompliancePanel
+	•	InsuranceQuoteCard
+	•	ConfidenceIndicator
+	•	AgentActionLog
+	•	use the existing design system and tokens
+	•	do not overbuild decorative UI
+
+Important constraints:
+	•	do not start pricing/invoicing yet
+	•	do not start document generation yet
+	•	do not start claims or exceptions UI yet
+	•	do not expand auth unless required for page access
+	•	do not add unnecessary abstractions
+	•	keep the UI tightly bound to the existing backend flow
+
+Core rule remains absolute:
+LLMs never write directly to the system of record.
+The UI only displays validated backend outputs and operator actions.
+All approvals and edits must go through deterministic APIs.
+
+Milestone is complete only when this works end-to-end in development:
+
+upload/email
+→ shipment draft created
+→ compliance/risk/insurance complete
+→ shipment visible in Workbench
+→ operator can review fields
+→ operator can approve or reject
+
+When complete, stop and report:
+	•	pages created
+	•	shared components created
+	•	APIs used
+	•	operator actions implemented
+	•	database writes performed
+	•	what remains before pricing, document generation, and invoicing can begin
