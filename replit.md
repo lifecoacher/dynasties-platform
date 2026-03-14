@@ -36,6 +36,8 @@ The project includes a React-based Operator Workbench UI (`workbench/`) for mana
 - **Password Hashing:** bcryptjs with 12 rounds.
 - **Roles:** ADMIN (level 4), MANAGER (level 3), OPERATOR (level 2), VIEWER (level 1).
 - **Middleware Chain:** `requireAuth` → `requireTenant` → route handlers. Health and auth routes are public.
+- **Frontend Auth:** `AuthProvider` context in workbench stores JWT in localStorage. `customFetch` (api-client-react) auto-injects `Authorization: Bearer` header. Token validated against `/auth/me` on page load. 401 responses trigger automatic logout.
+- **Dev Auto-Login:** In dev mode (`import.meta.env.DEV`), `LoginPage` auto-logs in with seed admin credentials for demo convenience.
 - **Role Guards:** `requireRole(...roles)` for exact role match, `requireMinRole(role)` for hierarchy-based access.
 - **Admin Routes:** Inline `[requireAuth, requireRole("ADMIN")]` per-route (not router-level to avoid Express 5 middleware leaking).
 - **JWT Secret:** `JWT_SECRET` env var, minimum 32 characters, validated at startup via Zod.
