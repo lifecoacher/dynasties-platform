@@ -19,13 +19,17 @@ import type {
 import type {
   ApproveShipment200,
   ApproveShipmentBody,
+  CreateRateTableEntry,
+  CreateRateTableEntry201,
   GetEntity200,
   GetShipment200,
+  GetShipmentCharges200,
   GetShipmentCompliance200,
   GetShipmentCorrections200,
   GetShipmentDocuments200,
   GetShipmentEvents200,
   GetShipmentInsurance200,
+  GetShipmentInvoice200,
   GetShipmentRisk200,
   HealthStatus,
   ListDocuments200,
@@ -33,6 +37,8 @@ import type {
   ListEntities200,
   ListEvents200,
   ListEventsParams,
+  ListInvoices200,
+  ListRateTables200,
   ListShipments200,
   RejectShipment200,
   RejectShipmentBody,
@@ -1484,3 +1490,413 @@ export function useListEvents<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Get charges for a shipment
+ */
+export const getGetShipmentChargesUrl = (id: string) => {
+  return `/api/shipments/${id}/charges`;
+};
+
+export const getShipmentCharges = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetShipmentCharges200> => {
+  return customFetch<GetShipmentCharges200>(getGetShipmentChargesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetShipmentChargesQueryKey = (id: string) => {
+  return [`/api/shipments/${id}/charges`] as const;
+};
+
+export const getGetShipmentChargesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getShipmentCharges>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentCharges>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetShipmentChargesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getShipmentCharges>>
+  > = ({ signal }) => getShipmentCharges(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getShipmentCharges>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetShipmentChargesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShipmentCharges>>
+>;
+export type GetShipmentChargesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get charges for a shipment
+ */
+
+export function useGetShipmentCharges<
+  TData = Awaited<ReturnType<typeof getShipmentCharges>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentCharges>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetShipmentChargesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get invoice for a shipment
+ */
+export const getGetShipmentInvoiceUrl = (id: string) => {
+  return `/api/shipments/${id}/invoice`;
+};
+
+export const getShipmentInvoice = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetShipmentInvoice200> => {
+  return customFetch<GetShipmentInvoice200>(getGetShipmentInvoiceUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetShipmentInvoiceQueryKey = (id: string) => {
+  return [`/api/shipments/${id}/invoice`] as const;
+};
+
+export const getGetShipmentInvoiceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getShipmentInvoice>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentInvoice>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetShipmentInvoiceQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getShipmentInvoice>>
+  > = ({ signal }) => getShipmentInvoice(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getShipmentInvoice>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetShipmentInvoiceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShipmentInvoice>>
+>;
+export type GetShipmentInvoiceQueryError = ErrorType<void>;
+
+/**
+ * @summary Get invoice for a shipment
+ */
+
+export function useGetShipmentInvoice<
+  TData = Awaited<ReturnType<typeof getShipmentInvoice>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentInvoice>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetShipmentInvoiceQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all invoices
+ */
+export const getListInvoicesUrl = () => {
+  return `/api/invoices`;
+};
+
+export const listInvoices = async (
+  options?: RequestInit,
+): Promise<ListInvoices200> => {
+  return customFetch<ListInvoices200>(getListInvoicesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListInvoicesQueryKey = () => {
+  return [`/api/invoices`] as const;
+};
+
+export const getListInvoicesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listInvoices>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInvoices>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListInvoicesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listInvoices>>> = ({
+    signal,
+  }) => listInvoices({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listInvoices>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListInvoicesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listInvoices>>
+>;
+export type ListInvoicesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all invoices
+ */
+
+export function useListInvoices<
+  TData = Awaited<ReturnType<typeof listInvoices>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInvoices>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListInvoicesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List rate table entries
+ */
+export const getListRateTablesUrl = () => {
+  return `/api/rate-tables`;
+};
+
+export const listRateTables = async (
+  options?: RequestInit,
+): Promise<ListRateTables200> => {
+  return customFetch<ListRateTables200>(getListRateTablesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRateTablesQueryKey = () => {
+  return [`/api/rate-tables`] as const;
+};
+
+export const getListRateTablesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRateTables>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listRateTables>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRateTablesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listRateTables>>> = ({
+    signal,
+  }) => listRateTables({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRateTables>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRateTablesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRateTables>>
+>;
+export type ListRateTablesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List rate table entries
+ */
+
+export function useListRateTables<
+  TData = Awaited<ReturnType<typeof listRateTables>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listRateTables>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRateTablesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a rate table entry
+ */
+export const getCreateRateTableEntryUrl = () => {
+  return `/api/rate-tables`;
+};
+
+export const createRateTableEntry = async (
+  createRateTableEntry: CreateRateTableEntry,
+  options?: RequestInit,
+): Promise<CreateRateTableEntry201> => {
+  return customFetch<CreateRateTableEntry201>(getCreateRateTableEntryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createRateTableEntry),
+  });
+};
+
+export const getCreateRateTableEntryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRateTableEntry>>,
+    TError,
+    { data: BodyType<CreateRateTableEntry> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRateTableEntry>>,
+  TError,
+  { data: BodyType<CreateRateTableEntry> },
+  TContext
+> => {
+  const mutationKey = ["createRateTableEntry"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRateTableEntry>>,
+    { data: BodyType<CreateRateTableEntry> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createRateTableEntry(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRateTableEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRateTableEntry>>
+>;
+export type CreateRateTableEntryMutationBody = BodyType<CreateRateTableEntry>;
+export type CreateRateTableEntryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a rate table entry
+ */
+export const useCreateRateTableEntry = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRateTableEntry>>,
+    TError,
+    { data: BodyType<CreateRateTableEntry> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createRateTableEntry>>,
+  TError,
+  { data: BodyType<CreateRateTableEntry> },
+  TContext
+> => {
+  return useMutation(getCreateRateTableEntryMutationOptions(options));
+};

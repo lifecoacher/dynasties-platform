@@ -1,0 +1,43 @@
+═══════════════════════════════════════════════════
+              HOUSE BILL OF LADING
+═══════════════════════════════════════════════════
+
+B/L Number: COSCO789012345
+Booking Number: BK-COSCO-2026-0315
+Reference: SHP-COSCO789012345
+Date: March 14, 2026
+
+── SHIPPER ─────────────────────────────────────────
+  Shanghai Textiles Manufacturing Co.
+  Ltd., 45 Pudong Industrial Zone, Shanghai, China
+  
+
+── CONSIGNEE ───────────────────────────────────────
+  Atlantic Imports LLC
+  1200 Harbor Boulevard, Newark, NJ 07102
+  
+
+── NOTIFY PARTY ────────────────────────────────────
+  Same as Consignee
+
+── VESSEL / VOYAGE ─────────────────────────────────
+  Vessel: TBD
+  Voyage: TBD
+  Port of Loading: Shanghai
+  Port of Discharge: TBD
+
+── CARGO DETAILS ───────────────────────────────────
+  Commodity: Cotton Textiles and Garments
+  HS Code: 5208.11
+  Packages: 450
+  Gross Weight: 9200 KG
+  Volume: N/A CBM
+  Incoterms: FOB
+
+── FREIGHT TERMS ───────────────────────────────────
+  PREPAID
+
+═══════════════════════════════════════════════════
+  This is a non-negotiable House Bill of Lading
+  issued by the freight forwarder.
+═══════════════════════════════════════════════════

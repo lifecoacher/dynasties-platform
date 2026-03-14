@@ -10,9 +10,13 @@ import {
   operatorCorrectionsTable,
   eventsTable,
   entitiesTable,
+  shipmentChargesTable,
+  invoicesTable,
+  rateTablesTable,
 } from "@workspace/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
+import { publishPricingJob } from "@workspace/queue";
 
 const router: IRouter = Router();
 
@@ -231,6 +235,8 @@ router.post("/shipments/:id/approve", async (req, res) => {
     metadata: { approvedAt: now.toISOString() },
   });
 
+  publishPricingJob({ companyId: shipment.companyId, shipmentId: id, trigger: "shipment_approved" });
+
   res.json({ data: { id, status: "APPROVED", approvedAt: now } });
 });
 
@@ -363,6 +369,97 @@ router.patch("/shipments/:id/fields", async (req, res) => {
       correctedFields: corrections.map((c) => c.fieldName),
     },
   });
+});
+
+router.get("/shipments/:id/charges", async (req, res) => {
+  const { id } = req.params;
+  const charges = await db
+    .select()
+    .from(shipmentChargesTable)
+    .where(eq(shipmentChargesTable.shipmentId, id));
+  res.json({ data: charges });
+});
+
+router.get("/shipments/:id/invoice", async (req, res) => {
+  const { id } = req.params;
+  const [invoice] = await db
+    .select()
+    .from(invoicesTable)
+    .where(eq(invoicesTable.shipmentId, id))
+    .limit(1);
+  if (!invoice) {
+    res.status(404).json({ error: "No invoice found for this shipment" });
+    return;
+  }
+  res.json({ data: invoice });
+});
+
+router.get("/invoices", async (_req, res) => {
+  const invoices = await db
+    .select()
+    .from(invoicesTable)
+    .orderBy(desc(invoicesTable.issuedAt))
+    .limit(100);
+  res.json({ data: invoices });
+});
+
+router.get("/rate-tables", async (_req, res) => {
+  const rates = await db
+    .select()
+    .from(rateTablesTable)
+    .orderBy(desc(rateTablesTable.createdAt))
+    .limit(200);
+  res.json({ data: rates });
+});
+
+router.post("/rate-tables", async (req, res) => {
+  const {
+    chargeCode,
+    description,
+    carrier,
+    origin,
+    destination,
+    unitPrice,
+    currency,
+    validFrom,
+    validTo,
+    companyId,
+  } = req.body as {
+    chargeCode: string;
+    description: string;
+    carrier: string;
+    origin: string;
+    destination: string;
+    unitPrice: number;
+    currency?: string;
+    validFrom?: string;
+    validTo?: string;
+    companyId: string;
+  };
+
+  if (!chargeCode || !description || !unitPrice || !companyId || !carrier || !origin || !destination) {
+    res.status(400).json({ error: "chargeCode, description, carrier, origin, destination, unitPrice, and companyId are required" });
+    return;
+  }
+
+  const id = generateId();
+  await db.insert(rateTablesTable).values({
+    id,
+    companyId,
+    carrier,
+    chargeCode,
+    description,
+    origin,
+    destination,
+    unitPrice,
+    currency: currency || "USD",
+    validFrom: validFrom ? new Date(validFrom) : null,
+    validTo: validTo ? new Date(validTo) : null,
+    metadata: null,
+  });
+
+  const [created] = await db.select().from(rateTablesTable).where(eq(rateTablesTable.id, id)).limit(1);
+  res.status(201).json({ data: created });
 });
 
 export default router;

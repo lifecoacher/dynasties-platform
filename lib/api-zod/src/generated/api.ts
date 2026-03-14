@@ -574,3 +574,138 @@ export const ListEventsResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary Get charges for a shipment
+ */
+export const GetShipmentChargesParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetShipmentChargesResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      shipmentId: zod.string(),
+      chargeCode: zod.string(),
+      description: zod.string(),
+      chargeType: zod.enum([
+        "FREIGHT",
+        "ORIGIN",
+        "DESTINATION",
+        "DOCUMENTATION",
+        "INSURANCE",
+        "CUSTOMS",
+        "SURCHARGE",
+        "OTHER",
+      ]),
+      quantity: zod.number(),
+      unitPrice: zod.number(),
+      currency: zod.string(),
+      totalAmount: zod.number(),
+      taxRate: zod.number().optional(),
+      taxAmount: zod.number().optional(),
+      source: zod.enum(["RATE_TABLE", "RULE_ENGINE", "AGENT", "MANUAL"]),
+      rateTableId: zod.string().nullish(),
+      metadata: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get invoice for a shipment
+ */
+export const GetShipmentInvoiceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetShipmentInvoiceResponse = zod.object({
+  data: zod.object({
+    id: zod.string(),
+    companyId: zod.string(),
+    shipmentId: zod.string(),
+    invoiceNumber: zod.string(),
+    status: zod.enum(["DRAFT", "ISSUED", "PAID", "CANCELLED"]),
+    billToEntityId: zod.string().nullish(),
+    subtotal: zod.number(),
+    taxTotal: zod.number(),
+    grandTotal: zod.number(),
+    currency: zod.string(),
+    lineItems: zod.array(zod.object({}).passthrough()).optional(),
+    dueDate: zod.date().nullish(),
+    issuedAt: zod.date().nullish(),
+    paidAt: zod.date().nullish(),
+    pdfStorageKey: zod.string().nullish(),
+    metadata: zod.object({}).passthrough().nullish(),
+    createdAt: zod.date(),
+  }),
+});
+
+/**
+ * @summary List all invoices
+ */
+export const ListInvoicesResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      shipmentId: zod.string(),
+      invoiceNumber: zod.string(),
+      status: zod.enum(["DRAFT", "ISSUED", "PAID", "CANCELLED"]),
+      billToEntityId: zod.string().nullish(),
+      subtotal: zod.number(),
+      taxTotal: zod.number(),
+      grandTotal: zod.number(),
+      currency: zod.string(),
+      lineItems: zod.array(zod.object({}).passthrough()).optional(),
+      dueDate: zod.date().nullish(),
+      issuedAt: zod.date().nullish(),
+      paidAt: zod.date().nullish(),
+      pdfStorageKey: zod.string().nullish(),
+      metadata: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary List rate table entries
+ */
+export const ListRateTablesResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      carrier: zod.string(),
+      chargeCode: zod.string(),
+      description: zod.string(),
+      origin: zod.string(),
+      destination: zod.string(),
+      containerType: zod.string().nullish(),
+      unitPrice: zod.number(),
+      currency: zod.string(),
+      validFrom: zod.date().nullish(),
+      validTo: zod.date().nullish(),
+      metadata: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a rate table entry
+ */
+export const CreateRateTableEntryBody = zod.object({
+  companyId: zod.string(),
+  carrier: zod.string(),
+  chargeCode: zod.string(),
+  description: zod.string(),
+  origin: zod.string(),
+  destination: zod.string(),
+  unitPrice: zod.number(),
+  currency: zod.string().optional(),
+  validFrom: zod.date().optional(),
+  validTo: zod.date().optional(),
+});

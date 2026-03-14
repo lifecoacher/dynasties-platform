@@ -34,11 +34,32 @@ export interface InsuranceJob {
   trigger: "shipment_created";
 }
 
+export interface PricingJob {
+  companyId: string;
+  shipmentId: string;
+  trigger: "shipment_approved";
+}
+
+export interface DocGenJob {
+  companyId: string;
+  shipmentId: string;
+  trigger: "charges_calculated";
+}
+
+export interface BillingJob {
+  companyId: string;
+  shipmentId: string;
+  trigger: "documents_generated";
+}
+
 type ExtractionHandler = (job: ExtractionJob) => Promise<void>;
 type PipelineHandler = (job: ShipmentPipelineJob) => Promise<void>;
 type ComplianceHandler = (job: ComplianceJob) => Promise<void>;
 type RiskHandler = (job: RiskJob) => Promise<void>;
 type InsuranceHandler = (job: InsuranceJob) => Promise<void>;
+type PricingHandler = (job: PricingJob) => Promise<void>;
+type DocGenHandler = (job: DocGenJob) => Promise<void>;
+type BillingHandler = (job: BillingJob) => Promise<void>;
 
 const emitter = new EventEmitter();
 const EXTRACTION_QUEUE = "extraction-jobs";
@@ -46,12 +67,18 @@ const PIPELINE_QUEUE = "shipment-pipeline-jobs";
 const COMPLIANCE_QUEUE = "compliance-jobs";
 const RISK_QUEUE = "risk-jobs";
 const INSURANCE_QUEUE = "insurance-jobs";
+const PRICING_QUEUE = "pricing-jobs";
+const DOCGEN_QUEUE = "docgen-jobs";
+const BILLING_QUEUE = "billing-jobs";
 
 let extractionWrapper: ((job: ExtractionJob) => void) | null = null;
 let pipelineWrapper: ((job: ShipmentPipelineJob) => void) | null = null;
 let complianceWrapper: ((job: ComplianceJob) => void) | null = null;
 let riskWrapper: ((job: RiskJob) => void) | null = null;
 let insuranceWrapper: ((job: InsuranceJob) => void) | null = null;
+let pricingWrapper: ((job: PricingJob) => void) | null = null;
+let docgenWrapper: ((job: DocGenJob) => void) | null = null;
+let billingWrapper: ((job: BillingJob) => void) | null = null;
 
 export function registerExtractionConsumer(fn: ExtractionHandler): void {
   if (extractionWrapper) {
@@ -118,34 +145,75 @@ export function registerInsuranceConsumer(fn: InsuranceHandler): void {
   emitter.on(INSURANCE_QUEUE, wrapper);
 }
 
+export function registerPricingConsumer(fn: PricingHandler): void {
+  if (pricingWrapper) {
+    emitter.removeListener(PRICING_QUEUE, pricingWrapper);
+  }
+  const wrapper = (job: PricingJob) => {
+    fn(job).catch((err) => {
+      console.error(`[queue] pricing job failed for shipment=${job.shipmentId}:`, err);
+    });
+  };
+  pricingWrapper = wrapper;
+  emitter.on(PRICING_QUEUE, wrapper);
+}
+
+export function registerDocGenConsumer(fn: DocGenHandler): void {
+  if (docgenWrapper) {
+    emitter.removeListener(DOCGEN_QUEUE, docgenWrapper);
+  }
+  const wrapper = (job: DocGenJob) => {
+    fn(job).catch((err) => {
+      console.error(`[queue] docgen job failed for shipment=${job.shipmentId}:`, err);
+    });
+  };
+  docgenWrapper = wrapper;
+  emitter.on(DOCGEN_QUEUE, wrapper);
+}
+
+export function registerBillingConsumer(fn: BillingHandler): void {
+  if (billingWrapper) {
+    emitter.removeListener(BILLING_QUEUE, billingWrapper);
+  }
+  const wrapper = (job: BillingJob) => {
+    fn(job).catch((err) => {
+      console.error(`[queue] billing job failed for shipment=${job.shipmentId}:`, err);
+    });
+  };
+  billingWrapper = wrapper;
+  emitter.on(BILLING_QUEUE, wrapper);
+}
+
 export function publishExtractionJob(job: ExtractionJob): void {
-  setImmediate(() => {
-    emitter.emit(EXTRACTION_QUEUE, job);
-  });
+  setImmediate(() => { emitter.emit(EXTRACTION_QUEUE, job); });
 }
 
 export function publishPipelineJob(job: ShipmentPipelineJob): void {
-  setImmediate(() => {
-    emitter.emit(PIPELINE_QUEUE, job);
-  });
+  setImmediate(() => { emitter.emit(PIPELINE_QUEUE, job); });
 }
 
 export function publishComplianceJob(job: ComplianceJob): void {
-  setImmediate(() => {
-    emitter.emit(COMPLIANCE_QUEUE, job);
-  });
+  setImmediate(() => { emitter.emit(COMPLIANCE_QUEUE, job); });
 }
 
 export function publishRiskJob(job: RiskJob): void {
-  setImmediate(() => {
-    emitter.emit(RISK_QUEUE, job);
-  });
+  setImmediate(() => { emitter.emit(RISK_QUEUE, job); });
 }
 
 export function publishInsuranceJob(job: InsuranceJob): void {
-  setImmediate(() => {
-    emitter.emit(INSURANCE_QUEUE, job);
-  });
+  setImmediate(() => { emitter.emit(INSURANCE_QUEUE, job); });
+}
+
+export function publishPricingJob(job: PricingJob): void {
+  setImmediate(() => { emitter.emit(PRICING_QUEUE, job); });
+}
+
+export function publishDocGenJob(job: DocGenJob): void {
+  setImmediate(() => { emitter.emit(DOCGEN_QUEUE, job); });
+}
+
+export function publishBillingJob(job: BillingJob): void {
+  setImmediate(() => { emitter.emit(BILLING_QUEUE, job); });
 }
 
 export function publishM4Jobs(companyId: string, shipmentId: string): void {
@@ -161,5 +229,8 @@ export function getQueueStats(): Record<string, number> {
     complianceListeners: emitter.listenerCount(COMPLIANCE_QUEUE),
     riskListeners: emitter.listenerCount(RISK_QUEUE),
     insuranceListeners: emitter.listenerCount(INSURANCE_QUEUE),
+    pricingListeners: emitter.listenerCount(PRICING_QUEUE),
+    docgenListeners: emitter.listenerCount(DOCGEN_QUEUE),
+    billingListeners: emitter.listenerCount(BILLING_QUEUE),
   };
 }

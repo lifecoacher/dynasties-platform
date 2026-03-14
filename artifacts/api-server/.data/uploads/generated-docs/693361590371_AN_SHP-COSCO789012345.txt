@@ -1,0 +1,43 @@
+═══════════════════════════════════════════════════
+              ARRIVAL NOTICE
+═══════════════════════════════════════════════════
+
+Reference: SHP-COSCO789012345
+B/L Number: COSCO789012345
+Date: March 14, 2026
+
+── NOTIFY ──────────────────────────────────────────
+  Atlantic Imports LLC
+  1200 Harbor Boulevard, Newark, NJ 07102
+
+── SHIPMENT INFORMATION ────────────────────────────
+  Vessel: COSCO PRIDE
+  Voyage: 2026-AT22
+  Port of Loading: Shanghai, China (CNSHA)
+  Port of Discharge: Newark, USA (USNYC)
+  ETA: N/A
+
+── CARGO ───────────────────────────────────────────
+  Commodity: Cotton Textiles and Garments
+  Packages: 450
+  Gross Weight: 9200 KG
+  Volume: 38 CBM
+
+── CHARGES ─────────────────────────────────────────
+  FRT: Ocean Freight — USD 1710.00
+  DOC: Documentation Fee — USD 75.00
+  AMS: AMS Filing Fee — USD 35.00
+  ISF: ISF Filing Fee — USD 50.00
+  THC-O: Terminal Handling - Origin — USD 150.00
+  THC-D: Terminal Handling - Destination — USD 150.00
+  BAF: Bunker Adjustment Factor — USD 703.00
+  CAF: Currency Adjustment Factor — USD 85.00
+  CFS: Container Freight Station (De-stuffing) — USD 382.50
+  ISP: Inspection & Sampling Surcharge — USD 125.00
+  HAN: Hazmat Handling (if applicable) / Special Handling — USD 60.00
+
+  TOTAL: USD 3525.50
+
+═══════════════════════════════════════════════════
+  Please arrange customs clearance and pickup.
+═══════════════════════════════════════════════════

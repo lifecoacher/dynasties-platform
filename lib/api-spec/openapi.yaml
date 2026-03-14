@@ -438,6 +438,116 @@ paths:
                       $ref: "#/components/schemas/Event"
                 required:
                   - data
+  /shipments/{id}/charges:
+    get:
+      operationId: getShipmentCharges
+      tags: [shipments]
+      summary: Get charges for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of charges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ShipmentCharge"
+                required:
+                  - data
+  /shipments/{id}/invoice:
+    get:
+      operationId: getShipmentInvoice
+      tags: [shipments]
+      summary: Get invoice for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+                required:
+                  - data
+        "404":
+          description: No invoice found
+  /invoices:
+    get:
+      operationId: listInvoices
+      tags: [shipments]
+      summary: List all invoices
+      responses:
+        "200":
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Invoice"
+                required:
+                  - data
+  /rate-tables:
+    get:
+      operationId: listRateTables
+      tags: [shipments]
+      summary: List rate table entries
+      responses:
+        "200":
+          description: List of rate table entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RateTableEntry"
+                required:
+                  - data
+    post:
+      operationId: createRateTableEntry
+      tags: [shipments]
+      summary: Create a rate table entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRateTableEntry"
+      responses:
+        "201":
+          description: Rate table entry created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/RateTableEntry"
+                required:
+                  - data
 components:
   schemas:
     HealthStatus:
@@ -1093,3 +1203,199 @@ components:
       required:
         - id
         - corrections
+    ShipmentCharge:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        shipmentId:
+          type: string
+        chargeCode:
+          type: string
+        description:
+          type: string
+        chargeType:
+          type: string
+          enum: [FREIGHT, ORIGIN, DESTINATION, DOCUMENTATION, INSURANCE, CUSTOMS, SURCHARGE, OTHER]
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+        currency:
+          type: string
+        totalAmount:
+          type: number
+        taxRate:
+          type: number
+        taxAmount:
+          type: number
+        source:
+          type: string
+          enum: [RATE_TABLE, RULE_ENGINE, AGENT, MANUAL]
+        rateTableId:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - shipmentId
+        - chargeCode
+        - description
+        - chargeType
+        - quantity
+        - unitPrice
+        - currency
+        - totalAmount
+        - source
+        - createdAt
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        shipmentId:
+          type: string
+        invoiceNumber:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, ISSUED, PAID, CANCELLED]
+        billToEntityId:
+          type: string
+          nullable: true
+        subtotal:
+          type: number
+        taxTotal:
+          type: number
+        grandTotal:
+          type: number
+        currency:
+          type: string
+        lineItems:
+          type: array
+          items:
+            type: object
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        issuedAt:
+          type: string
+          format: date-time
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        pdfStorageKey:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - shipmentId
+        - invoiceNumber
+        - status
+        - subtotal
+        - taxTotal
+        - grandTotal
+        - currency
+        - createdAt
+    RateTableEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        carrier:
+          type: string
+        chargeCode:
+          type: string
+        description:
+          type: string
+        origin:
+          type: string
+        destination:
+          type: string
+        containerType:
+          type: string
+          nullable: true
+        unitPrice:
+          type: number
+        currency:
+          type: string
+        validFrom:
+          type: string
+          format: date-time
+          nullable: true
+        validTo:
+          type: string
+          format: date-time
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - carrier
+        - chargeCode
+        - description
+        - origin
+        - destination
+        - unitPrice
+        - currency
+        - createdAt
+    CreateRateTableEntry:
+      type: object
+      properties:
+        companyId:
+          type: string
+        carrier:
+          type: string
+        chargeCode:
+          type: string
+        description:
+          type: string
+        origin:
+          type: string
+        destination:
+          type: string
+        unitPrice:
+          type: number
+        currency:
+          type: string
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+      required:
+        - companyId
+        - carrier
+        - chargeCode
+        - description
+        - origin
+        - destination
+        - unitPrice
