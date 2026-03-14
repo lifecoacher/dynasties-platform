@@ -1,33 +1,15 @@
 import { useState } from "react";
 import { useListShipments } from "@workspace/api-client-react";
 import { Link } from "wouter";
-import { ArrowLeft, Brain, Shield, TrendingUp, Umbrella, Search, Loader2, ChevronRight, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Brain, Shield, TrendingUp, Umbrella, Search, Loader2, ChevronRight, AlertTriangle, CheckCircle2, Activity } from "lucide-react";
 import { motion } from "framer-motion";
-
-function riskColor(score: number | undefined | null): string {
-  if (score == null) return "text-muted-foreground";
-  if (score < 0.3) return "text-emerald-400";
-  if (score < 0.6) return "text-amber-400";
-  return "text-red-400";
-}
-
-function riskLabel(score: number | undefined | null): string {
-  if (score == null) return "N/A";
-  if (score < 0.3) return "Low";
-  if (score < 0.6) return "Medium";
-  return "High";
-}
+import { normalizeRiskScore, riskColor, riskLabel, formatCurrency, formatWeight } from "@/lib/format";
 
 function complianceColor(status: string | undefined | null): string {
   if (!status) return "text-muted-foreground";
   if (status === "CLEAR") return "text-emerald-400";
-  if (status === "FLAGGED") return "text-red-400";
+  if (status === "FLAGGED" || status === "ALERT") return "text-red-400";
   return "text-amber-400";
-}
-
-function formatCurrency(amount: number | string | null | undefined, currency = "USD"): string {
-  if (amount == null) return "N/A";
-  return `${currency} ${Number(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function ShipmentIntelligence() {
@@ -62,6 +44,14 @@ export default function ShipmentIntelligence() {
             AI-powered analysis across all processed shipments.
           </p>
         </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium shrink-0">
+          <Activity className="w-3 h-3" />
+          Monitoring
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+          </span>
+        </div>
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
@@ -90,7 +80,10 @@ export default function ShipmentIntelligence() {
         <SummaryCard
           icon={<TrendingUp className="w-5 h-5" />}
           label="Low Risk"
-          value={shipments.filter((s: any) => (s.risk?.compositeScore ?? 1) < 0.3).length.toString()}
+          value={shipments.filter((s: any) => {
+            const score = normalizeRiskScore(s.risk?.compositeScore);
+            return score != null && score < 30;
+          }).length.toString()}
           color="text-blue-400"
         />
         <SummaryCard
@@ -116,7 +109,6 @@ export default function ShipmentIntelligence() {
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground uppercase tracking-wider text-xs">Shipper</th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground uppercase tracking-wider text-xs">Consignee</th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground uppercase tracking-wider text-xs">Commodity</th>
-                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground uppercase tracking-wider text-xs">HS Code</th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground uppercase tracking-wider text-xs">Route</th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground uppercase tracking-wider text-xs">Weight</th>
                   <th className="px-4 py-3 text-center font-semibold text-muted-foreground uppercase tracking-wider text-xs">Compliance</th>
@@ -126,56 +118,64 @@ export default function ShipmentIntelligence() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((s: any, i: number) => (
-                  <motion.tr
-                    key={s.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="border-b border-border/30 hover:bg-primary/5 transition-colors group"
-                  >
-                    <td className="px-4 py-3">
-                      <Link href={`/shipments/${s.id}`} className="font-semibold text-primary hover:underline">
-                        {s.reference}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-foreground">{s.shipper?.name || <span className="text-muted-foreground italic">Unknown</span>}</td>
-                    <td className="px-4 py-3 text-foreground">{s.consignee?.name || <span className="text-muted-foreground italic">Unknown</span>}</td>
-                    <td className="px-4 py-3 text-foreground truncate max-w-[160px]">{s.commodity || "N/A"}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{s.hsCode || "N/A"}</td>
-                    <td className="px-4 py-3 text-foreground whitespace-nowrap">
-                      <span className="text-muted-foreground">{s.portOfLoading || "?"}</span>
-                      <span className="mx-1 text-primary">→</span>
-                      <span className="text-muted-foreground">{s.portOfDischarge || "?"}</span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {s.grossWeight ? `${Number(s.grossWeight).toLocaleString()} ${s.weightUnit || "KG"}` : "N/A"}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex items-center gap-1 font-semibold ${complianceColor(s.compliance?.status)}`}>
-                        {s.compliance?.status === "CLEAR" ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.compliance?.status ? <AlertTriangle className="w-3.5 h-3.5" /> : null}
-                        {s.compliance?.status || "Pending"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`font-semibold ${riskColor(s.risk?.compositeScore)}`}>
-                        {s.risk?.compositeScore != null ? `${(Number(s.risk.compositeScore) * 100).toFixed(0)}%` : "N/A"}
-                      </span>
-                      <span className={`block text-xs ${riskColor(s.risk?.compositeScore)}`}>{riskLabel(s.risk?.compositeScore)}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-xs">
-                      {s.insurance?.estimatedPremium ? formatCurrency(s.insurance.estimatedPremium) : "N/A"}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Link
-                        href={`/shipments/${s.id}/trace`}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors opacity-60 group-hover:opacity-100"
-                      >
-                        View <ChevronRight className="w-3 h-3" />
-                      </Link>
-                    </td>
-                  </motion.tr>
-                ))}
+                {filtered.map((s: any, i: number) => {
+                  const score = normalizeRiskScore(s.risk?.compositeScore);
+                  return (
+                    <motion.tr
+                      key={s.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className="border-b border-border/30 hover:bg-primary/5 transition-colors group"
+                    >
+                      <td className="px-4 py-3">
+                        <Link href={`/shipments/${s.id}`} className="font-semibold text-primary hover:underline">
+                          {s.reference}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-foreground max-w-[180px]">
+                        <span className="block truncate" title={s.shipper?.name}>{s.shipper?.name || <span className="text-muted-foreground italic">Unknown</span>}</span>
+                      </td>
+                      <td className="px-4 py-3 text-foreground max-w-[180px]">
+                        <span className="block truncate" title={s.consignee?.name}>{s.consignee?.name || <span className="text-muted-foreground italic">Unknown</span>}</span>
+                      </td>
+                      <td className="px-4 py-3 text-foreground max-w-[180px]">
+                        <span className="block truncate" title={s.commodity}>{s.commodity || "N/A"}</span>
+                      </td>
+                      <td className="px-4 py-3 text-foreground whitespace-nowrap">
+                        <span className="text-muted-foreground" title={s.portOfLoading}>{s.portOfLoading || "?"}</span>
+                        <span className="mx-1 text-primary">→</span>
+                        <span className="text-muted-foreground" title={s.portOfDischarge}>{s.portOfDischarge || "?"}</span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {s.grossWeight ? formatWeight(s.grossWeight, s.weightUnit || "KG") : "N/A"}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-flex items-center gap-1 font-semibold ${complianceColor(s.compliance?.status)}`}>
+                          {s.compliance?.status === "CLEAR" ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.compliance?.status ? <AlertTriangle className="w-3.5 h-3.5" /> : null}
+                          {s.compliance?.status || "Pending"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`font-bold ${riskColor(score)}`}>
+                          {score != null ? score : "N/A"}
+                        </span>
+                        <span className={`block text-xs ${riskColor(score)}`}>{riskLabel(score)}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-xs">
+                        {s.insurance?.estimatedPremium ? formatCurrency(s.insurance.estimatedPremium) : "N/A"}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Link
+                          href={`/shipments/${s.id}/trace`}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors opacity-60 group-hover:opacity-100"
+                        >
+                          View <ChevronRight className="w-3 h-3" />
+                        </Link>
+                      </td>
+                    </motion.tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

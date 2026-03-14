@@ -18,6 +18,14 @@ The core architectural principle is that LLMs never directly write to the system
 **UI/UX Decisions:**
 The project includes a React-based Operator Workbench UI (`workbench/`) for managing operations and interacting with the system. A mockup sandbox (`mockup-sandbox/`) is used for design component development.
 
+**Data Normalization:**
+- Risk scores stored and displayed in 0-100 scale (not 0-1). Frontend uses `normalizeRiskScore()` from `@/lib/format` for safety.
+- Risk thresholds: <30 = Low (emerald), 30-60 = Medium (amber), ≥60 = High (red).
+- Drizzle `numeric` columns return strings — all API responses cast with `Number()` before sending.
+- All shipment references use DYN-2026-XXXXX format.
+- 5 canonical demo shipments: DYN-2026-00138 (APPROVED), DYN-2026-00147 (DRAFT), DYN-2026-00152 (PENDING_REVIEW), DYN-2026-00201 (DRAFT), DYN-2026-00202 (DRAFT).
+- Formatting helpers centralized in `artifacts/workbench/src/lib/format.ts`.
+
 **Frontend Routes:**
 - `/` — Operator Workbench (shipment list with filters, search, Intelligence + Demo buttons)
 - `/intelligence` — Shipment Intelligence dashboard (all shipments with compliance/risk/insurance analytics)

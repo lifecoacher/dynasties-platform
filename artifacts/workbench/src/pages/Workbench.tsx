@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useListShipments } from "@workspace/api-client-react";
 import { ShipmentCard } from "@/components/ShipmentCard";
-import { Ship, Filter, Search, Loader2, Zap, Brain } from "lucide-react";
+import { Ship, Filter, Search, Loader2, Brain, Activity } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 
@@ -9,7 +9,7 @@ type FilterTab = 'ALL' | 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
 
 export default function Workbench() {
   const { data: response, isLoading, error } = useListShipments();
-  const [activeTab, setActiveTab] = useState<FilterTab>('DRAFT');
+  const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
   const [search, setSearch] = useState('');
 
   const shipments = response?.data || [];
@@ -48,19 +48,20 @@ export default function Workbench() {
         </div>
         
         <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium shrink-0">
+            <Activity className="w-3 h-3" />
+            <span className="hidden sm:inline">Agents active</span>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+            </span>
+          </div>
           <Link
             href="/intelligence"
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-semibold text-sm transition-all border border-violet-500/20 shrink-0"
           >
             <Brain className="w-4 h-4" />
             Intelligence
-          </Link>
-          <Link
-            href="/demo"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-semibold text-sm transition-all border border-primary/20 shrink-0"
-          >
-            <Zap className="w-4 h-4" />
-            Demo
           </Link>
           <div className="relative flex-grow md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -86,7 +87,7 @@ export default function Workbench() {
                 : 'bg-card text-muted-foreground hover:bg-secondary border border-border/50'
             }`}
           >
-            {tab.replace(/_/g, ' ')}
+            {tab === 'PENDING_REVIEW' ? 'Pending Review' : tab.replace(/_/g, ' ')}
             <span className="ml-2 px-1.5 py-0.5 rounded-full bg-background/20 text-xs">
               {tab === 'ALL' ? shipments.length : shipments.filter(s => s.status === tab).length}
             </span>

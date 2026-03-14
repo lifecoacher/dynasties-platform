@@ -308,21 +308,24 @@ router.get("/demo/shipment-intelligence", ...demoGuard, async (req, res) => {
           status: compliance.status,
           matchCount: compliance.matchCount,
           screenedParties: compliance.screenedParties,
-          explanation: compliance.explanation,
+          matches: compliance.matches,
+          listsChecked: compliance.listsChecked,
           createdAt: compliance.createdAt,
         } : null,
         risk: risk ? {
           compositeScore: Number(risk.compositeScore),
           recommendedAction: risk.recommendedAction,
-          factors: risk.factors,
-          explanation: risk.explanation,
+          subScores: risk.subScores,
+          primaryRiskFactors: risk.primaryRiskFactors,
         } : null,
         insurance: insurance ? {
           coverageType: insurance.coverageType,
-          cargoValue: Number(insurance.cargoValue),
+          estimatedInsuredValue: Number(insurance.estimatedInsuredValue),
           estimatedPremium: Number(insurance.estimatedPremium),
           currency: insurance.currency,
-          rationale: insurance.rationale,
+          coverageRationale: insurance.coverageRationale,
+          exclusions: insurance.exclusions,
+          confidenceScore: insurance.confidenceScore,
         } : null,
       };
     });
@@ -330,7 +333,7 @@ router.get("/demo/shipment-intelligence", ...demoGuard, async (req, res) => {
     const summary = {
       total: enriched.length,
       complianceClear: enriched.filter((s) => s.compliance?.status === "CLEAR").length,
-      lowRisk: enriched.filter((s) => (s.risk?.compositeScore ?? 1) < 0.3).length,
+      lowRisk: enriched.filter((s) => (s.risk?.compositeScore ?? 100) < 30).length,
       insured: enriched.filter((s) => s.insurance != null).length,
       avgRiskScore: enriched.filter((s) => s.risk).length > 0
         ? enriched.reduce((sum, s) => sum + (s.risk?.compositeScore || 0), 0) / enriched.filter((s) => s.risk).length

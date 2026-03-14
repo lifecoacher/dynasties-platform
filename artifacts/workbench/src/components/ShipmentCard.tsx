@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowRight, ShieldAlert, ShieldCheck, ShieldX, TrendingUp, Ship } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
+import { normalizeRiskScore, riskColor, formatCurrency } from "@/lib/format";
 import type { EnrichedShipment } from "@workspace/api-client-react";
 
 export function ShipmentCard({ shipment }: { shipment: EnrichedShipment }) {
@@ -15,13 +16,8 @@ export function ShipmentCard({ shipment }: { shipment: EnrichedShipment }) {
     }
   };
 
-  const riskColor = () => {
-    if (!shipment.risk) return 'text-muted-foreground';
-    const score = shipment.risk.compositeScore;
-    if (score < 30) return 'text-success';
-    if (score < 70) return 'text-warning';
-    return 'text-destructive';
-  };
+  const score = normalizeRiskScore(shipment.risk?.compositeScore ?? null);
+  const scoreColor = riskColor(score);
 
   return (
     <motion.div
@@ -49,18 +45,17 @@ export function ShipmentCard({ shipment }: { shipment: EnrichedShipment }) {
       <div className="grid grid-cols-2 gap-4 mb-5 flex-grow">
         <div className="space-y-1">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Route</span>
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <span className="truncate max-w-[100px]">{shipment.portOfLoading || 'Unknown'}</span>
+          <div className="flex items-center gap-1.5 text-sm font-medium">
+            <span className="truncate max-w-[110px]" title={shipment.portOfLoading || undefined}>{shipment.portOfLoading || 'Unknown'}</span>
             <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-            <span className="truncate max-w-[100px]">{shipment.portOfDischarge || 'Unknown'}</span>
+            <span className="truncate max-w-[110px]" title={shipment.portOfDischarge || undefined}>{shipment.portOfDischarge || 'Unknown'}</span>
           </div>
         </div>
         <div className="space-y-1">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parties</span>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="truncate max-w-[100px] font-medium text-primary/90">{shipment.shipper?.name || 'Pending'}</span>
-            <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-            <span className="truncate max-w-[100px] font-medium">{shipment.consignee?.name || 'Pending'}</span>
+          <div className="text-sm space-y-0.5">
+            <div className="truncate font-medium text-primary/90" title={shipment.shipper?.name}>{shipment.shipper?.name || 'Pending'}</div>
+            <div className="truncate font-medium text-foreground/70" title={shipment.consignee?.name}>{shipment.consignee?.name || 'Pending'}</div>
           </div>
         </div>
       </div>
@@ -74,15 +69,15 @@ export function ShipmentCard({ shipment }: { shipment: EnrichedShipment }) {
         </div>
         <div className="w-px h-4 bg-border/50" />
         <div className="flex items-center gap-1.5" title="Risk Score">
-          <TrendingUp className={`w-4 h-4 ${riskColor()}`} />
-          <span className={`text-sm font-bold ${riskColor()}`}>
-            {shipment.risk ? Math.round(shipment.risk.compositeScore) : '--'}
+          <TrendingUp className={`w-4 h-4 ${scoreColor}`} />
+          <span className={`text-sm font-bold ${scoreColor}`}>
+            {score != null ? score : '--'}
           </span>
         </div>
         <div className="w-px h-4 bg-border/50" />
         <div className="flex items-center gap-1.5 text-sm font-medium">
           {shipment.insurance ? (
-            <span>{shipment.insurance.currency} {shipment.insurance.estimatedPremium.toLocaleString()}</span>
+            <span>{formatCurrency(shipment.insurance.estimatedPremium, shipment.insurance.currency)}</span>
           ) : (
             <span className="text-muted-foreground">No quote</span>
           )}
