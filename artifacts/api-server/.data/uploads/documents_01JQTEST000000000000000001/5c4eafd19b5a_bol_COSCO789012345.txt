@@ -1,0 +1,35 @@
+BILL OF LADING
+Date: March 15, 2026
+B/L Number: COSCO789012345
+
+SHIPPER:
+Shanghai Textiles Manufacturing Co., Ltd.
+45 Pudong Industrial Zone, Shanghai, China
+
+CONSIGNEE:
+Atlantic Imports LLC
+1200 Harbor Boulevard, Newark, NJ 07102
+
+NOTIFY PARTY:
+East Coast Customs Services Inc.
+55 Terminal Rd, Port Elizabeth, NJ 07201
+
+VESSEL: COSCO PRIDE
+VOYAGE: 2026-AT22
+
+PORT OF LOADING: Shanghai, China (CNSHA)
+PORT OF DISCHARGE: Newark, USA (USNYC)
+
+COMMODITY: Cotton Textiles and Garments
+HS CODE: 5208.11
+
+PACKAGES: 450 Cartons
+GROSS WEIGHT: 9,200 KG
+VOLUME: 38 CBM
+
+CONTAINER NUMBERS: CSLU8877665, CSLU8877666, CSLU8877667
+
+FREIGHT TERMS: FOB Shanghai
+RELEASE TYPE: TELEX
+
+BOOKING NUMBER: BK-COSCO-2026-0315

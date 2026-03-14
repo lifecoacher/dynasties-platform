@@ -1,0 +1,25 @@
+BILL OF LADING
+Date: March 16, 2026
+B/L Number: EVERGREEN555666777
+
+SHIPPER:
+Nordic Maritime Supplies AS
+Fjordveien 12, Bergen, Norway
+
+CONSIGNEE:
+Pacific Distribution Inc.
+555 Harbor Drive, Long Beach, CA 90802
+
+VESSEL: EVER GOLDEN
+VOYAGE: NE-PAC-2026-03
+
+PORT OF LOADING: Bergen, Norway (NOBGO)
+PORT OF DISCHARGE: Long Beach, USA (USLGB)
+
+COMMODITY: Marine Equipment Parts
+HS CODE: 8487.90
+PACKAGES: 120 Pallets
+GROSS WEIGHT: 24,500 KG
+VOLUME: 95 CBM
+FREIGHT TERMS: CIF Long Beach
+BOOKING NUMBER: BK-EVG-2026-0316

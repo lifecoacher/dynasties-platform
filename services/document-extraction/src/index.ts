@@ -4,6 +4,7 @@ import { eq, and, ne } from "drizzle-orm";
 import { readFile } from "@workspace/storage";
 import { generateId } from "@workspace/shared-utils";
 import type { ExtractionJob } from "@workspace/queue";
+import { publishPipelineJob } from "@workspace/queue";
 import { extractText } from "./ocr.js";
 import { runExtractionAgent } from "./agent.js";
 import { validateExtractionOutput } from "./validator.js";
@@ -112,6 +113,7 @@ export async function processExtractionJob(job: ExtractionJob): Promise<void> {
     );
 
     await tryMarkEmailProcessed(documentId);
+    await tryTriggerPipeline(documentId, companyId);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
 
@@ -133,6 +135,63 @@ export async function processExtractionJob(job: ExtractionJob): Promise<void> {
     });
 
     console.error(`[extraction] error doc=${documentId}:`, err);
+  }
+}
+
+async function tryTriggerPipeline(documentId: string, companyId: string): Promise<void> {
+  const [doc] = await db
+    .select({ emailId: ingestedDocumentsTable.emailId })
+    .from(ingestedDocumentsTable)
+    .where(eq(ingestedDocumentsTable.id, documentId))
+    .limit(1);
+
+  if (!doc) return;
+
+  if (doc.emailId) {
+    const pending = await db
+      .select({ id: ingestedDocumentsTable.id })
+      .from(ingestedDocumentsTable)
+      .where(
+        and(
+          eq(ingestedDocumentsTable.emailId, doc.emailId),
+          ne(ingestedDocumentsTable.extractionStatus, "EXTRACTED"),
+          ne(ingestedDocumentsTable.extractionStatus, "FAILED"),
+        ),
+      )
+      .limit(1);
+
+    if (pending.length > 0) {
+      console.log(`[extraction] email=${doc.emailId} still has pending docs, deferring pipeline`);
+      return;
+    }
+
+    const allDocs = await db
+      .select({ id: ingestedDocumentsTable.id })
+      .from(ingestedDocumentsTable)
+      .where(
+        and(
+          eq(ingestedDocumentsTable.emailId, doc.emailId),
+          eq(ingestedDocumentsTable.extractionStatus, "EXTRACTED"),
+        ),
+      );
+
+    publishPipelineJob({
+      companyId,
+      documentIds: allDocs.map((d) => d.id),
+      emailId: doc.emailId,
+      trigger: "extraction_complete",
+    });
+
+    console.log(`[extraction] pipeline triggered for email=${doc.emailId} with ${allDocs.length} docs`);
+  } else {
+    publishPipelineJob({
+      companyId,
+      documentIds: [documentId],
+      emailId: null,
+      trigger: "extraction_complete",
+    });
+
+    console.log(`[extraction] pipeline triggered for standalone doc=${documentId}`);
   }
 }
 

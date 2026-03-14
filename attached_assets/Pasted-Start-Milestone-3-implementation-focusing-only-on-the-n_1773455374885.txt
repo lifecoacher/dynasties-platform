@@ -1,0 +1,61 @@
+Start Milestone 3 implementation, focusing only on the next executable pipeline:
+
+extracted document data
+→ entity resolution
+→ shipment draft construction
+→ shipment record written to database
+
+Prioritize this exact sequence:
+	1.	Entity Resolution Service
+
+	•	consume shipper, consignee, notifyParty, and carrier fields from ingested_documents.extracted_data
+	•	match against existing entities using exact match, normalized match, and fuzzy match
+	•	if no confident match exists, create a new entity record or entity draft flagged for later review
+	•	return structured entity resolution output only
+
+	2.	Entity Resolution Agent
+
+	•	use company context and known entities to improve matching
+	•	return JSON only
+	•	do not write directly to the database
+
+	3.	Shipment Builder Agent
+
+	•	combine extracted fields from all documents associated with one email/upload
+	•	produce a single structured shipment draft JSON
+	•	include conflicts array when values disagree across documents
+
+	4.	Shipment Construction Service
+
+	•	validate shipment draft JSON before any write
+	•	create shipment record with status DRAFT
+	•	link related shipment_documents
+	•	create event showing shipment draft created
+
+Important constraints:
+	•	do not start auth
+	•	do not start multi-tenancy
+	•	do not start memory graph expansion beyond minimal hooks
+	•	do not start compliance, risk, insurance, pricing, or invoicing
+	•	do not build extra UI pages yet
+	•	do not add unnecessary abstractions
+
+Preserve the core rule:
+LLMs never write directly to the system of record.
+Agents return structured JSON only.
+Deterministic services validate and perform all writes.
+
+The milestone is complete only when this works end-to-end in development:
+
+manual upload or email
+→ extraction completes
+→ parties resolved
+→ shipment draft created in database
+
+When complete, stop and report:
+	•	files created
+	•	services implemented
+	•	entity matching logic used
+	•	shipment fields written
+	•	events emitted
+	•	what remains before compliance/risk/insurance can begin

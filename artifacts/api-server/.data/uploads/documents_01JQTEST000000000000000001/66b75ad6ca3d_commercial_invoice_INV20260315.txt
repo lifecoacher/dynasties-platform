@@ -1,0 +1,22 @@
+COMMERCIAL INVOICE
+Invoice No: INV-2026-0315-SHT
+Date: March 15, 2026
+
+SHIPPER/EXPORTER:
+Shanghai Textiles Manufacturing Co., Ltd.
+45 Pudong Industrial Zone, Shanghai, China
+
+CONSIGNEE:
+Atlantic Imports LLC
+1200 Harbor Boulevard, Newark, NJ 07102
+
+COMMODITY: Cotton Textiles and Garments
+HS CODE: 5208.11
+
+TOTAL PACKAGES: 450 Cartons
+TOTAL WEIGHT: 9,200 KG
+TOTAL VALUE: USD 125,000.00
+
+TERMS: FOB Shanghai
+BOOKING: BK-COSCO-2026-0315
+B/L: COSCO789012345

@@ -18,6 +18,8 @@
     "@workspace/queue": "workspace:*",
     "@workspace/svc-email-ingestion": "workspace:*",
     "@workspace/svc-document-extraction": "workspace:*",
+    "@workspace/svc-entity-resolution": "workspace:*",
+    "@workspace/svc-shipment-construction": "workspace:*",
     "@workspace/integrations-anthropic-ai": "workspace:*",
     "drizzle-orm": "catalog:",
     "express": "^5",
