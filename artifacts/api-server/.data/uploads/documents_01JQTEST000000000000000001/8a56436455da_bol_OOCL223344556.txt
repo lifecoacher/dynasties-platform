@@ -1,0 +1,33 @@
+BILL OF LADING
+Date: March 17, 2026
+B/L Number: OOCL223344556
+
+SHIPPER:
+Shenzhen Electronics Trading Co., Ltd.
+Building 5, Nanshan Technology Park, Shenzhen 518057, China
+
+CONSIGNEE:
+Pacific Coast Imports LLC
+2500 Maritime Way, Oakland, CA 94607, USA
+
+NOTIFY PARTY:
+Bay Area Customs Brokers Inc.
+100 Terminal Road, Oakland, CA 94607, USA
+
+VESSEL: OOCL TOKYO
+VOYAGE: TPX-2026-W12
+
+PORT OF LOADING: Shenzhen, China (CNSZX)
+PORT OF DISCHARGE: Oakland, USA (USOAK)
+
+COMMODITY: Consumer Electronics - Smartphones and Tablets
+HS CODE: 8517.13
+
+PACKAGES: 2400 Cartons
+GROSS WEIGHT: 14,800 KG
+VOLUME: 48 CBM
+
+CONTAINER NUMBERS: OOLU7766554, OOLU7766555
+
+FREIGHT TERMS: FOB Shenzhen
+BOOKING NUMBER: BK-OOCL-2026-0317

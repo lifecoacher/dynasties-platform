@@ -9,6 +9,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import type { ExtractionOutput } from "@workspace/shared-schemas";
 import { resolveParties, type PartyInput } from "@workspace/svc-entity-resolution";
+import { publishM4Jobs } from "@workspace/queue";
 import { buildShipmentDraft, type ShipmentDraft } from "./builder.js";
 import { validateShipmentDraft } from "./validator.js";
 
@@ -212,6 +213,9 @@ export async function runShipmentPipeline(
   console.log(
     `[pipeline] shipment created id=${shipmentId} ref=${draft.reference} conflicts=${draft.conflicts.length}`,
   );
+
+  publishM4Jobs(companyId, shipmentId);
+  console.log(`[pipeline] M4 jobs dispatched (compliance, risk, insurance) for shipment=${shipmentId}`);
 
   return {
     shipmentId,

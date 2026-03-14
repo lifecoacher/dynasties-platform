@@ -1,0 +1,31 @@
+BILL OF LADING
+Date: March 16, 2026
+B/L Number: MAEU9988776655
+
+SHIPPER:
+Tokyo Industrial Parts Corp.
+2-14-1 Shinkiba, Koto-ku, Tokyo 136-0082, Japan
+
+CONSIGNEE:
+German Engineering Solutions GmbH
+Industriestrasse 45, 70565 Stuttgart, Germany
+
+NOTIFY PARTY:
+Rotterdam Freight Services BV
+Europaweg 200, 3199 LD Rotterdam, Netherlands
+
+VESSEL: MAERSK SENTOSA
+VOYAGE: EU-ASIA-2026-W12
+
+PORT OF LOADING: Tokyo, Japan (JPTYO)
+PORT OF DISCHARGE: Rotterdam, Netherlands (NLRTM)
+
+COMMODITY: Precision Machinery Components
+HS CODE: 8466.30
+
+PACKAGES: 85 Crates
+GROSS WEIGHT: 18,500 KG
+VOLUME: 62 CBM
+
+FREIGHT TERMS: CIF Rotterdam
+BOOKING NUMBER: BK-MAEU-2026-0316

@@ -187,6 +187,9 @@ importers:
       '@workspace/storage':
         specifier: workspace:*
         version: link:../../lib/storage
+      '@workspace/svc-compliance-screening':
+        specifier: workspace:*
+        version: link:../../services/compliance-screening
       '@workspace/svc-document-extraction':
         specifier: workspace:*
         version: link:../../services/document-extraction
@@ -196,6 +199,12 @@ importers:
       '@workspace/svc-entity-resolution':
         specifier: workspace:*
         version: link:../../services/entity-resolution
+      '@workspace/svc-insurance':
+        specifier: workspace:*
+        version: link:../../services/insurance
+      '@workspace/svc-risk-intelligence':
+        specifier: workspace:*
+        version: link:../../services/risk-intelligence
       '@workspace/svc-shipment-construction':
         specifier: workspace:*
         version: link:../../services/shipment-construction
@@ -539,7 +548,30 @@ importers:
 
   services/claims-management: {}
 
-  services/compliance-screening: {}
+  services/compliance-screening:
+    dependencies:
+      '@workspace/config':
+        specifier: workspace:*
+        version: link:../../lib/config
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/integrations-anthropic-ai':
+        specifier: workspace:*
+        version: link:../../lib/integrations-anthropic-ai
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
 
   services/document-extraction:
     dependencies:
@@ -629,11 +661,57 @@ importers:
 
   services/exception-management: {}
 
-  services/insurance: {}
+  services/insurance:
+    dependencies:
+      '@workspace/config':
+        specifier: workspace:*
+        version: link:../../lib/config
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/integrations-anthropic-ai':
+        specifier: workspace:*
+        version: link:../../lib/integrations-anthropic-ai
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
 
   services/pricing: {}
 
-  services/risk-intelligence: {}
+  services/risk-intelligence:
+    dependencies:
+      '@workspace/config':
+        specifier: workspace:*
+        version: link:../../lib/config
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/integrations-anthropic-ai':
+        specifier: workspace:*
+        version: link:../../lib/integrations-anthropic-ai
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
 
   services/shipment-construction:
     dependencies:
@@ -643,6 +721,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/queue':
+        specifier: workspace:*
+        version: link:../../lib/queue
       '@workspace/shared-schemas':
         specifier: workspace:*
         version: link:../../lib/shared-schemas
