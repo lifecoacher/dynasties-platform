@@ -41,10 +41,13 @@ The system processes various stages of freight forwarding, including:
 - **Pricing:** Calculating shipment charges based on rate tables and AI-suggested supplemental charges.
 - **Document Generation:** Generating critical documents like HBL, Arrival Notices, and Shipment Summaries.
 - **Billing:** Consolidating charges and generating invoices.
+- **Exception Management:** Automated detection of 6 exception types (extraction failures, document conflicts, compliance alerts, high risk, missing documents, billing discrepancies) with AI agent classification and severity assessment. Triggered after billing completion.
+- **Trade Lane Intelligence:** Aggregation of shipment statistics per origin-destination lane with AI advisory on cost ranges, transit times, delay probability, and seasonal factors. Triggered after billing completion.
+- **Claims Management:** On-demand claim preparation with AI agent for claim narrative generation, coverage analysis, and submission recommendations. Initiated via API.
 
 **System Design Choices:**
 - **Modular Services:** The architecture is broken down into distinct services (e.g., `email-ingestion`, `document-extraction`, `entity-resolution`) to promote separation of concerns and scalability.
-- **Job Queues:** An abstraction for job queuing (`lib/queue`) supports various job types, defaulting to in-process EventEmitter for development and designed to swap to SQS for production.
+- **Job Queues:** An abstraction for job queuing (`lib/queue`) supports 11 job types (extraction, shipment-pipeline, compliance, risk, insurance, pricing, docgen, billing, exception, trade-lane, claims), defaulting to in-process EventEmitter for development and designed to swap to SQS for production.
 - **File Storage:** An abstraction for file storage (`lib/storage`) uses the local filesystem for development and will switch to S3 for production.
 - **Agent Output Validation:** All AI agents return structured JSON, which is then validated against Zod schemas. If validation fails, services fall back to deterministic output, ensuring no silent failures.
 - **Composite TypeScript Projects:** The monorepo leverages TypeScript's composite project feature for efficient type-checking and building across shared libraries.

@@ -13,3 +13,7 @@ export * from "./events";
 export * from "./shipment-charges";
 export * from "./rate-tables";
 export * from "./invoices";
+export * from "./exceptions";
+export * from "./trade-lane-stats";
+export * from "./claims";
+export * from "./claim-communications";

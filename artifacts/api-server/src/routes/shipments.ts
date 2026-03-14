@@ -13,10 +13,14 @@ import {
   shipmentChargesTable,
   invoicesTable,
   rateTablesTable,
+  exceptionsTable,
+  tradeLaneStatsTable,
+  claimsTable,
+  claimCommunicationsTable,
 } from "@workspace/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
-import { publishPricingJob } from "@workspace/queue";
+import { publishPricingJob, publishClaimsJob } from "@workspace/queue";
 
 const router: IRouter = Router();
 
@@ -460,6 +464,213 @@ router.post("/rate-tables", async (req, res) => {
 
   const [created] = await db.select().from(rateTablesTable).where(eq(rateTablesTable.id, id)).limit(1);
   res.status(201).json({ data: created });
+});
+
+router.get("/shipments/:id/exceptions", async (req, res) => {
+  const { id } = req.params;
+  const exceptions = await db
+    .select()
+    .from(exceptionsTable)
+    .where(eq(exceptionsTable.shipmentId, id))
+    .orderBy(desc(exceptionsTable.createdAt));
+  res.json({ data: exceptions });
+});
+
+router.patch("/exceptions/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status, resolvedBy, resolutionNotes } = req.body as {
+    status?: string;
+    resolvedBy?: string;
+    resolutionNotes?: string;
+  };
+
+  const [exception] = await db
+    .select()
+    .from(exceptionsTable)
+    .where(eq(exceptionsTable.id, id))
+    .limit(1);
+
+  if (!exception) {
+    res.status(404).json({ error: "Exception not found" });
+    return;
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (status) updateData.status = status;
+  if (resolvedBy) updateData.resolvedBy = resolvedBy;
+  if (resolutionNotes) updateData.resolutionNotes = resolutionNotes;
+  if (status === "RESOLVED") updateData.resolvedAt = new Date();
+
+  await db
+    .update(exceptionsTable)
+    .set(updateData)
+    .where(eq(exceptionsTable.id, id));
+
+  const [updated] = await db
+    .select()
+    .from(exceptionsTable)
+    .where(eq(exceptionsTable.id, id))
+    .limit(1);
+
+  res.json({ data: updated });
+});
+
+router.get("/exceptions/:id", async (req, res) => {
+  const { id } = req.params;
+  const [exception] = await db
+    .select()
+    .from(exceptionsTable)
+    .where(eq(exceptionsTable.id, id))
+    .limit(1);
+
+  if (!exception) {
+    res.status(404).json({ error: "Exception not found" });
+    return;
+  }
+  res.json({ data: exception });
+});
+
+router.get("/exceptions", async (_req, res) => {
+  const exceptions = await db
+    .select()
+    .from(exceptionsTable)
+    .orderBy(desc(exceptionsTable.createdAt))
+    .limit(100);
+  res.json({ data: exceptions });
+});
+
+router.get("/trade-lanes", async (_req, res) => {
+  const lanes = await db
+    .select()
+    .from(tradeLaneStatsTable)
+    .orderBy(desc(tradeLaneStatsTable.lastUpdated))
+    .limit(100);
+  res.json({ data: lanes });
+});
+
+router.get("/trade-lanes/:id", async (req, res) => {
+  const { id } = req.params;
+  const [lane] = await db
+    .select()
+    .from(tradeLaneStatsTable)
+    .where(eq(tradeLaneStatsTable.id, id))
+    .limit(1);
+
+  if (!lane) {
+    res.status(404).json({ error: "Trade lane not found" });
+    return;
+  }
+  res.json({ data: lane });
+});
+
+router.get("/shipments/:id/claims", async (req, res) => {
+  const { id } = req.params;
+  const claims = await db
+    .select()
+    .from(claimsTable)
+    .where(eq(claimsTable.shipmentId, id))
+    .orderBy(desc(claimsTable.createdAt));
+  res.json({ data: claims });
+});
+
+router.post("/shipments/:id/claims", async (req, res) => {
+  const { id } = req.params;
+  const { claimType, incidentDescription } = req.body as {
+    claimType: string;
+    incidentDescription: string;
+  };
+
+  if (!claimType || !incidentDescription) {
+    res.status(400).json({ error: "claimType and incidentDescription are required" });
+    return;
+  }
+
+  const [shipment] = await db
+    .select()
+    .from(shipmentsTable)
+    .where(eq(shipmentsTable.id, id))
+    .limit(1);
+
+  if (!shipment) {
+    res.status(404).json({ error: "Shipment not found" });
+    return;
+  }
+
+  publishClaimsJob({
+    companyId: shipment.companyId,
+    shipmentId: id,
+    claimType,
+    incidentDescription,
+    trigger: "manual",
+  });
+
+  res.status(202).json({ data: { shipmentId: id, claimType, status: "PROCESSING" } });
+});
+
+router.get("/claims", async (_req, res) => {
+  const claims = await db
+    .select()
+    .from(claimsTable)
+    .orderBy(desc(claimsTable.createdAt))
+    .limit(100);
+  res.json({ data: claims });
+});
+
+router.get("/claims/:id", async (req, res) => {
+  const { id } = req.params;
+  const [claim] = await db
+    .select()
+    .from(claimsTable)
+    .where(eq(claimsTable.id, id))
+    .limit(1);
+
+  if (!claim) {
+    res.status(404).json({ error: "Claim not found" });
+    return;
+  }
+  res.json({ data: claim });
+});
+
+router.get("/claims/:id/communications", async (req, res) => {
+  const { id } = req.params;
+  const comms = await db
+    .select()
+    .from(claimCommunicationsTable)
+    .where(eq(claimCommunicationsTable.claimId, id))
+    .orderBy(desc(claimCommunicationsTable.createdAt));
+  res.json({ data: comms });
+});
+
+router.patch("/claims/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body as { status?: string };
+
+  const [claim] = await db
+    .select()
+    .from(claimsTable)
+    .where(eq(claimsTable.id, id))
+    .limit(1);
+
+  if (!claim) {
+    res.status(404).json({ error: "Claim not found" });
+    return;
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (status) updateData.status = status;
+
+  await db
+    .update(claimsTable)
+    .set(updateData)
+    .where(eq(claimsTable.id, id));
+
+  const [updated] = await db
+    .select()
+    .from(claimsTable)
+    .where(eq(claimsTable.id, id))
+    .limit(1);
+
+  res.json({ data: updated });
 });
 
 export default router;

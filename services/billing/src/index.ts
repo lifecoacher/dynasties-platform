@@ -9,6 +9,7 @@ import {
 import { eq } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { storeFile } from "@workspace/storage";
+import { publishExceptionJob, publishTradeLaneJob } from "@workspace/queue";
 
 export interface BillingResult {
   invoiceId: string | null;
@@ -101,7 +102,9 @@ export async function runBilling(
     .limit(1);
 
   if (existingInvoice.length > 0) {
-    console.log(`[billing] invoice already exists for shipment=${shipmentId}, skipping`);
+    console.log(`[billing] invoice already exists for shipment=${shipmentId}, dispatching M7 jobs`);
+    publishExceptionJob({ companyId, shipmentId, trigger: "invoice_created" });
+    publishTradeLaneJob({ companyId, shipmentId, trigger: "invoice_created" });
     return {
       invoiceId: existingInvoice[0]!.id,
       invoiceNumber: existingInvoice[0]!.invoiceNumber,
@@ -205,8 +208,11 @@ export async function runBilling(
     },
   });
 
+  publishExceptionJob({ companyId, shipmentId, trigger: "invoice_created" });
+  publishTradeLaneJob({ companyId, shipmentId, trigger: "invoice_created" });
+
   console.log(
-    `[billing] complete: shipment=${shipmentId} invoice=${invoiceNumber} total=$${grandTotal.toFixed(2)}`,
+    `[billing] complete: shipment=${shipmentId} invoice=${invoiceNumber} total=$${grandTotal.toFixed(2)} → dispatched exception+trade-lane jobs`,
   );
 
   return {

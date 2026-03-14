@@ -525,6 +525,225 @@ export interface RateTableEntry {
   createdAt: string;
 }
 
+export type ExceptionExceptionType =
+  (typeof ExceptionExceptionType)[keyof typeof ExceptionExceptionType];
+
+export const ExceptionExceptionType = {
+  EXTRACTION_FAILURE: "EXTRACTION_FAILURE",
+  DOCUMENT_CONFLICT: "DOCUMENT_CONFLICT",
+  COMPLIANCE_ALERT: "COMPLIANCE_ALERT",
+  HIGH_RISK: "HIGH_RISK",
+  MISSING_DOCUMENT: "MISSING_DOCUMENT",
+  BILLING_DISCREPANCY: "BILLING_DISCREPANCY",
+} as const;
+
+export type ExceptionSeverity =
+  (typeof ExceptionSeverity)[keyof typeof ExceptionSeverity];
+
+export const ExceptionSeverity = {
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
+  CRITICAL: "CRITICAL",
+} as const;
+
+export type ExceptionStatus =
+  (typeof ExceptionStatus)[keyof typeof ExceptionStatus];
+
+export const ExceptionStatus = {
+  OPEN: "OPEN",
+  ACKNOWLEDGED: "ACKNOWLEDGED",
+  RESOLVED: "RESOLVED",
+  ESCALATED: "ESCALATED",
+} as const;
+
+export type ExceptionAgentClassification = { [key: string]: unknown } | null;
+
+export type ExceptionMetadata = { [key: string]: unknown } | null;
+
+export interface Exception {
+  id: string;
+  companyId: string;
+  shipmentId?: string | null;
+  exceptionType: ExceptionExceptionType;
+  severity: ExceptionSeverity;
+  status: ExceptionStatus;
+  title: string;
+  description: string;
+  detectedBy: string;
+  impactSummary?: string | null;
+  recommendedAction?: string | null;
+  requiresEscalation?: boolean;
+  agentClassification?: ExceptionAgentClassification;
+  resolvedBy?: string | null;
+  resolvedAt?: string | null;
+  resolutionNotes?: string | null;
+  metadata?: ExceptionMetadata;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type UpdateExceptionStatus =
+  (typeof UpdateExceptionStatus)[keyof typeof UpdateExceptionStatus];
+
+export const UpdateExceptionStatus = {
+  OPEN: "OPEN",
+  ACKNOWLEDGED: "ACKNOWLEDGED",
+  RESOLVED: "RESOLVED",
+  ESCALATED: "ESCALATED",
+} as const;
+
+export interface UpdateException {
+  status?: UpdateExceptionStatus;
+  resolvedBy?: string;
+  resolutionNotes?: string;
+}
+
+export type TradeLaneStatDocumentComplexity =
+  | (typeof TradeLaneStatDocumentComplexity)[keyof typeof TradeLaneStatDocumentComplexity]
+  | null;
+
+export const TradeLaneStatDocumentComplexity = {
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
+} as const;
+
+export type TradeLaneStatAgentAdvisory = { [key: string]: unknown } | null;
+
+export type TradeLaneStatMetadata = { [key: string]: unknown } | null;
+
+export interface TradeLaneStat {
+  id: string;
+  companyId: string;
+  origin: string;
+  destination: string;
+  carrier?: string | null;
+  shipmentCount: number;
+  avgCost?: number | null;
+  minCost?: number | null;
+  maxCost?: number | null;
+  avgTransitDays?: number | null;
+  delayCount: number;
+  delayFrequency?: number | null;
+  avgDocumentCount?: number | null;
+  documentComplexity?: TradeLaneStatDocumentComplexity;
+  agentAdvisory?: TradeLaneStatAgentAdvisory;
+  lastUpdated: string;
+  metadata?: TradeLaneStatMetadata;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ClaimStatus = (typeof ClaimStatus)[keyof typeof ClaimStatus];
+
+export const ClaimStatus = {
+  DRAFT: "DRAFT",
+  SUBMITTED: "SUBMITTED",
+  UNDER_REVIEW: "UNDER_REVIEW",
+  APPROVED: "APPROVED",
+  DENIED: "DENIED",
+  CLOSED: "CLOSED",
+} as const;
+
+export type ClaimClaimType =
+  (typeof ClaimClaimType)[keyof typeof ClaimClaimType];
+
+export const ClaimClaimType = {
+  CARGO_DAMAGE: "CARGO_DAMAGE",
+  CARGO_LOSS: "CARGO_LOSS",
+  DELAY: "DELAY",
+  SHORTAGE: "SHORTAGE",
+  CONTAMINATION: "CONTAMINATION",
+  OTHER: "OTHER",
+} as const;
+
+export type ClaimRequiredDocumentsItem = { [key: string]: unknown };
+
+export type ClaimCoverageAnalysis = { [key: string]: unknown } | null;
+
+export type ClaimMetadata = { [key: string]: unknown } | null;
+
+export interface Claim {
+  id: string;
+  companyId: string;
+  shipmentId: string;
+  claimNumber: string;
+  status: ClaimStatus;
+  claimType: ClaimClaimType;
+  incidentDate?: string | null;
+  incidentDescription: string;
+  estimatedLoss?: number | null;
+  currency: string;
+  claimNarrative?: string | null;
+  requiredDocuments?: ClaimRequiredDocumentsItem[] | null;
+  coverageAnalysis?: ClaimCoverageAnalysis;
+  submissionRecommendation?: string | null;
+  evidenceKeys?: string[] | null;
+  filedBy?: string | null;
+  filedAt?: string | null;
+  metadata?: ClaimMetadata;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateClaimClaimType =
+  (typeof CreateClaimClaimType)[keyof typeof CreateClaimClaimType];
+
+export const CreateClaimClaimType = {
+  CARGO_DAMAGE: "CARGO_DAMAGE",
+  CARGO_LOSS: "CARGO_LOSS",
+  DELAY: "DELAY",
+  SHORTAGE: "SHORTAGE",
+  CONTAMINATION: "CONTAMINATION",
+  OTHER: "OTHER",
+} as const;
+
+export interface CreateClaim {
+  claimType: CreateClaimClaimType;
+  incidentDescription: string;
+}
+
+export interface ClaimAccepted {
+  shipmentId: string;
+  claimType: string;
+  status: string;
+}
+
+export type ClaimCommunicationDirection =
+  (typeof ClaimCommunicationDirection)[keyof typeof ClaimCommunicationDirection];
+
+export const ClaimCommunicationDirection = {
+  INTERNAL: "INTERNAL",
+  OUTBOUND: "OUTBOUND",
+  INBOUND: "INBOUND",
+} as const;
+
+export type ClaimCommunicationCommunicationType =
+  (typeof ClaimCommunicationCommunicationType)[keyof typeof ClaimCommunicationCommunicationType];
+
+export const ClaimCommunicationCommunicationType = {
+  NOTE: "NOTE",
+  EMAIL: "EMAIL",
+  DOCUMENT: "DOCUMENT",
+  STATUS_UPDATE: "STATUS_UPDATE",
+} as const;
+
+export type ClaimCommunicationMetadata = { [key: string]: unknown } | null;
+
+export interface ClaimCommunication {
+  id: string;
+  companyId: string;
+  claimId: string;
+  direction: ClaimCommunicationDirection;
+  communicationType: ClaimCommunicationCommunicationType;
+  subject?: string | null;
+  body: string;
+  author?: string | null;
+  metadata?: ClaimCommunicationMetadata;
+  createdAt: string;
+}
+
 export interface CreateRateTableEntry {
   companyId: string;
   carrier: string;
@@ -632,6 +851,70 @@ export type GetShipmentInvoice200 = {
 
 export type ListInvoices200 = {
   data: Invoice[];
+};
+
+export type GetShipmentExceptions200 = {
+  data: Exception[];
+};
+
+export type ListExceptions200 = {
+  data: Exception[];
+};
+
+export type GetException200 = {
+  data: Exception;
+};
+
+export type UpdateException200 = {
+  data: Exception;
+};
+
+export type ListTradeLanes200 = {
+  data: TradeLaneStat[];
+};
+
+export type GetTradeLane200 = {
+  data: TradeLaneStat;
+};
+
+export type GetShipmentClaims200 = {
+  data: Claim[];
+};
+
+export type CreateClaim202 = {
+  data: ClaimAccepted;
+};
+
+export type ListClaims200 = {
+  data: Claim[];
+};
+
+export type GetClaim200 = {
+  data: Claim;
+};
+
+export type UpdateClaimBodyStatus =
+  (typeof UpdateClaimBodyStatus)[keyof typeof UpdateClaimBodyStatus];
+
+export const UpdateClaimBodyStatus = {
+  DRAFT: "DRAFT",
+  SUBMITTED: "SUBMITTED",
+  UNDER_REVIEW: "UNDER_REVIEW",
+  APPROVED: "APPROVED",
+  DENIED: "DENIED",
+  CLOSED: "CLOSED",
+} as const;
+
+export type UpdateClaimBody = {
+  status?: UpdateClaimBodyStatus;
+};
+
+export type UpdateClaim200 = {
+  data: Claim;
+};
+
+export type GetClaimCommunications200 = {
+  data: ClaimCommunication[];
 };
 
 export type ListRateTables200 = {

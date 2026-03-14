@@ -671,6 +671,471 @@ export const ListInvoicesResponse = zod.object({
 });
 
 /**
+ * @summary Get exceptions for a shipment
+ */
+export const GetShipmentExceptionsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetShipmentExceptionsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      shipmentId: zod.string().nullish(),
+      exceptionType: zod.enum([
+        "EXTRACTION_FAILURE",
+        "DOCUMENT_CONFLICT",
+        "COMPLIANCE_ALERT",
+        "HIGH_RISK",
+        "MISSING_DOCUMENT",
+        "BILLING_DISCREPANCY",
+      ]),
+      severity: zod.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+      status: zod.enum(["OPEN", "ACKNOWLEDGED", "RESOLVED", "ESCALATED"]),
+      title: zod.string(),
+      description: zod.string(),
+      detectedBy: zod.string(),
+      impactSummary: zod.string().nullish(),
+      recommendedAction: zod.string().nullish(),
+      requiresEscalation: zod.boolean().optional(),
+      agentClassification: zod.object({}).passthrough().nullish(),
+      resolvedBy: zod.string().nullish(),
+      resolvedAt: zod.date().nullish(),
+      resolutionNotes: zod.string().nullish(),
+      metadata: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary List all exceptions
+ */
+export const ListExceptionsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      shipmentId: zod.string().nullish(),
+      exceptionType: zod.enum([
+        "EXTRACTION_FAILURE",
+        "DOCUMENT_CONFLICT",
+        "COMPLIANCE_ALERT",
+        "HIGH_RISK",
+        "MISSING_DOCUMENT",
+        "BILLING_DISCREPANCY",
+      ]),
+      severity: zod.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+      status: zod.enum(["OPEN", "ACKNOWLEDGED", "RESOLVED", "ESCALATED"]),
+      title: zod.string(),
+      description: zod.string(),
+      detectedBy: zod.string(),
+      impactSummary: zod.string().nullish(),
+      recommendedAction: zod.string().nullish(),
+      requiresEscalation: zod.boolean().optional(),
+      agentClassification: zod.object({}).passthrough().nullish(),
+      resolvedBy: zod.string().nullish(),
+      resolvedAt: zod.date().nullish(),
+      resolutionNotes: zod.string().nullish(),
+      metadata: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get an exception by ID
+ */
+export const GetExceptionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetExceptionResponse = zod.object({
+  data: zod.object({
+    id: zod.string(),
+    companyId: zod.string(),
+    shipmentId: zod.string().nullish(),
+    exceptionType: zod.enum([
+      "EXTRACTION_FAILURE",
+      "DOCUMENT_CONFLICT",
+      "COMPLIANCE_ALERT",
+      "HIGH_RISK",
+      "MISSING_DOCUMENT",
+      "BILLING_DISCREPANCY",
+    ]),
+    severity: zod.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+    status: zod.enum(["OPEN", "ACKNOWLEDGED", "RESOLVED", "ESCALATED"]),
+    title: zod.string(),
+    description: zod.string(),
+    detectedBy: zod.string(),
+    impactSummary: zod.string().nullish(),
+    recommendedAction: zod.string().nullish(),
+    requiresEscalation: zod.boolean().optional(),
+    agentClassification: zod.object({}).passthrough().nullish(),
+    resolvedBy: zod.string().nullish(),
+    resolvedAt: zod.date().nullish(),
+    resolutionNotes: zod.string().nullish(),
+    metadata: zod.object({}).passthrough().nullish(),
+    createdAt: zod.date(),
+    updatedAt: zod.date(),
+  }),
+});
+
+/**
+ * @summary Update exception status
+ */
+export const UpdateExceptionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateExceptionBody = zod.object({
+  status: zod
+    .enum(["OPEN", "ACKNOWLEDGED", "RESOLVED", "ESCALATED"])
+    .optional(),
+  resolvedBy: zod.string().optional(),
+  resolutionNotes: zod.string().optional(),
+});
+
+export const UpdateExceptionResponse = zod.object({
+  data: zod.object({
+    id: zod.string(),
+    companyId: zod.string(),
+    shipmentId: zod.string().nullish(),
+    exceptionType: zod.enum([
+      "EXTRACTION_FAILURE",
+      "DOCUMENT_CONFLICT",
+      "COMPLIANCE_ALERT",
+      "HIGH_RISK",
+      "MISSING_DOCUMENT",
+      "BILLING_DISCREPANCY",
+    ]),
+    severity: zod.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+    status: zod.enum(["OPEN", "ACKNOWLEDGED", "RESOLVED", "ESCALATED"]),
+    title: zod.string(),
+    description: zod.string(),
+    detectedBy: zod.string(),
+    impactSummary: zod.string().nullish(),
+    recommendedAction: zod.string().nullish(),
+    requiresEscalation: zod.boolean().optional(),
+    agentClassification: zod.object({}).passthrough().nullish(),
+    resolvedBy: zod.string().nullish(),
+    resolvedAt: zod.date().nullish(),
+    resolutionNotes: zod.string().nullish(),
+    metadata: zod.object({}).passthrough().nullish(),
+    createdAt: zod.date(),
+    updatedAt: zod.date(),
+  }),
+});
+
+/**
+ * @summary List trade lane stats
+ */
+export const ListTradeLanesResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      origin: zod.string(),
+      destination: zod.string(),
+      carrier: zod.string().nullish(),
+      shipmentCount: zod.number(),
+      avgCost: zod.number().nullish(),
+      minCost: zod.number().nullish(),
+      maxCost: zod.number().nullish(),
+      avgTransitDays: zod.number().nullish(),
+      delayCount: zod.number(),
+      delayFrequency: zod.number().nullish(),
+      avgDocumentCount: zod.number().nullish(),
+      documentComplexity: zod.enum(["LOW", "MEDIUM", "HIGH"]).nullish(),
+      agentAdvisory: zod.object({}).passthrough().nullish(),
+      lastUpdated: zod.date(),
+      metadata: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get a trade lane by ID
+ */
+export const GetTradeLaneParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetTradeLaneResponse = zod.object({
+  data: zod.object({
+    id: zod.string(),
+    companyId: zod.string(),
+    origin: zod.string(),
+    destination: zod.string(),
+    carrier: zod.string().nullish(),
+    shipmentCount: zod.number(),
+    avgCost: zod.number().nullish(),
+    minCost: zod.number().nullish(),
+    maxCost: zod.number().nullish(),
+    avgTransitDays: zod.number().nullish(),
+    delayCount: zod.number(),
+    delayFrequency: zod.number().nullish(),
+    avgDocumentCount: zod.number().nullish(),
+    documentComplexity: zod.enum(["LOW", "MEDIUM", "HIGH"]).nullish(),
+    agentAdvisory: zod.object({}).passthrough().nullish(),
+    lastUpdated: zod.date(),
+    metadata: zod.object({}).passthrough().nullish(),
+    createdAt: zod.date(),
+    updatedAt: zod.date(),
+  }),
+});
+
+/**
+ * @summary Get claims for a shipment
+ */
+export const GetShipmentClaimsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetShipmentClaimsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      shipmentId: zod.string(),
+      claimNumber: zod.string(),
+      status: zod.enum([
+        "DRAFT",
+        "SUBMITTED",
+        "UNDER_REVIEW",
+        "APPROVED",
+        "DENIED",
+        "CLOSED",
+      ]),
+      claimType: zod.enum([
+        "CARGO_DAMAGE",
+        "CARGO_LOSS",
+        "DELAY",
+        "SHORTAGE",
+        "CONTAMINATION",
+        "OTHER",
+      ]),
+      incidentDate: zod.date().nullish(),
+      incidentDescription: zod.string(),
+      estimatedLoss: zod.number().nullish(),
+      currency: zod.string(),
+      claimNarrative: zod.string().nullish(),
+      requiredDocuments: zod.array(zod.object({}).passthrough()).nullish(),
+      coverageAnalysis: zod.object({}).passthrough().nullish(),
+      submissionRecommendation: zod.string().nullish(),
+      evidenceKeys: zod.array(zod.string()).nullish(),
+      filedBy: zod.string().nullish(),
+      filedAt: zod.date().nullish(),
+      metadata: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary File a new claim for a shipment
+ */
+export const CreateClaimParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CreateClaimBody = zod.object({
+  claimType: zod.enum([
+    "CARGO_DAMAGE",
+    "CARGO_LOSS",
+    "DELAY",
+    "SHORTAGE",
+    "CONTAMINATION",
+    "OTHER",
+  ]),
+  incidentDescription: zod.string(),
+});
+
+/**
+ * @summary List all claims
+ */
+export const ListClaimsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      shipmentId: zod.string(),
+      claimNumber: zod.string(),
+      status: zod.enum([
+        "DRAFT",
+        "SUBMITTED",
+        "UNDER_REVIEW",
+        "APPROVED",
+        "DENIED",
+        "CLOSED",
+      ]),
+      claimType: zod.enum([
+        "CARGO_DAMAGE",
+        "CARGO_LOSS",
+        "DELAY",
+        "SHORTAGE",
+        "CONTAMINATION",
+        "OTHER",
+      ]),
+      incidentDate: zod.date().nullish(),
+      incidentDescription: zod.string(),
+      estimatedLoss: zod.number().nullish(),
+      currency: zod.string(),
+      claimNarrative: zod.string().nullish(),
+      requiredDocuments: zod.array(zod.object({}).passthrough()).nullish(),
+      coverageAnalysis: zod.object({}).passthrough().nullish(),
+      submissionRecommendation: zod.string().nullish(),
+      evidenceKeys: zod.array(zod.string()).nullish(),
+      filedBy: zod.string().nullish(),
+      filedAt: zod.date().nullish(),
+      metadata: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get a claim by ID
+ */
+export const GetClaimParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetClaimResponse = zod.object({
+  data: zod.object({
+    id: zod.string(),
+    companyId: zod.string(),
+    shipmentId: zod.string(),
+    claimNumber: zod.string(),
+    status: zod.enum([
+      "DRAFT",
+      "SUBMITTED",
+      "UNDER_REVIEW",
+      "APPROVED",
+      "DENIED",
+      "CLOSED",
+    ]),
+    claimType: zod.enum([
+      "CARGO_DAMAGE",
+      "CARGO_LOSS",
+      "DELAY",
+      "SHORTAGE",
+      "CONTAMINATION",
+      "OTHER",
+    ]),
+    incidentDate: zod.date().nullish(),
+    incidentDescription: zod.string(),
+    estimatedLoss: zod.number().nullish(),
+    currency: zod.string(),
+    claimNarrative: zod.string().nullish(),
+    requiredDocuments: zod.array(zod.object({}).passthrough()).nullish(),
+    coverageAnalysis: zod.object({}).passthrough().nullish(),
+    submissionRecommendation: zod.string().nullish(),
+    evidenceKeys: zod.array(zod.string()).nullish(),
+    filedBy: zod.string().nullish(),
+    filedAt: zod.date().nullish(),
+    metadata: zod.object({}).passthrough().nullish(),
+    createdAt: zod.date(),
+    updatedAt: zod.date(),
+  }),
+});
+
+/**
+ * @summary Update claim status
+ */
+export const UpdateClaimParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateClaimBody = zod.object({
+  status: zod
+    .enum([
+      "DRAFT",
+      "SUBMITTED",
+      "UNDER_REVIEW",
+      "APPROVED",
+      "DENIED",
+      "CLOSED",
+    ])
+    .optional(),
+});
+
+export const UpdateClaimResponse = zod.object({
+  data: zod.object({
+    id: zod.string(),
+    companyId: zod.string(),
+    shipmentId: zod.string(),
+    claimNumber: zod.string(),
+    status: zod.enum([
+      "DRAFT",
+      "SUBMITTED",
+      "UNDER_REVIEW",
+      "APPROVED",
+      "DENIED",
+      "CLOSED",
+    ]),
+    claimType: zod.enum([
+      "CARGO_DAMAGE",
+      "CARGO_LOSS",
+      "DELAY",
+      "SHORTAGE",
+      "CONTAMINATION",
+      "OTHER",
+    ]),
+    incidentDate: zod.date().nullish(),
+    incidentDescription: zod.string(),
+    estimatedLoss: zod.number().nullish(),
+    currency: zod.string(),
+    claimNarrative: zod.string().nullish(),
+    requiredDocuments: zod.array(zod.object({}).passthrough()).nullish(),
+    coverageAnalysis: zod.object({}).passthrough().nullish(),
+    submissionRecommendation: zod.string().nullish(),
+    evidenceKeys: zod.array(zod.string()).nullish(),
+    filedBy: zod.string().nullish(),
+    filedAt: zod.date().nullish(),
+    metadata: zod.object({}).passthrough().nullish(),
+    createdAt: zod.date(),
+    updatedAt: zod.date(),
+  }),
+});
+
+/**
+ * @summary Get communications for a claim
+ */
+export const GetClaimCommunicationsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetClaimCommunicationsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      claimId: zod.string(),
+      direction: zod.enum(["INTERNAL", "OUTBOUND", "INBOUND"]),
+      communicationType: zod.enum([
+        "NOTE",
+        "EMAIL",
+        "DOCUMENT",
+        "STATUS_UPDATE",
+      ]),
+      subject: zod.string().nullish(),
+      body: zod.string(),
+      author: zod.string().nullish(),
+      metadata: zod.object({}).passthrough().nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+});
+
+/**
  * @summary List rate table entries
  */
 export const ListRateTablesResponse = zod.object({
