@@ -1,0 +1,207 @@
+You are now operating inside the existing Dynasties system that has just completed the audit remediation sprint.
+
+Important constraints:
+• Do NOT rebuild the system
+• Do NOT redesign the architecture
+• Work only with the existing services, endpoints, database schema, and Netlify deployment
+• The full pipeline is already operational
+
+The following pipeline is confirmed working:
+
+email ingestion → document extraction → entity resolution → shipment creation → compliance screening → risk scoring → insurance quoting
+
+Your objective now is to convert this working pipeline into a validated product demonstration and operational intelligence system.
+
+You must autonomously complete the following tasks.
+
+------------------------------------------------
+
+PHASE 1 — PIPELINE VALIDATION
+
+Run multiple end-to-end pipeline executions using realistic shipment email inputs.
+
+Use representative shipping documents such as:
+
+• Bill of Lading
+• Packing List
+• Commercial Invoice
+• Shipping Instructions
+
+For each test run, verify the system correctly produces:
+
+1. parsed email content
+2. extracted shipment documents
+3. extracted structured fields
+4. entity resolution for shipper/consignee/notify party
+5. shipment creation
+6. compliance screening results
+7. risk score output
+8. insurance quote output
+
+Detect and report any inconsistencies such as:
+
+• incorrect entity extraction
+• missing HS codes
+• incorrect weights or units
+• incorrect port detection
+• unrealistic insurance pricing
+• malformed numeric values
+
+Produce a structured validation report summarizing:
+
+• successful pipeline stages
+• detected anomalies
+• recommended adjustments
+
+------------------------------------------------
+
+PHASE 2 — SHIPMENT INTELLIGENCE DASHBOARD
+
+Create a new dashboard view inside the existing system called:
+
+Shipment Intelligence
+
+This dashboard must display for each processed shipment:
+
+• shipment ID
+• shipper
+• consignee
+• notify party
+• commodity
+• HS code
+• port of loading
+• port of discharge
+• vessel (if available)
+• weight
+• volume
+• compliance status
+• sanctions screening result
+• risk score
+• insurance quote
+• estimated insurance premium
+• extraction confidence
+
+Use existing services and database tables.
+
+Do not duplicate logic that already exists.
+
+------------------------------------------------
+
+PHASE 3 — AI DECISION TRACE
+
+Add a decision trace view for each shipment that explains the pipeline reasoning.
+
+The trace should show:
+
+DOCUMENT LAYER
+• source email
+• parsed attachments
+• extracted text
+
+EXTRACTION LAYER
+• fields extracted by the AI model
+• confidence score for each field
+
+ENTITY RESOLUTION
+• matched entities
+• newly created entities
+• entity confidence
+
+COMPLIANCE
+• sanctions checks performed
+• OFAC / EU / UN results
+• match confidence
+
+RISK SCORING
+• risk components
+• composite risk score
+• recommended action
+
+INSURANCE QUOTE
+• cargo value used
+• trade lane
+• risk adjustment
+• premium calculation
+
+The goal is full transparency into how the system produced its decisions.
+
+------------------------------------------------
+
+PHASE 4 — DEMO MODE
+
+Create a demo mode for the system that allows an external viewer to see the full pipeline working.
+
+The demo should include:
+
+1. sample shipment email
+2. extracted shipment documents
+3. created shipment record
+4. compliance screening result
+5. risk score explanation
+6. insurance quote
+
+Provide a single demo route such as:
+
+/demo/shipment-intelligence
+
+This must be safe and tenant isolated.
+
+------------------------------------------------
+
+PHASE 5 — PRODUCT ARCHITECTURE SUMMARY
+
+Generate a concise system architecture overview explaining the Dynasties platform.
+
+The explanation should clearly describe the following modules:
+
+Email Ingestion Service  
+Document Extraction Engine  
+Entity Resolution Service  
+Shipment Construction Engine  
+Compliance Screening Engine  
+Risk Scoring Engine  
+Insurance Quoting Engine  
+Trade Lane Intelligence (future module)
+
+Explain how data flows through each stage.
+
+------------------------------------------------
+
+PHASE 6 — PRODUCT DEMONSTRATION OUTPUT
+
+Produce a clean product summary that explains Dynasties in simple terms for investors or partners.
+
+The explanation must clearly show:
+
+• what the system does
+• how it processes shipments
+• how the intelligence is generated
+• why this becomes the operating system for global trade
+
+Keep it concise and structured.
+
+------------------------------------------------
+
+IMPLEMENTATION RULES
+
+• Use existing services wherever possible
+• Avoid redundant queries or duplicate logic
+• Maintain tenant isolation
+• Maintain numeric precision handling
+• Maintain the new companyId tenant filtering
+• Ensure any new queries follow defense-in-depth scoping
+
+------------------------------------------------
+
+FINAL OUTPUT
+
+Return:
+
+1. validation report of the pipeline
+2. description of the shipment intelligence dashboard
+3. description of the decision trace system
+4. demo route configuration
+5. system architecture summary
+6. product explanation suitable for investors
+
+Focus on turning the existing working system into a clear, demonstrable intelligence product.

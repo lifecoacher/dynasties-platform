@@ -18,6 +18,15 @@ The core architectural principle is that LLMs never directly write to the system
 **UI/UX Decisions:**
 The project includes a React-based Operator Workbench UI (`workbench/`) for managing operations and interacting with the system. A mockup sandbox (`mockup-sandbox/`) is used for design component development.
 
+**Frontend Routes:**
+- `/` — Operator Workbench (shipment list with filters, search, Intelligence + Demo buttons)
+- `/intelligence` — Shipment Intelligence dashboard (all shipments with compliance/risk/insurance analytics)
+- `/shipments/:id` — Shipment detail (editable fields, approval, compliance/risk/insurance panels)
+- `/shipments/:id/trace` — AI Decision Trace (full transparency: document → extraction → entity → compliance → risk → insurance layers)
+- `/demo` — Demo Controls (pipeline ingestion/reset)
+
+**Demo Files:** `.demo/` contains demo email files, validation report, architecture summary, and product explanation.
+
 **Technical Implementations:**
 - **Monorepo:** Managed with pnpm workspaces.
 - **Backend:** Node.js 24, TypeScript 5.9, Express 5.

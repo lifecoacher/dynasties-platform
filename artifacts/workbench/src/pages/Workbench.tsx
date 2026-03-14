@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useListShipments } from "@workspace/api-client-react";
 import { ShipmentCard } from "@/components/ShipmentCard";
-import { Ship, Filter, Search, Loader2, Zap } from "lucide-react";
+import { Ship, Filter, Search, Loader2, Zap, Brain } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 
@@ -48,6 +48,13 @@ export default function Workbench() {
         </div>
         
         <div className="flex items-center gap-4 w-full md:w-auto">
+          <Link
+            href="/intelligence"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-semibold text-sm transition-all border border-violet-500/20 shrink-0"
+          >
+            <Brain className="w-4 h-4" />
+            Intelligence
+          </Link>
           <Link
             href="/demo"
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-semibold text-sm transition-all border border-primary/20 shrink-0"
