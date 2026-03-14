@@ -57,7 +57,7 @@ The project includes a React-based Operator Workbench UI (`workbench/`) for mana
 
 **Feature Specifications:**
 The system processes various stages of freight forwarding, including:
-- **Email Ingestion:** Parsing MIME, extracting attachments, creating `ingested_emails` and `ingested_documents` records.
+- **Email Ingestion:** Parsing MIME, extracting attachments, creating `ingested_emails` and `ingested_documents` records. Demo-tested via `POST /api/emails/ingest` with multipart `.eml` upload — full pipeline proven (email→extraction→entity resolution→shipment→compliance→risk→insurance). No inbound email provider (SES/SendGrid) configured; demo uses API upload of raw MIME files. Demo `.eml` file at `.demo/demo-email.eml`.
 - **Document Extraction:** OCR processing, AI agent-based data extraction, and Zod schema validation for extracted data. This triggers the `ShipmentPipelineJob`. Race condition on `tryTriggerPipeline` fixed with `pg_advisory_xact_lock`.
 - **Entity Resolution:** Deterministic matching (exact, normalized, fuzzy) to create or reuse `entities` records.
 - **Shipment Construction:** Assembling shipment drafts and handling field conflicts.
