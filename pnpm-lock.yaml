@@ -193,6 +193,12 @@ importers:
       '@workspace/svc-email-ingestion':
         specifier: workspace:*
         version: link:../../services/email-ingestion
+      '@workspace/svc-entity-resolution':
+        specifier: workspace:*
+        version: link:../../services/entity-resolution
+      '@workspace/svc-shipment-construction':
+        specifier: workspace:*
+        version: link:../../services/shipment-construction
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -599,7 +605,27 @@ importers:
         specifier: 'catalog:'
         version: 25.3.5
 
-  services/entity-resolution: {}
+  services/entity-resolution:
+    dependencies:
+      '@workspace/config':
+        specifier: workspace:*
+        version: link:../../lib/config
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/shared-schemas':
+        specifier: workspace:*
+        version: link:../../lib/shared-schemas
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
 
   services/exception-management: {}
 
@@ -609,7 +635,33 @@ importers:
 
   services/risk-intelligence: {}
 
-  services/shipment-construction: {}
+  services/shipment-construction:
+    dependencies:
+      '@workspace/config':
+        specifier: workspace:*
+        version: link:../../lib/config
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/shared-schemas':
+        specifier: workspace:*
+        version: link:../../lib/shared-schemas
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      '@workspace/svc-entity-resolution':
+        specifier: workspace:*
+        version: link:../entity-resolution
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
 
   services/trade-lane-intelligence: {}
 

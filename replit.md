@@ -126,13 +126,17 @@ The first executable intelligence pipeline:
 
 ```
 Upload/Email → File stored → Extraction job queued → OCR → Agent → Validator → DB write
+  → Pipeline job published → Entity Resolution (exact/normalized/fuzzy match)
+  → Shipment Draft created (with field conflict detection) → Events logged
 ```
 
 ### Components:
 - **`lib/storage`** (`@workspace/storage`): File storage abstraction. Local filesystem (`.data/uploads/`) for dev; will swap to S3 in M8.
-- **`lib/queue`** (`@workspace/queue`): Job queue abstraction. In-process EventEmitter for dev; will swap to SQS in M8.
+- **`lib/queue`** (`@workspace/queue`): Job queue abstraction. In-process EventEmitter for dev; will swap to SQS in M8. Supports `ExtractionJob` and `ShipmentPipelineJob` channels.
 - **`services/email-ingestion`** (`@workspace/svc-email-ingestion`): MIME parsing via `mailparser`, attachment extraction, creates `ingested_emails` + `ingested_documents` records.
-- **`services/document-extraction`** (`@workspace/svc-document-extraction`): OCR via `pdf-parse`, Document Extraction Agent (Claude Sonnet), ExtractionValidator (Zod schema validation).
+- **`services/document-extraction`** (`@workspace/svc-document-extraction`): OCR via `pdf-parse`, Document Extraction Agent (Claude Sonnet), ExtractionValidator (Zod schema validation). After successful extraction, triggers `ShipmentPipelineJob` (waits for all sibling docs in email batches).
+- **`services/entity-resolution`** (`@workspace/svc-entity-resolution`): Deterministic entity matching — exact (case-insensitive), normalized (strip legal suffixes), fuzzy (Levenshtein ≥0.9 auto-match, 0.8–0.9 flagged). Creates or reuses `entities` records.
+- **`services/shipment-construction`** (`@workspace/svc-shipment-construction`): Orchestrates entity resolution → shipment draft creation. `runShipmentPipeline` consumes pipeline jobs, resolves parties, builds `shipments` record with field conflict detection, logs events.
 
 ### Core Rule Enforcement:
 - `agent.ts`: Claude Sonnet returns structured JSON only. System prompt enforces JSON-only output.
@@ -179,7 +183,7 @@ Anthropic SDK client via Replit AI Integrations proxy. No API key required — u
 |-----------|-------|--------|
 | M1 | Foundation & Repo Setup | ✅ Complete |
 | M2 | Email Ingestion & Document Extraction | ✅ Complete |
-| M3 | Entity Resolution & Shipment Construction | Next |
+| M3 | Entity Resolution & Shipment Construction | ✅ Complete |
 | M4 | Compliance, Risk & Insurance | Planned |
 | M5 | Operator Workbench UI | Planned |
 | M6 | Pricing, Document Generation & Invoicing | Planned |
