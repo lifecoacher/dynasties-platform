@@ -1,0 +1,155 @@
+Perform a full agent inventory and execution verification for the Dynasties platform.
+
+This task must verify not only that agents exist in the codebase but that the
+agentic pipeline functions correctly end-to-end.
+
+--------------------------------------------------
+STEP 1 — REPOSITORY INVENTORY
+--------------------------------------------------
+
+Scan the repository under /services and identify every service that represents
+an AI agent or agent-driven system component.
+
+Produce a table with the following columns:
+
+Agent / Service Name
+Purpose
+Code Location
+Entry File
+Dependencies
+Expected Trigger (API route, queue event, pipeline stage)
+
+--------------------------------------------------
+STEP 2 — RUNTIME REGISTRATION
+--------------------------------------------------
+
+Inspect the running system and verify which agents register at startup.
+
+Check:
+
+• registered job consumers
+• queue registrations
+• pipeline orchestrator initialization
+• server startup logs
+
+For each agent report:
+
+Agent Name
+Startup Status (Registered / Not Registered)
+Consumer or Worker Name
+Trigger Mechanism (queue, event emitter, API)
+
+--------------------------------------------------
+STEP 3 — PIPELINE EXECUTION
+--------------------------------------------------
+
+Verify which agents actually execute in the live demo pipeline.
+
+Use:
+
+• pipeline orchestration code
+• logs
+• job queue events
+• trace view data
+
+Confirm whether each agent executes in the following workflow:
+
+email ingestion  
+→ document extraction  
+→ entity resolution  
+→ shipment construction  
+→ compliance screening  
+→ risk intelligence  
+→ insurance  
+→ pricing (if applicable)
+
+Report:
+
+Agent Name
+Executed in Demo Pipeline (Yes / No)
+Evidence (log line, trace stage, API call)
+
+--------------------------------------------------
+STEP 4 — OUTPUT VALIDATION
+--------------------------------------------------
+
+For each executed agent confirm:
+
+• output format
+• schema validation
+• downstream consumption
+
+Verify specifically that:
+
+• document extraction produces structured fields
+• entity resolution produces entity records
+• compliance screening produces screening results
+• risk intelligence produces a composite score
+• insurance produces premium and confidence
+• shipment construction produces the canonical shipment object
+
+For each agent return:
+
+Output Type
+Validation Schema
+Downstream Consumer
+
+--------------------------------------------------
+STEP 5 — AGENT STATUS CLASSIFICATION
+--------------------------------------------------
+
+Group agents into three categories.
+
+ACTIVE AGENTS  
+Agents running in the demo pipeline
+
+BUILT BUT NOT USED IN DEMO  
+Agents implemented in /services but not triggered in the current workflow
+
+MISSING OR INCOMPLETE AGENTS  
+Agents referenced in the architecture but not implemented or not functional
+
+--------------------------------------------------
+STEP 6 — ORCHESTRATION VERIFICATION
+--------------------------------------------------
+
+Confirm that the workflow orchestrator correctly chains agents together.
+
+Verify:
+
+• queue/event triggers between pipeline stages
+• correct execution order
+• no skipped stages
+• no dead agents
+
+Return the actual pipeline sequence detected at runtime.
+
+--------------------------------------------------
+STEP 7 — FINAL ARCHITECTURE CONFIRMATION
+--------------------------------------------------
+
+Confirm whether the Dynasties platform still supports the full agent ecosystem
+defined in the original framework.
+
+List:
+
+Total agents implemented
+Agents currently active
+Agents available for production workflows
+Agents missing or incomplete
+
+--------------------------------------------------
+FINAL OUTPUT FORMAT
+--------------------------------------------------
+
+Return a structured report with these sections:
+
+AGENT INVENTORY  
+RUNTIME REGISTRATION  
+PIPELINE EXECUTION  
+OUTPUT VALIDATION  
+ACTIVE AGENTS  
+BUILT BUT NOT USED IN DEMO  
+MISSING / INCOMPLETE AGENTS  
+ORCHESTRATION VERIFICATION  
+FINAL ARCHITECTURE STATUS
