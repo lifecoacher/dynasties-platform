@@ -1,0 +1,123 @@
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { setAuthToken } from "@workspace/api-client-react";
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  companyId: string;
+}
+
+interface AuthContextValue {
+  user: User | null;
+  token: string | null;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+const TOKEN_KEY = "dynasties_token";
+const USER_KEY = "dynasties_user";
+
+function getBaseUrl() {
+  return import.meta.env.BASE_URL.replace(/\/$/, "");
+}
+
+async function validateToken(savedToken: string): Promise<User | null> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${savedToken}` },
+    });
+    if (!res.ok) return null;
+    const { data } = await res.json();
+    return data as User;
+  } catch {
+    return null;
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const logoutRef = useRef<() => void>(() => {});
+
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    setAuthToken(null);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+  }, []);
+
+  logoutRef.current = logout;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const savedToken = localStorage.getItem(TOKEN_KEY);
+      if (savedToken) {
+        const validatedUser = await validateToken(savedToken);
+        if (cancelled) return;
+        if (validatedUser) {
+          setToken(savedToken);
+          setUser(validatedUser);
+          setAuthToken(savedToken);
+        } else {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+        }
+      }
+      setIsLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const handle = (e: PromiseRejectionEvent) => {
+      const err = e.reason;
+      if (err && typeof err === "object" && "status" in err && err.status === 401) {
+        logoutRef.current();
+      }
+    };
+    window.addEventListener("unhandledrejection", handle);
+    return () => window.removeEventListener("unhandledrejection", handle);
+  }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
+    const res = await fetch(`${getBaseUrl()}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Login failed (${res.status})`);
+    }
+
+    const { data } = await res.json();
+    setToken(data.token);
+    setUser(data.user);
+    setAuthToken(data.token);
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}
