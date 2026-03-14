@@ -19,29 +19,44 @@ import type {
 import type {
   ApproveShipment200,
   ApproveShipmentBody,
+  CreateClaim,
+  CreateClaim202,
   CreateRateTableEntry,
   CreateRateTableEntry201,
+  GetClaim200,
+  GetClaimCommunications200,
   GetEntity200,
+  GetException200,
   GetShipment200,
   GetShipmentCharges200,
+  GetShipmentClaims200,
   GetShipmentCompliance200,
   GetShipmentCorrections200,
   GetShipmentDocuments200,
   GetShipmentEvents200,
+  GetShipmentExceptions200,
   GetShipmentInsurance200,
   GetShipmentInvoice200,
   GetShipmentRisk200,
+  GetTradeLane200,
   HealthStatus,
+  ListClaims200,
   ListDocuments200,
   ListEmails200,
   ListEntities200,
   ListEvents200,
   ListEventsParams,
+  ListExceptions200,
   ListInvoices200,
   ListRateTables200,
   ListShipments200,
+  ListTradeLanes200,
   RejectShipment200,
   RejectShipmentBody,
+  UpdateClaim200,
+  UpdateClaimBody,
+  UpdateException,
+  UpdateException200,
   UpdateShipmentFields200,
   UpdateShipmentFieldsBody,
 } from "./api.schemas";
@@ -1732,6 +1747,1020 @@ export function useListInvoices<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListInvoicesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get exceptions for a shipment
+ */
+export const getGetShipmentExceptionsUrl = (id: string) => {
+  return `/api/shipments/${id}/exceptions`;
+};
+
+export const getShipmentExceptions = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetShipmentExceptions200> => {
+  return customFetch<GetShipmentExceptions200>(
+    getGetShipmentExceptionsUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetShipmentExceptionsQueryKey = (id: string) => {
+  return [`/api/shipments/${id}/exceptions`] as const;
+};
+
+export const getGetShipmentExceptionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getShipmentExceptions>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentExceptions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetShipmentExceptionsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getShipmentExceptions>>
+  > = ({ signal }) => getShipmentExceptions(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getShipmentExceptions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetShipmentExceptionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShipmentExceptions>>
+>;
+export type GetShipmentExceptionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get exceptions for a shipment
+ */
+
+export function useGetShipmentExceptions<
+  TData = Awaited<ReturnType<typeof getShipmentExceptions>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentExceptions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetShipmentExceptionsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all exceptions
+ */
+export const getListExceptionsUrl = () => {
+  return `/api/exceptions`;
+};
+
+export const listExceptions = async (
+  options?: RequestInit,
+): Promise<ListExceptions200> => {
+  return customFetch<ListExceptions200>(getListExceptionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListExceptionsQueryKey = () => {
+  return [`/api/exceptions`] as const;
+};
+
+export const getListExceptionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listExceptions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listExceptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListExceptionsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listExceptions>>> = ({
+    signal,
+  }) => listExceptions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listExceptions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListExceptionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listExceptions>>
+>;
+export type ListExceptionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all exceptions
+ */
+
+export function useListExceptions<
+  TData = Awaited<ReturnType<typeof listExceptions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listExceptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListExceptionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get an exception by ID
+ */
+export const getGetExceptionUrl = (id: string) => {
+  return `/api/exceptions/${id}`;
+};
+
+export const getException = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetException200> => {
+  return customFetch<GetException200>(getGetExceptionUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetExceptionQueryKey = (id: string) => {
+  return [`/api/exceptions/${id}`] as const;
+};
+
+export const getGetExceptionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getException>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getException>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetExceptionQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getException>>> = ({
+    signal,
+  }) => getException(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getException>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetExceptionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getException>>
+>;
+export type GetExceptionQueryError = ErrorType<void>;
+
+/**
+ * @summary Get an exception by ID
+ */
+
+export function useGetException<
+  TData = Awaited<ReturnType<typeof getException>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getException>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetExceptionQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update exception status
+ */
+export const getUpdateExceptionUrl = (id: string) => {
+  return `/api/exceptions/${id}`;
+};
+
+export const updateException = async (
+  id: string,
+  updateException: UpdateException,
+  options?: RequestInit,
+): Promise<UpdateException200> => {
+  return customFetch<UpdateException200>(getUpdateExceptionUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateException),
+  });
+};
+
+export const getUpdateExceptionMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateException>>,
+    TError,
+    { id: string; data: BodyType<UpdateException> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateException>>,
+  TError,
+  { id: string; data: BodyType<UpdateException> },
+  TContext
+> => {
+  const mutationKey = ["updateException"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateException>>,
+    { id: string; data: BodyType<UpdateException> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateException(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateExceptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateException>>
+>;
+export type UpdateExceptionMutationBody = BodyType<UpdateException>;
+export type UpdateExceptionMutationError = ErrorType<void>;
+
+/**
+ * @summary Update exception status
+ */
+export const useUpdateException = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateException>>,
+    TError,
+    { id: string; data: BodyType<UpdateException> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateException>>,
+  TError,
+  { id: string; data: BodyType<UpdateException> },
+  TContext
+> => {
+  return useMutation(getUpdateExceptionMutationOptions(options));
+};
+
+/**
+ * @summary List trade lane stats
+ */
+export const getListTradeLanesUrl = () => {
+  return `/api/trade-lanes`;
+};
+
+export const listTradeLanes = async (
+  options?: RequestInit,
+): Promise<ListTradeLanes200> => {
+  return customFetch<ListTradeLanes200>(getListTradeLanesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTradeLanesQueryKey = () => {
+  return [`/api/trade-lanes`] as const;
+};
+
+export const getListTradeLanesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTradeLanes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listTradeLanes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListTradeLanesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listTradeLanes>>> = ({
+    signal,
+  }) => listTradeLanes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTradeLanes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTradeLanesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTradeLanes>>
+>;
+export type ListTradeLanesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List trade lane stats
+ */
+
+export function useListTradeLanes<
+  TData = Awaited<ReturnType<typeof listTradeLanes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listTradeLanes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTradeLanesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a trade lane by ID
+ */
+export const getGetTradeLaneUrl = (id: string) => {
+  return `/api/trade-lanes/${id}`;
+};
+
+export const getTradeLane = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetTradeLane200> => {
+  return customFetch<GetTradeLane200>(getGetTradeLaneUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTradeLaneQueryKey = (id: string) => {
+  return [`/api/trade-lanes/${id}`] as const;
+};
+
+export const getGetTradeLaneQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTradeLane>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTradeLane>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTradeLaneQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTradeLane>>> = ({
+    signal,
+  }) => getTradeLane(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTradeLane>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTradeLaneQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTradeLane>>
+>;
+export type GetTradeLaneQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a trade lane by ID
+ */
+
+export function useGetTradeLane<
+  TData = Awaited<ReturnType<typeof getTradeLane>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTradeLane>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTradeLaneQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get claims for a shipment
+ */
+export const getGetShipmentClaimsUrl = (id: string) => {
+  return `/api/shipments/${id}/claims`;
+};
+
+export const getShipmentClaims = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetShipmentClaims200> => {
+  return customFetch<GetShipmentClaims200>(getGetShipmentClaimsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetShipmentClaimsQueryKey = (id: string) => {
+  return [`/api/shipments/${id}/claims`] as const;
+};
+
+export const getGetShipmentClaimsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getShipmentClaims>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentClaims>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetShipmentClaimsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getShipmentClaims>>
+  > = ({ signal }) => getShipmentClaims(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getShipmentClaims>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetShipmentClaimsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShipmentClaims>>
+>;
+export type GetShipmentClaimsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get claims for a shipment
+ */
+
+export function useGetShipmentClaims<
+  TData = Awaited<ReturnType<typeof getShipmentClaims>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShipmentClaims>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetShipmentClaimsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary File a new claim for a shipment
+ */
+export const getCreateClaimUrl = (id: string) => {
+  return `/api/shipments/${id}/claims`;
+};
+
+export const createClaim = async (
+  id: string,
+  createClaim: CreateClaim,
+  options?: RequestInit,
+): Promise<CreateClaim202> => {
+  return customFetch<CreateClaim202>(getCreateClaimUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createClaim),
+  });
+};
+
+export const getCreateClaimMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createClaim>>,
+    TError,
+    { id: string; data: BodyType<CreateClaim> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createClaim>>,
+  TError,
+  { id: string; data: BodyType<CreateClaim> },
+  TContext
+> => {
+  const mutationKey = ["createClaim"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createClaim>>,
+    { id: string; data: BodyType<CreateClaim> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createClaim(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateClaimMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createClaim>>
+>;
+export type CreateClaimMutationBody = BodyType<CreateClaim>;
+export type CreateClaimMutationError = ErrorType<void>;
+
+/**
+ * @summary File a new claim for a shipment
+ */
+export const useCreateClaim = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createClaim>>,
+    TError,
+    { id: string; data: BodyType<CreateClaim> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createClaim>>,
+  TError,
+  { id: string; data: BodyType<CreateClaim> },
+  TContext
+> => {
+  return useMutation(getCreateClaimMutationOptions(options));
+};
+
+/**
+ * @summary List all claims
+ */
+export const getListClaimsUrl = () => {
+  return `/api/claims`;
+};
+
+export const listClaims = async (
+  options?: RequestInit,
+): Promise<ListClaims200> => {
+  return customFetch<ListClaims200>(getListClaimsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListClaimsQueryKey = () => {
+  return [`/api/claims`] as const;
+};
+
+export const getListClaimsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listClaims>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listClaims>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListClaimsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listClaims>>> = ({
+    signal,
+  }) => listClaims({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listClaims>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListClaimsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listClaims>>
+>;
+export type ListClaimsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all claims
+ */
+
+export function useListClaims<
+  TData = Awaited<ReturnType<typeof listClaims>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listClaims>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListClaimsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a claim by ID
+ */
+export const getGetClaimUrl = (id: string) => {
+  return `/api/claims/${id}`;
+};
+
+export const getClaim = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetClaim200> => {
+  return customFetch<GetClaim200>(getGetClaimUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetClaimQueryKey = (id: string) => {
+  return [`/api/claims/${id}`] as const;
+};
+
+export const getGetClaimQueryOptions = <
+  TData = Awaited<ReturnType<typeof getClaim>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getClaim>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetClaimQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getClaim>>> = ({
+    signal,
+  }) => getClaim(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getClaim>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetClaimQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getClaim>>
+>;
+export type GetClaimQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a claim by ID
+ */
+
+export function useGetClaim<
+  TData = Awaited<ReturnType<typeof getClaim>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getClaim>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetClaimQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update claim status
+ */
+export const getUpdateClaimUrl = (id: string) => {
+  return `/api/claims/${id}`;
+};
+
+export const updateClaim = async (
+  id: string,
+  updateClaimBody: UpdateClaimBody,
+  options?: RequestInit,
+): Promise<UpdateClaim200> => {
+  return customFetch<UpdateClaim200>(getUpdateClaimUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateClaimBody),
+  });
+};
+
+export const getUpdateClaimMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateClaim>>,
+    TError,
+    { id: string; data: BodyType<UpdateClaimBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateClaim>>,
+  TError,
+  { id: string; data: BodyType<UpdateClaimBody> },
+  TContext
+> => {
+  const mutationKey = ["updateClaim"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateClaim>>,
+    { id: string; data: BodyType<UpdateClaimBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateClaim(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateClaimMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateClaim>>
+>;
+export type UpdateClaimMutationBody = BodyType<UpdateClaimBody>;
+export type UpdateClaimMutationError = ErrorType<void>;
+
+/**
+ * @summary Update claim status
+ */
+export const useUpdateClaim = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateClaim>>,
+    TError,
+    { id: string; data: BodyType<UpdateClaimBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateClaim>>,
+  TError,
+  { id: string; data: BodyType<UpdateClaimBody> },
+  TContext
+> => {
+  return useMutation(getUpdateClaimMutationOptions(options));
+};
+
+/**
+ * @summary Get communications for a claim
+ */
+export const getGetClaimCommunicationsUrl = (id: string) => {
+  return `/api/claims/${id}/communications`;
+};
+
+export const getClaimCommunications = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetClaimCommunications200> => {
+  return customFetch<GetClaimCommunications200>(
+    getGetClaimCommunicationsUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetClaimCommunicationsQueryKey = (id: string) => {
+  return [`/api/claims/${id}/communications`] as const;
+};
+
+export const getGetClaimCommunicationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getClaimCommunications>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getClaimCommunications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetClaimCommunicationsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getClaimCommunications>>
+  > = ({ signal }) => getClaimCommunications(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getClaimCommunications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetClaimCommunicationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getClaimCommunications>>
+>;
+export type GetClaimCommunicationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get communications for a claim
+ */
+
+export function useGetClaimCommunications<
+  TData = Awaited<ReturnType<typeof getClaimCommunications>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getClaimCommunications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetClaimCommunicationsQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

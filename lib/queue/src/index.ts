@@ -52,6 +52,26 @@ export interface BillingJob {
   trigger: "documents_generated";
 }
 
+export interface ExceptionJob {
+  companyId: string;
+  shipmentId: string;
+  trigger: "invoice_created" | "shipment_created" | "manual";
+}
+
+export interface TradeLaneJob {
+  companyId: string;
+  shipmentId: string;
+  trigger: "invoice_created" | "manual";
+}
+
+export interface ClaimsJob {
+  companyId: string;
+  shipmentId: string;
+  claimType: string;
+  incidentDescription: string;
+  trigger: "manual";
+}
+
 type ExtractionHandler = (job: ExtractionJob) => Promise<void>;
 type PipelineHandler = (job: ShipmentPipelineJob) => Promise<void>;
 type ComplianceHandler = (job: ComplianceJob) => Promise<void>;
@@ -60,6 +80,9 @@ type InsuranceHandler = (job: InsuranceJob) => Promise<void>;
 type PricingHandler = (job: PricingJob) => Promise<void>;
 type DocGenHandler = (job: DocGenJob) => Promise<void>;
 type BillingHandler = (job: BillingJob) => Promise<void>;
+type ExceptionHandler = (job: ExceptionJob) => Promise<void>;
+type TradeLaneHandler = (job: TradeLaneJob) => Promise<void>;
+type ClaimsHandler = (job: ClaimsJob) => Promise<void>;
 
 const emitter = new EventEmitter();
 const EXTRACTION_QUEUE = "extraction-jobs";
@@ -70,6 +93,9 @@ const INSURANCE_QUEUE = "insurance-jobs";
 const PRICING_QUEUE = "pricing-jobs";
 const DOCGEN_QUEUE = "docgen-jobs";
 const BILLING_QUEUE = "billing-jobs";
+const EXCEPTION_QUEUE = "exception-jobs";
+const TRADE_LANE_QUEUE = "trade-lane-jobs";
+const CLAIMS_QUEUE = "claims-jobs";
 
 let extractionWrapper: ((job: ExtractionJob) => void) | null = null;
 let pipelineWrapper: ((job: ShipmentPipelineJob) => void) | null = null;
@@ -79,6 +105,9 @@ let insuranceWrapper: ((job: InsuranceJob) => void) | null = null;
 let pricingWrapper: ((job: PricingJob) => void) | null = null;
 let docgenWrapper: ((job: DocGenJob) => void) | null = null;
 let billingWrapper: ((job: BillingJob) => void) | null = null;
+let exceptionWrapper: ((job: ExceptionJob) => void) | null = null;
+let tradeLaneWrapper: ((job: TradeLaneJob) => void) | null = null;
+let claimsWrapper: ((job: ClaimsJob) => void) | null = null;
 
 export function registerExtractionConsumer(fn: ExtractionHandler): void {
   if (extractionWrapper) {
@@ -216,6 +245,57 @@ export function publishBillingJob(job: BillingJob): void {
   setImmediate(() => { emitter.emit(BILLING_QUEUE, job); });
 }
 
+export function registerExceptionConsumer(fn: ExceptionHandler): void {
+  if (exceptionWrapper) {
+    emitter.removeListener(EXCEPTION_QUEUE, exceptionWrapper);
+  }
+  const wrapper = (job: ExceptionJob) => {
+    fn(job).catch((err) => {
+      console.error(`[queue] exception job failed for shipment=${job.shipmentId}:`, err);
+    });
+  };
+  exceptionWrapper = wrapper;
+  emitter.on(EXCEPTION_QUEUE, wrapper);
+}
+
+export function registerTradeLaneConsumer(fn: TradeLaneHandler): void {
+  if (tradeLaneWrapper) {
+    emitter.removeListener(TRADE_LANE_QUEUE, tradeLaneWrapper);
+  }
+  const wrapper = (job: TradeLaneJob) => {
+    fn(job).catch((err) => {
+      console.error(`[queue] trade-lane job failed for shipment=${job.shipmentId}:`, err);
+    });
+  };
+  tradeLaneWrapper = wrapper;
+  emitter.on(TRADE_LANE_QUEUE, wrapper);
+}
+
+export function registerClaimsConsumer(fn: ClaimsHandler): void {
+  if (claimsWrapper) {
+    emitter.removeListener(CLAIMS_QUEUE, claimsWrapper);
+  }
+  const wrapper = (job: ClaimsJob) => {
+    fn(job).catch((err) => {
+      console.error(`[queue] claims job failed for shipment=${job.shipmentId}:`, err);
+    });
+  };
+  claimsWrapper = wrapper;
+  emitter.on(CLAIMS_QUEUE, wrapper);
+}
+
+export function publishExceptionJob(job: ExceptionJob): void {
+  setImmediate(() => { emitter.emit(EXCEPTION_QUEUE, job); });
+}
+
+export function publishTradeLaneJob(job: TradeLaneJob): void {
+  setImmediate(() => { emitter.emit(TRADE_LANE_QUEUE, job); });
+}
+
+export function publishClaimsJob(job: ClaimsJob): void {
+  setImmediate(() => { emitter.emit(CLAIMS_QUEUE, job); });
+}
+
 export function publishM4Jobs(companyId: string, shipmentId: string): void {
   publishComplianceJob({ companyId, shipmentId, trigger: "shipment_created" });
   publishRiskJob({ companyId, shipmentId, trigger: "shipment_created" });
@@ -232,5 +312,8 @@ export function getQueueStats(): Record<string, number> {
     pricingListeners: emitter.listenerCount(PRICING_QUEUE),
     docgenListeners: emitter.listenerCount(DOCGEN_QUEUE),
     billingListeners: emitter.listenerCount(BILLING_QUEUE),
+    exceptionListeners: emitter.listenerCount(EXCEPTION_QUEUE),
+    tradeLaneListeners: emitter.listenerCount(TRADE_LANE_QUEUE),
+    claimsListeners: emitter.listenerCount(CLAIMS_QUEUE),
   };
 }

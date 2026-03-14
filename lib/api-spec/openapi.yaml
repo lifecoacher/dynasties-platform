@@ -18,6 +18,12 @@ tags:
     description: Document and email operations
   - name: events
     description: Event log operations
+  - name: exceptions
+    description: Exception management operations
+  - name: trade-lanes
+    description: Trade lane intelligence operations
+  - name: claims
+    description: Claims management operations
 paths:
   /healthz:
     get:
@@ -505,6 +511,307 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Invoice"
+                required:
+                  - data
+  /shipments/{id}/exceptions:
+    get:
+      operationId: getShipmentExceptions
+      tags: [exceptions]
+      summary: Get exceptions for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of exceptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Exception"
+                required:
+                  - data
+  /exceptions:
+    get:
+      operationId: listExceptions
+      tags: [exceptions]
+      summary: List all exceptions
+      responses:
+        "200":
+          description: List of exceptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Exception"
+                required:
+                  - data
+  /exceptions/{id}:
+    get:
+      operationId: getException
+      tags: [exceptions]
+      summary: Get an exception by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Exception details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Exception"
+                required:
+                  - data
+        "404":
+          description: Exception not found
+    patch:
+      operationId: updateException
+      tags: [exceptions]
+      summary: Update exception status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateException"
+      responses:
+        "200":
+          description: Updated exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Exception"
+                required:
+                  - data
+        "404":
+          description: Exception not found
+  /trade-lanes:
+    get:
+      operationId: listTradeLanes
+      tags: [trade-lanes]
+      summary: List trade lane stats
+      responses:
+        "200":
+          description: List of trade lane stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TradeLaneStat"
+                required:
+                  - data
+  /trade-lanes/{id}:
+    get:
+      operationId: getTradeLane
+      tags: [trade-lanes]
+      summary: Get a trade lane by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Trade lane details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TradeLaneStat"
+                required:
+                  - data
+        "404":
+          description: Trade lane not found
+  /shipments/{id}/claims:
+    get:
+      operationId: getShipmentClaims
+      tags: [claims]
+      summary: Get claims for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of claims
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Claim"
+                required:
+                  - data
+    post:
+      operationId: createClaim
+      tags: [claims]
+      summary: File a new claim for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClaim"
+      responses:
+        "202":
+          description: Claim processing started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ClaimAccepted"
+                required:
+                  - data
+        "400":
+          description: Missing required fields
+        "404":
+          description: Shipment not found
+  /claims:
+    get:
+      operationId: listClaims
+      tags: [claims]
+      summary: List all claims
+      responses:
+        "200":
+          description: List of claims
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Claim"
+                required:
+                  - data
+  /claims/{id}:
+    get:
+      operationId: getClaim
+      tags: [claims]
+      summary: Get a claim by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Claim details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Claim"
+                required:
+                  - data
+        "404":
+          description: Claim not found
+    patch:
+      operationId: updateClaim
+      tags: [claims]
+      summary: Update claim status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, DENIED, CLOSED]
+      responses:
+        "200":
+          description: Updated claim
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Claim"
+                required:
+                  - data
+        "404":
+          description: Claim not found
+  /claims/{id}/communications:
+    get:
+      operationId: getClaimCommunications
+      tags: [claims]
+      summary: Get communications for a claim
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of communications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ClaimCommunication"
                 required:
                   - data
   /rate-tables:
@@ -1365,6 +1672,282 @@ components:
         - destination
         - unitPrice
         - currency
+        - createdAt
+    Exception:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        shipmentId:
+          type: string
+          nullable: true
+        exceptionType:
+          type: string
+          enum: [EXTRACTION_FAILURE, DOCUMENT_CONFLICT, COMPLIANCE_ALERT, HIGH_RISK, MISSING_DOCUMENT, BILLING_DISCREPANCY]
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        status:
+          type: string
+          enum: [OPEN, ACKNOWLEDGED, RESOLVED, ESCALATED]
+        title:
+          type: string
+        description:
+          type: string
+        detectedBy:
+          type: string
+        impactSummary:
+          type: string
+          nullable: true
+        recommendedAction:
+          type: string
+          nullable: true
+        requiresEscalation:
+          type: boolean
+        agentClassification:
+          type: object
+          nullable: true
+        resolvedBy:
+          type: string
+          nullable: true
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        resolutionNotes:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - exceptionType
+        - severity
+        - status
+        - title
+        - description
+        - detectedBy
+        - createdAt
+        - updatedAt
+    UpdateException:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [OPEN, ACKNOWLEDGED, RESOLVED, ESCALATED]
+        resolvedBy:
+          type: string
+        resolutionNotes:
+          type: string
+    TradeLaneStat:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        origin:
+          type: string
+        destination:
+          type: string
+        carrier:
+          type: string
+          nullable: true
+        shipmentCount:
+          type: integer
+        avgCost:
+          type: number
+          nullable: true
+        minCost:
+          type: number
+          nullable: true
+        maxCost:
+          type: number
+          nullable: true
+        avgTransitDays:
+          type: number
+          nullable: true
+        delayCount:
+          type: integer
+        delayFrequency:
+          type: number
+          nullable: true
+        avgDocumentCount:
+          type: number
+          nullable: true
+        documentComplexity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+          nullable: true
+        agentAdvisory:
+          type: object
+          nullable: true
+        lastUpdated:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - origin
+        - destination
+        - shipmentCount
+        - delayCount
+        - lastUpdated
+        - createdAt
+        - updatedAt
+    Claim:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        shipmentId:
+          type: string
+        claimNumber:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, DENIED, CLOSED]
+        claimType:
+          type: string
+          enum: [CARGO_DAMAGE, CARGO_LOSS, DELAY, SHORTAGE, CONTAMINATION, OTHER]
+        incidentDate:
+          type: string
+          format: date-time
+          nullable: true
+        incidentDescription:
+          type: string
+        estimatedLoss:
+          type: number
+          nullable: true
+        currency:
+          type: string
+        claimNarrative:
+          type: string
+          nullable: true
+        requiredDocuments:
+          type: array
+          items:
+            type: object
+          nullable: true
+        coverageAnalysis:
+          type: object
+          nullable: true
+        submissionRecommendation:
+          type: string
+          nullable: true
+        evidenceKeys:
+          type: array
+          items:
+            type: string
+          nullable: true
+        filedBy:
+          type: string
+          nullable: true
+        filedAt:
+          type: string
+          format: date-time
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - shipmentId
+        - claimNumber
+        - status
+        - claimType
+        - incidentDescription
+        - currency
+        - createdAt
+        - updatedAt
+    CreateClaim:
+      type: object
+      properties:
+        claimType:
+          type: string
+          enum: [CARGO_DAMAGE, CARGO_LOSS, DELAY, SHORTAGE, CONTAMINATION, OTHER]
+        incidentDescription:
+          type: string
+      required:
+        - claimType
+        - incidentDescription
+    ClaimAccepted:
+      type: object
+      properties:
+        shipmentId:
+          type: string
+        claimType:
+          type: string
+        status:
+          type: string
+      required:
+        - shipmentId
+        - claimType
+        - status
+    ClaimCommunication:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        claimId:
+          type: string
+        direction:
+          type: string
+          enum: [INTERNAL, OUTBOUND, INBOUND]
+        communicationType:
+          type: string
+          enum: [NOTE, EMAIL, DOCUMENT, STATUS_UPDATE]
+        subject:
+          type: string
+          nullable: true
+        body:
+          type: string
+        author:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - claimId
+        - direction
+        - communicationType
+        - body
         - createdAt
     CreateRateTableEntry:
       type: object

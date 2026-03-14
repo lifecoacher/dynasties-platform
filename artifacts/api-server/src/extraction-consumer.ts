@@ -7,6 +7,9 @@ import {
   registerPricingConsumer,
   registerDocGenConsumer,
   registerBillingConsumer,
+  registerExceptionConsumer,
+  registerTradeLaneConsumer,
+  registerClaimsConsumer,
 } from "@workspace/queue";
 import type {
   ExtractionJob,
@@ -17,6 +20,9 @@ import type {
   PricingJob,
   DocGenJob,
   BillingJob,
+  ExceptionJob,
+  TradeLaneJob,
+  ClaimsJob,
 } from "@workspace/queue";
 import { processExtractionJob } from "@workspace/svc-document-extraction";
 import { runShipmentPipeline } from "@workspace/svc-shipment-construction";
@@ -26,6 +32,9 @@ import { runInsuranceQuoteGeneration } from "@workspace/svc-insurance";
 import { runPricing } from "@workspace/svc-pricing";
 import { runDocumentGeneration } from "@workspace/svc-document-generation";
 import { runBilling } from "@workspace/svc-billing";
+import { runExceptionDetection } from "@workspace/svc-exception-management";
+import { runTradeLaneUpdate } from "@workspace/svc-trade-lane-intelligence";
+import { runClaimPreparation } from "@workspace/svc-claims-management";
 
 export function startConsumers(): void {
   registerExtractionConsumer(async (job: ExtractionJob) => {
@@ -116,4 +125,40 @@ export function startConsumers(): void {
     }
   });
   console.log("[consumer] billing job consumer registered");
+
+  registerExceptionConsumer(async (job: ExceptionJob) => {
+    const result = await runExceptionDetection(job.shipmentId, job.companyId);
+    if (result.success) {
+      console.log(
+        `[consumer] exceptions complete: shipment=${job.shipmentId} found=${result.exceptionsCreated} types=${result.exceptionTypes.join(",") || "none"}`,
+      );
+    } else {
+      console.log(`[consumer] exceptions failed: ${result.error}`);
+    }
+  });
+  console.log("[consumer] exception job consumer registered");
+
+  registerTradeLaneConsumer(async (job: TradeLaneJob) => {
+    const result = await runTradeLaneUpdate(job.shipmentId, job.companyId);
+    if (result.success) {
+      console.log(
+        `[consumer] trade-lane complete: shipment=${job.shipmentId} lane=${result.origin}→${result.destination} count=${result.shipmentCount}`,
+      );
+    } else {
+      console.log(`[consumer] trade-lane failed: ${result.error}`);
+    }
+  });
+  console.log("[consumer] trade-lane job consumer registered");
+
+  registerClaimsConsumer(async (job: ClaimsJob) => {
+    const result = await runClaimPreparation(job.shipmentId, job.companyId, job.claimType, job.incidentDescription);
+    if (result.success) {
+      console.log(
+        `[consumer] claims complete: shipment=${job.shipmentId} claim=${result.claimNumber}`,
+      );
+    } else {
+      console.log(`[consumer] claims failed: ${result.error}`);
+    }
+  });
+  console.log("[consumer] claims job consumer registered");
 }

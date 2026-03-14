@@ -1,0 +1,133 @@
+Start Milestone 7 implementation.
+
+Goal:
+Extend the current working pipeline so the platform moves from reactive workflow execution to proactive operational intelligence.
+
+The milestone must be built in this exact priority order:
+	1.	Exception handling
+	2.	Trade lane intelligence
+	3.	Claims management
+
+The target system behavior becomes:
+
+shipment approved
+→ pricing runs
+→ documents generated
+→ invoice created
+→ system detects operational exceptions proactively
+→ system builds trade lane intelligence from completed shipments
+→ system can prepare claims packages for insured shipments when needed
+
+Prioritize this exact sequence:
+	1.	Exception Management Service
+
+	•	build the exception engine first
+	•	detect and manage:
+	•	extraction failures
+	•	document conflicts
+	•	compliance alerts
+	•	high-risk shipments
+	•	missing required documents
+	•	billing discrepancies
+	•	create exceptions records with severity, shipment linkage, and recommended action
+	•	publish exception-detected event
+	•	preserve idempotency
+
+	2.	Operations Exception Agent
+
+	•	take exception context and shipment context
+	•	produce structured JSON only
+	•	output:
+	•	exception classification
+	•	severity
+	•	impact summary
+	•	recommended resolution
+	•	whether operator escalation is required
+	•	no direct DB writes
+	•	deterministic service validates and stores output
+
+	3.	Exceptions API and minimal UI support
+
+	•	add:
+	•	GET /api/exceptions
+	•	GET /api/exceptions/:id
+	•	POST /api/exceptions/:id/resolve
+	•	POST /api/exceptions/:id/escalate
+	•	do not build a huge new UI yet
+	•	implement only the minimum required for operator visibility and action
+
+	4.	Trade Lane Intelligence Service
+
+	•	once exceptions are working, build trade lane intelligence
+	•	aggregate completed shipment data into lane-level statistics
+	•	track:
+	•	average cost
+	•	average transit time
+	•	delay frequency
+	•	documentation complexity
+	•	carrier performance
+	•	write/update trade_lane_stats
+	•	expose a deterministic aggregation pipeline first
+
+	5.	Trade Lane Intelligence Agent
+
+	•	consume lane stats plus shipment context
+	•	output structured JSON only:
+	•	cost range estimate
+	•	transit time estimate
+	•	delay probability
+	•	documentation complexity summary
+	•	route/carrier advisory
+	•	no direct DB writes
+
+	6.	Claims Management Service
+
+	•	after exceptions and trade lane intelligence are operational, implement claims management
+	•	support:
+	•	claim initiation from insured shipment
+	•	incident record creation
+	•	evidence attachment
+	•	claim package assembly
+	•	status tracking
+	•	write claims and claim_communications records
+
+	7.	Claims Preparation Agent
+
+	•	consume shipment data, insurance policy, incident description, and supporting docs
+	•	produce structured JSON only:
+	•	claim narrative
+	•	required documents checklist
+	•	loss estimate
+	•	coverage analysis
+	•	submission recommendation
+	•	deterministic service validates before writing
+
+Important constraints:
+	•	do not redesign the Workbench yet
+	•	do not add carrier API integrations yet
+	•	do not add external insurer claim submission yet
+	•	do not overbuild dashboards before exception logic is real
+	•	keep service boundaries clean
+	•	preserve company scoping and idempotency everywhere
+
+Core rule remains absolute:
+LLMs never write directly to the system of record.
+All agent outputs must be validated before deterministic services write to the database.
+
+Milestone is complete only when this works end-to-end in development:
+
+approved shipment
+→ pricing/documents/invoice complete
+→ exception conditions create real exceptions
+→ completed shipments update trade lane stats
+→ insured shipment can generate a structured draft claim package
+
+When complete, stop and report:
+	•	files created
+	•	services implemented
+	•	events used
+	•	queues used
+	•	database writes performed
+	•	what remains before AWS deployment and pilot hardening can begin
+
+At this point, after M7, you’ll be close enough to run a real audit with Computer by Perplexity before pushing toward deployment.
