@@ -1,27 +1,22 @@
 import { Router, type IRouter } from "express";
-import { db } from "@workspace/db";
+import { db, type DbTransaction } from "@workspace/db";
 import { companiesTable, usersTable, eventsTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import bcrypt from "bcryptjs";
-import { requireAuth, requireRole } from "../middlewares/auth.js";
+import { requireAuth, requireRole, refreshRole } from "../middlewares/auth.js";
+import { getCompanyId } from "../middlewares/tenant.js";
+import { validateBody } from "../middlewares/validate.js";
+import { createCompanySchema, createUserSchema } from "../schemas/index.js";
 
 const router: IRouter = Router();
 
-const adminGuard = [requireAuth, requireRole("ADMIN")] as const;
+const adminGuard = [requireAuth, refreshRole, requireRole("ADMIN")] as const;
 
-router.post("/admin/companies", ...adminGuard, async (req, res) => {
-  const { name, slug, contactEmail, sesEmailAddress } = req.body as {
-    name: string;
-    slug: string;
-    contactEmail?: string;
-    sesEmailAddress?: string;
-  };
+router.post("/admin/companies", ...adminGuard, validateBody(createCompanySchema), async (req, res) => {
+  const { name, slug, contactEmail, sesEmailAddress } = req.body;
 
-  if (!name || !slug) {
-    res.status(400).json({ error: "name and slug are required" });
-    return;
-  }
+  const companyId = getCompanyId(req);
 
   const existing = await db
     .select({ id: companiesTable.id })
@@ -34,58 +29,56 @@ router.post("/admin/companies", ...adminGuard, async (req, res) => {
     return;
   }
 
-  const companyId = generateId();
-  await db.insert(companiesTable).values({
-    id: companyId,
-    name,
-    slug: slug.toLowerCase().trim(),
-    contactEmail: contactEmail || null,
-    sesEmailAddress: sesEmailAddress || null,
-    settings: {},
-  });
+  const newCompanyId = generateId();
 
-  await db.insert(eventsTable).values({
-    id: generateId(),
-    companyId,
-    eventType: "COMPANY_CREATED",
-    entityType: "company",
-    entityId: companyId,
-    actorType: "USER",
-    userId: req.user!.userId,
-    metadata: { name, slug },
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.insert(companiesTable).values({
+      id: newCompanyId,
+      name,
+      slug: slug.toLowerCase().trim(),
+      contactEmail: contactEmail || null,
+      sesEmailAddress: sesEmailAddress || null,
+      settings: {},
+    });
+
+    await tx.insert(eventsTable).values({
+      id: generateId(),
+      companyId,
+      eventType: "COMPANY_CREATED",
+      entityType: "company",
+      entityId: newCompanyId,
+      actorType: "USER",
+      userId: req.user!.userId,
+      metadata: { name, slug },
+    });
   });
 
   const [created] = await db
     .select()
     .from(companiesTable)
-    .where(eq(companiesTable.id, companyId))
+    .where(eq(companiesTable.id, newCompanyId))
     .limit(1);
 
   res.status(201).json({ data: created });
 });
 
-router.get("/admin/companies", ...adminGuard, async (_req, res) => {
-  const companies = await db.select().from(companiesTable);
+router.get("/admin/companies", ...adminGuard, async (req, res) => {
+  const companyId = getCompanyId(req);
+  const companies = await db
+    .select()
+    .from(companiesTable)
+    .where(eq(companiesTable.id, companyId));
   res.json({ data: companies });
 });
 
-router.post("/admin/users", ...adminGuard, async (req, res) => {
-  const { email, name, password, role, companyId } = req.body as {
-    email: string;
-    name: string;
-    password: string;
-    role: string;
-    companyId: string;
-  };
+router.post("/admin/users", ...adminGuard, validateBody(createUserSchema), async (req, res) => {
+  const { email, name, password, role, companyId: targetCompanyId } = req.body;
 
-  if (!email || !name || !password || !role || !companyId) {
-    res.status(400).json({ error: "email, name, password, role, and companyId are required" });
-    return;
-  }
+  const callerCompanyId = getCompanyId(req);
+  const companyId = targetCompanyId || callerCompanyId;
 
-  const validRoles = ["ADMIN", "MANAGER", "OPERATOR", "VIEWER"];
-  if (!validRoles.includes(role)) {
-    res.status(400).json({ error: `Invalid role. Must be one of: ${validRoles.join(", ")}` });
+  if (companyId !== callerCompanyId) {
+    res.status(403).json({ error: "Cannot create users in another company" });
     return;
   }
 
@@ -114,25 +107,27 @@ router.post("/admin/users", ...adminGuard, async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = generateId();
 
-  await db.insert(usersTable).values({
-    id: userId,
-    companyId,
-    email: email.toLowerCase().trim(),
-    name,
-    passwordHash,
-    role: role as "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER",
-    isActive: true,
-  });
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.insert(usersTable).values({
+      id: userId,
+      companyId,
+      email: email.toLowerCase().trim(),
+      name,
+      passwordHash,
+      role: role as "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER",
+      isActive: true,
+    });
 
-  await db.insert(eventsTable).values({
-    id: generateId(),
-    companyId,
-    eventType: "USER_CREATED",
-    entityType: "user",
-    entityId: userId,
-    actorType: "USER",
-    userId: req.user!.userId,
-    metadata: { email, role },
+    await tx.insert(eventsTable).values({
+      id: generateId(),
+      companyId,
+      eventType: "USER_CREATED",
+      entityType: "user",
+      entityId: userId,
+      actorType: "USER",
+      userId: req.user!.userId,
+      metadata: { email, role },
+    });
   });
 
   res.status(201).json({
@@ -147,7 +142,8 @@ router.post("/admin/users", ...adminGuard, async (req, res) => {
   });
 });
 
-router.get("/admin/users", ...adminGuard, async (_req, res) => {
+router.get("/admin/users", ...adminGuard, async (req, res) => {
+  const companyId = getCompanyId(req);
   const users = await db
     .select({
       id: usersTable.id,
@@ -159,7 +155,8 @@ router.get("/admin/users", ...adminGuard, async (_req, res) => {
       lastLoginAt: usersTable.lastLoginAt,
       createdAt: usersTable.createdAt,
     })
-    .from(usersTable);
+    .from(usersTable)
+    .where(eq(usersTable.companyId, companyId));
   res.json({ data: users });
 });
 

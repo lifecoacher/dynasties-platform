@@ -48,7 +48,7 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
     .where(eq(shipmentDocumentsTable.shipmentId, shipmentId));
 
   const ingestedDocs = await Promise.all(
-    docs.filter((d) => d.documentId).map(async (d) => {
+    docs.filter((d: any) => d.documentId).map(async (d: any) => {
       const [doc] = await db
         .select()
         .from(ingestedDocumentsTable)
@@ -58,18 +58,18 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
     }),
   );
 
-  const failedDocs = ingestedDocs.filter((d) => d && d.extractionStatus === "FAILED");
+  const failedDocs = ingestedDocs.filter((d: any) => d && d.extractionStatus === "FAILED");
   if (failedDocs.length > 0) {
     conditions.push({
       type: "EXTRACTION_FAILURE",
       title: `${failedDocs.length} document(s) failed extraction`,
-      description: `Documents could not be parsed: ${failedDocs.map((d) => d!.fileName).join(", ")}`,
-      context: `Shipment ${shipment.reference}: ${failedDocs.length} documents failed OCR/extraction. File names: ${failedDocs.map((d) => d!.fileName).join(", ")}`,
+      description: `Documents could not be parsed: ${failedDocs.map((d: any) => d!.fileName).join(", ")}`,
+      context: `Shipment ${shipment.reference}: ${failedDocs.length} documents failed OCR/extraction. File names: ${failedDocs.map((d: any) => d!.fileName).join(", ")}`,
     });
   }
 
-  const docTypes = docs.map((d) => d.documentType);
-  const generatedTypes = docs.filter((d) => d.isGenerated).map((d) => d.documentType);
+  const docTypes = docs.map((d: any) => d.documentType) as string[];
+  const generatedTypes = docs.filter((d: any) => d.isGenerated).map((d: any) => d.documentType) as string[];
   const missingRequired = REQUIRED_DOC_TYPES.filter(
     (req) => !docTypes.includes(req) && !generatedTypes.includes(req),
   );
@@ -109,7 +109,7 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
     conditions.push({
       type: "HIGH_RISK",
       title: `High risk score: ${risk.compositeScore}`,
-      description: `Recommended action: ${risk.recommendedAction}. Primary factors: ${(risk.primaryRiskFactors as string[])?.join(", ") || "N/A"}`,
+      description: `Recommended action: ${risk.recommendedAction}. Primary factors: ${(risk.primaryRiskFactors as Array<{ factor: string; explanation: string }>)?.map((f) => f.factor).join(", ") || "N/A"}`,
       context: `Shipment ${shipment.reference}: risk score=${risk.compositeScore}/100, action=${risk.recommendedAction}. Commodity: ${shipment.commodity}, HS: ${shipment.hsCode}. Route: ${shipment.portOfLoading} → ${shipment.portOfDischarge}.`,
     });
   }
@@ -126,7 +126,7 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
     .limit(1);
 
   if (invoice && charges.length > 0) {
-    const chargeTotal = charges.reduce((sum, c) => sum + c.totalAmount, 0);
+    const chargeTotal = charges.reduce((sum: any, c: any) => sum + c.totalAmount, 0);
     const invoiceSubtotal = invoice.subtotal;
     const diff = Math.abs(chargeTotal - invoiceSubtotal);
     if (diff > 0.01) {
@@ -139,14 +139,14 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
     }
   }
 
-  const extractedDocs = ingestedDocs.filter((d) => d && d.extractionStatus === "EXTRACTED" && d.extractedData);
+  const extractedDocs = ingestedDocs.filter((d: any) => d && d.extractionStatus === "EXTRACTED" && d.extractedData);
   if (extractedDocs.length >= 2) {
-    const dataMap = extractedDocs.map((d) => d!.extractedData as Record<string, unknown>);
+    const dataMap = extractedDocs.map((d: any) => d!.extractedData as Record<string, unknown>);
     const conflictFields: string[] = [];
     const checkFields = ["consignee", "shipper", "commodity", "portOfLoading", "portOfDischarge"];
     for (const field of checkFields) {
       const values = dataMap
-        .map((d) => {
+        .map((d: any) => {
           const val = d[field];
           if (val && typeof val === "object" && "value" in (val as Record<string, unknown>)) {
             return (val as Record<string, unknown>).value;
@@ -154,7 +154,7 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
           return val;
         })
         .filter(Boolean);
-      const uniqueVals = new Set(values.map((v) => String(v).toLowerCase().trim()));
+      const uniqueVals = new Set(values.map((v: any) => String(v).toLowerCase().trim()));
       if (uniqueVals.size > 1) {
         conflictFields.push(field);
       }

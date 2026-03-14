@@ -67,7 +67,7 @@ export async function runClaimPreparation(
     .where(eq(shipmentDocumentsTable.shipmentId, shipmentId));
 
   const docDetails = await Promise.all(
-    docs.filter((d) => d.documentId).map(async (d) => {
+    docs.filter((d: any) => d.documentId).map(async (d: any) => {
       const [doc] = await db
         .select()
         .from(ingestedDocumentsTable)
@@ -89,12 +89,12 @@ export async function runClaimPreparation(
     `Consignee: ${consignee?.name || "Unknown"}`,
     ``,
     `Insurance Coverage: ${insuranceQuote ? `${insuranceQuote.coverageType}, Premium: $${insuranceQuote.estimatedPremium}` : "No insurance quote on file"}`,
-    `Cargo Value Estimate: $${insuranceQuote?.cargoValue || "Unknown"}`,
+    `Cargo Value Estimate: $${insuranceQuote?.estimatedInsuredValue || "Unknown"}`,
     ``,
     `Claim Type: ${claimType}`,
     `Incident Description: ${incidentDescription}`,
     ``,
-    `Available Documents: ${docDetails.map((d) => `${d.type} (${d.fileName})`).join(", ") || "None"}`,
+    `Available Documents: ${docDetails.map((d: any) => `${d.type} (${d.fileName})`).join(", ") || "None"}`,
   ].join("\n");
 
   let claimNarrative: string | null = null;
@@ -125,54 +125,56 @@ export async function runClaimPreparation(
   const claimNumber = generateClaimNumber();
   const claimId = generateId();
 
-  await db.insert(claimsTable).values({
-    id: claimId,
-    companyId,
-    shipmentId,
-    claimNumber,
-    status: "DRAFT",
-    claimType: claimType as "CARGO_DAMAGE" | "CARGO_LOSS" | "DELAY" | "SHORTAGE" | "CONTAMINATION" | "OTHER",
-    incidentDate: new Date(),
-    incidentDescription,
-    estimatedLoss,
-    currency: "USD",
-    claimNarrative,
-    requiredDocuments,
-    coverageAnalysis,
-    submissionRecommendation,
-    evidenceKeys: docDetails.map((d) => d.fileName),
-    filedBy: "system",
-    filedAt: new Date(),
-    metadata: null,
-  });
-
-  await db.insert(claimCommunicationsTable).values({
-    id: generateId(),
-    companyId,
-    claimId,
-    direction: "INTERNAL",
-    communicationType: "NOTE",
-    subject: "Claim package prepared",
-    body: `Draft claim ${claimNumber} prepared for shipment ${shipment.reference}. Type: ${claimType}. Recommendation: ${submissionRecommendation || "Pending review"}.`,
-    author: "claims-management",
-    metadata: null,
-  });
-
-  await db.insert(eventsTable).values({
-    actorType: "SERVICE",
-    id: generateId(),
-    companyId,
-    eventType: "CLAIM_CREATED" as string,
-    entityType: "shipment",
-    entityId: shipmentId,
-    serviceId: "claims-management",
-    metadata: {
-      claimId,
+  await db.transaction(async (tx: any) => {
+    await tx.insert(claimsTable).values({
+      id: claimId,
+      companyId,
+      shipmentId,
       claimNumber,
-      claimType,
+      status: "DRAFT",
+      claimType: claimType as "CARGO_DAMAGE" | "CARGO_LOSS" | "DELAY" | "SHORTAGE" | "CONTAMINATION" | "OTHER",
+      incidentDate: new Date(),
+      incidentDescription,
       estimatedLoss,
+      currency: "USD",
+      claimNarrative,
+      requiredDocuments,
+      coverageAnalysis,
       submissionRecommendation,
-    },
+      evidenceKeys: docDetails.map((d: any) => d.fileName),
+      filedBy: "system",
+      filedAt: new Date(),
+      metadata: null,
+    });
+
+    await tx.insert(claimCommunicationsTable).values({
+      id: generateId(),
+      companyId,
+      claimId,
+      direction: "INTERNAL",
+      communicationType: "NOTE",
+      subject: "Claim package prepared",
+      body: `Draft claim ${claimNumber} prepared for shipment ${shipment.reference}. Type: ${claimType}. Recommendation: ${submissionRecommendation || "Pending review"}.`,
+      author: "claims-management",
+      metadata: null,
+    });
+
+    await tx.insert(eventsTable).values({
+      actorType: "SERVICE",
+      id: generateId(),
+      companyId,
+      eventType: "CLAIM_CREATED" as string,
+      entityType: "shipment",
+      entityId: shipmentId,
+      serviceId: "claims-management",
+      metadata: {
+        claimId,
+        claimNumber,
+        claimType,
+        estimatedLoss,
+        submissionRecommendation,
+      },
+    });
   });
 
   console.log(

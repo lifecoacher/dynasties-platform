@@ -1,6 +1,6 @@
 import { db } from "@workspace/db";
 import { ingestedDocumentsTable, ingestedEmailsTable, eventsTable } from "@workspace/db/schema";
-import { eq, and, ne } from "drizzle-orm";
+import { eq, and, ne, sql } from "drizzle-orm";
 import { readFile } from "@workspace/storage";
 import { generateId } from "@workspace/shared-utils";
 import type { ExtractionJob } from "@workspace/queue";
@@ -152,41 +152,46 @@ async function tryTriggerPipeline(documentId: string, companyId: string): Promis
   if (!doc) return;
 
   if (doc.emailId) {
-    const pending = await db
-      .select({ id: ingestedDocumentsTable.id })
-      .from(ingestedDocumentsTable)
-      .where(
-        and(
-          eq(ingestedDocumentsTable.emailId, doc.emailId),
-          ne(ingestedDocumentsTable.extractionStatus, "EXTRACTED"),
-          ne(ingestedDocumentsTable.extractionStatus, "FAILED"),
-        ),
-      )
-      .limit(1);
+    await db.transaction(async (tx: any) => {
+      const lockKey = Buffer.from(doc.emailId!).reduce((h, b) => (h * 31 + b) | 0, 0);
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${lockKey})`);
 
-    if (pending.length > 0) {
-      console.log(`[extraction] email=${doc.emailId} still has pending docs, deferring pipeline`);
-      return;
-    }
+      const pending = await tx
+        .select({ id: ingestedDocumentsTable.id })
+        .from(ingestedDocumentsTable)
+        .where(
+          and(
+            eq(ingestedDocumentsTable.emailId, doc.emailId!),
+            ne(ingestedDocumentsTable.extractionStatus, "EXTRACTED"),
+            ne(ingestedDocumentsTable.extractionStatus, "FAILED"),
+          ),
+        )
+        .limit(1);
 
-    const allDocs = await db
-      .select({ id: ingestedDocumentsTable.id })
-      .from(ingestedDocumentsTable)
-      .where(
-        and(
-          eq(ingestedDocumentsTable.emailId, doc.emailId),
-          eq(ingestedDocumentsTable.extractionStatus, "EXTRACTED"),
-        ),
-      );
+      if (pending.length > 0) {
+        console.log(`[extraction] email=${doc.emailId} still has pending docs, deferring pipeline`);
+        return;
+      }
 
-    publishPipelineJob({
-      companyId,
-      documentIds: allDocs.map((d) => d.id),
-      emailId: doc.emailId,
-      trigger: "extraction_complete",
+      const allDocs = await tx
+        .select({ id: ingestedDocumentsTable.id })
+        .from(ingestedDocumentsTable)
+        .where(
+          and(
+            eq(ingestedDocumentsTable.emailId, doc.emailId!),
+            eq(ingestedDocumentsTable.extractionStatus, "EXTRACTED"),
+          ),
+        );
+
+      publishPipelineJob({
+        companyId,
+        documentIds: allDocs.map((d: any) => d.id),
+        emailId: doc.emailId,
+        trigger: "extraction_complete",
+      });
+
+      console.log(`[extraction] pipeline triggered for email=${doc.emailId} with ${allDocs.length} docs`);
     });
-
-    console.log(`[extraction] pipeline triggered for email=${doc.emailId} with ${allDocs.length} docs`);
   } else {
     publishPipelineJob({
       companyId,

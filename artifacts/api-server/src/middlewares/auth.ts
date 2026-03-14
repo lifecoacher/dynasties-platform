@@ -1,5 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { db } from "@workspace/db";
+import { usersTable } from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
 
 export interface JwtPayload {
   userId: string;
@@ -89,4 +92,29 @@ export function requireMinRole(minRole: Role) {
 
     next();
   };
+}
+
+export async function refreshRole(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  if (!req.user) {
+    next();
+    return;
+  }
+
+  try {
+    const [user] = await db
+      .select({ role: usersTable.role, isActive: usersTable.isActive })
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user.userId))
+      .limit(1);
+
+    if (!user || !user.isActive) {
+      req.user = undefined;
+    } else if (user.role !== req.user.role) {
+      req.user.role = user.role as Role;
+    }
+  } catch {
+    // fall through with token role if DB unreachable
+  }
+
+  next();
 }

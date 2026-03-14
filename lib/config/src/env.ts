@@ -18,6 +18,10 @@ const envSchema = z.object({
   S3_ENDPOINT: z.string().url().optional(),
   SQS_ENDPOINT: z.string().url().optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  AI_INTEGRATIONS_ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  CORS_ALLOWED_ORIGINS: z.string().optional(),
+  STORAGE_BACKEND: z.enum(["local", "s3"]).optional(),
+  QUEUE_BACKEND: z.enum(["local", "sqs"]).optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

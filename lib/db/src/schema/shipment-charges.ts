@@ -1,4 +1,4 @@
-import { pgTable, text, real, integer, jsonb, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, text, real, numeric, integer, jsonb, timestamp, index } from "drizzle-orm/pg-core";
 import { companiesTable } from "./companies";
 import { shipmentsTable } from "./shipments";
 
@@ -18,11 +18,11 @@ export const shipmentChargesTable = pgTable(
       enum: ["FREIGHT", "ORIGIN", "DESTINATION", "DOCUMENTATION", "INSURANCE", "CUSTOMS", "SURCHARGE", "OTHER"],
     }).notNull(),
     quantity: real("quantity").notNull().default(1),
-    unitPrice: real("unit_price").notNull(),
+    unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
     currency: text("currency").notNull().default("USD"),
-    totalAmount: real("total_amount").notNull(),
-    taxRate: real("tax_rate").default(0),
-    taxAmount: real("tax_amount").default(0),
+    totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
+    taxRate: numeric("tax_rate", { precision: 5, scale: 4 }).default("0"),
+    taxAmount: numeric("tax_amount", { precision: 12, scale: 2 }).default("0"),
     source: text("source", {
       enum: ["RATE_TABLE", "RULE_ENGINE", "AGENT", "MANUAL"],
     }).notNull(),

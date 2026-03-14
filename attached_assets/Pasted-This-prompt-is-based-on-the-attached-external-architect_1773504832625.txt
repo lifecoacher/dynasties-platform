@@ -1,0 +1,390 @@
+This prompt is based on the attached external architecture audit report produced by Computer by Perplexity.
+
+Read the entire attached report carefully before doing anything.
+
+Treat this as an immediate high-priority remediation sprint.
+
+The goal is to move fast, fix the highest-risk issues now, and begin implementation immediately after producing a tightly scoped execution plan.
+
+Do not slow down because the work is broad. Do not pad the plan. Do not turn this into a theoretical exercise. Operate with urgency and assume the expectation is rapid execution.
+
+Your first task is to produce a concise but thorough remediation execution plan that maps the audit findings to concrete engineering actions in the exact order they should be implemented.
+
+Immediately after producing that plan, begin implementation.
+
+Act as a world-class principal software architect, staff full-stack engineer, security engineer, DevOps lead, and distributed systems expert.
+
+You are taking over the Dynasties codebase for an immediate production-hardening and remediation sprint based on the attached audit report. Your task is not to add new product features. Your task is to fix the critical and moderate production issues so the platform becomes secure, reliable, tenant-safe, testable, and pilot-ready as fast as possible.
+
+Operate with the mindset of a top-tier engineer preparing a multi-tenant, AI-assisted logistics platform for a serious pilot under time pressure.
+
+Core goals:
+	•	fix every critical production blocker immediately
+	•	fix every demo-breaking issue immediately
+	•	fix the highest-value moderate issues immediately after that
+	•	preserve the existing working end-to-end product flows
+	•	do not regress the current pipeline
+	•	do not redesign the UI or architecture unless required for safety, reliability, or deployability
+	•	move fast, but do not take shortcuts that break tenant isolation, data integrity, or agent safety boundaries
+
+Absolute rules:
+	1.	Do not add new product features
+	2.	Do not rewrite the system from scratch
+	3.	Do not break existing milestone flows
+	4.	LLMs must never write directly to the system of record
+	5.	All agent outputs must remain validated before deterministic services write to DB or trigger external actions
+	6.	Prefer fast, safe, incremental refactors over large rewrites
+	7.	Every important fix must be testable
+	8.	Do not delay implementation with unnecessary planning overhead
+	9.	After the initial execution plan, begin remediation immediately
+
+The attached audit identified these priority issues that must drive remediation:
+
+CRITICAL
+	•	in-memory EventEmitter queue must be replaced with real SQS integration
+	•	zero test coverage
+	•	cross-tenant admin data leak
+	•	wide-open CORS
+	•	no database transactions
+	•	local filesystem storage incompatible with Fargate
+
+DEMO-BREAKING
+	•	Anthropic env var mismatch
+	•	storage path mismatch
+	•	no committed/applied DB migrations
+
+MODERATE
+	•	no rate limiting
+	•	no global error handler
+	•	float financial columns instead of numeric/decimal
+	•	no HTTPS listener on ALB
+	•	no ECS auto-scaling
+	•	frontend CI/CD incomplete
+	•	missing request validation on many endpoints
+	•	claim/exception status enums not enforced
+	•	N+1 queries on shipments
+	•	JWT role not refreshed after role change
+	•	pipeline race condition in tryTriggerPipeline
+	•	missing SSM permissions
+	•	no pagination
+	•	weak request logging
+
+You must implement remediation in this exact priority order.
+
+==================================================
+PHASE 1 — IMMEDIATE EXECUTION PLAN
+
+Before writing code, produce a concise but complete remediation execution plan that includes:
+	1.	Audit-to-remediation mapping
+
+	•	map every critical issue to exact engineering tasks
+	•	map every demo-breaking issue to exact engineering tasks
+	•	map the highest-value moderate issues to exact engineering tasks
+
+	2.	Dependency order
+
+	•	which fixes must happen first
+	•	which fixes can run in parallel
+	•	which fixes could break the current pipeline if implemented incorrectly
+
+	3.	File/service impact
+
+	•	identify the files, services, libraries, infra code, and schemas likely to change
+
+	4.	Risk controls
+
+	•	identify the highest-risk remediation areas
+	•	explain how you will protect the current working flow during remediation
+
+	5.	Fast execution sequence
+
+	•	immediate tasks
+	•	next tasks
+	•	final hardening tasks
+
+This plan must be practical, short, and directly executable.
+
+Immediately after producing the plan, begin implementation.
+
+==================================================
+PHASE 2 — IMMEDIATE CRITICAL FIXES
+
+Goal:
+Fix the immediate production blockers and demo-breaking issues first, as fast as possible, without expanding scope.
+
+Tasks:
+	1.	Replace EventEmitter queue implementation with real SQS-backed queue client using the already-provisioned Terraform queues.
+
+	•	support publish/consume
+	•	visibility timeout handling
+	•	DLQ usage
+	•	idempotency tokens where appropriate
+	•	preserve existing queue/job interfaces as much as possible to minimize churn
+	•	ensure current event-driven flows still work
+
+	2.	Fix Anthropic configuration mismatch.
+
+	•	standardize env variable naming across config, docker-compose, Terraform, and runtime code
+	•	ensure agent-dependent services start correctly in production
+	•	fail fast with clear error messages if config is missing
+
+	3.	Replace local filesystem storage with S3-backed storage in application code.
+
+	•	remove reliance on local disk for uploads/documents
+	•	preserve same storage abstraction interface if possible
+	•	make development and production behavior explicit and deterministic
+
+	4.	Add real database migrations.
+
+	•	generate and commit migration files
+	•	add migration execution to startup/deploy workflow
+	•	ensure fresh environments can boot with schema applied
+
+	5.	Fix cross-tenant admin exposure.
+
+	•	scope admin routes appropriately
+	•	admin must not automatically mean cross-tenant visibility
+	•	introduce super-admin semantics only if absolutely necessary
+	•	verify POST /admin/users cannot create cross-tenant users incorrectly
+
+	6.	Lock down CORS.
+
+	•	replace wildcard/default permissive cors with explicit allowlist
+	•	support local dev origins separately from production origins
+
+	7.	Add database transactions to all critical multi-step write paths.
+Examples include:
+
+	•	shipment creation + document linking + event creation
+	•	invoice creation + event creation + downstream dispatch
+	•	approve shipment + event + pricing dispatch
+	•	field patch + corrections + event
+	•	claim create/update sequences
+
+Success criteria for immediate critical fixes:
+	•	no in-memory queue remains in the production path
+	•	uploads/documents no longer depend on local disk
+	•	Anthropic-dependent services boot in production config
+	•	migrations exist and apply cleanly
+	•	admin endpoints are tenant-safe
+	•	CORS is restricted
+	•	critical multi-step writes are transactional
+	•	existing flow still works:
+upload/email → extraction → entity resolution → shipment draft
+
+At the end of this phase, stop and report:
+	•	files changed
+	•	queues migrated
+	•	config changes
+	•	migration files added
+	•	security fixes completed
+	•	transaction boundaries added
+	•	any breakages introduced or avoided
+
+==================================================
+PHASE 3 — IMMEDIATE SECURITY, VALIDATION, AND STABILITY
+
+Goal:
+Make writes safe, inputs safe, and API behavior production-grade immediately after critical fixes.
+
+Tasks:
+	1.	Add comprehensive request validation.
+
+	•	use existing Zod schemas wherever possible
+	•	enforce validation middleware on all API endpoints
+	•	remove manual type assertions where they bypass validation
+
+	2.	Add global error handling.
+
+	•	consistent error shape
+	•	safe logging
+	•	no unhandled promise crashes
+	•	clear HTTP status mapping
+
+	3.	Add rate limiting.
+
+	•	especially /auth/login
+	•	also sensitive mutation endpoints
+	•	configurable thresholds by environment
+
+	4.	Refresh JWT role semantics.
+
+	•	ensure role changes are reflected correctly
+	•	confirm authorization checks always use up-to-date role logic
+
+	5.	Add structured request logging / audit middleware.
+
+	•	request ID / correlation ID
+	•	user/company context where appropriate
+	•	preserve existing events-based audit trail
+
+	6.	Enforce enum validation on claim/exception status updates.
+
+Success criteria:
+	•	all mutation endpoints are validated
+	•	auth endpoints are rate-limited
+	•	errors no longer fail silently
+	•	request logging exists
+	•	claim/exception status updates cannot accept arbitrary strings
+	•	existing flow still works:
+shipment draft → compliance/risk/insurance → operator review → approve
+
+At the end of this phase, stop and report:
+	•	which endpoints now have validation
+	•	logging/error handling changes
+	•	rate limiting coverage
+	•	auth/RBAC fixes
+
+==================================================
+PHASE 4 — IMMEDIATE TESTING, RACE CONDITIONS, AND DATA CORRECTNESS
+
+Goal:
+Make the platform trustworthy under concurrency and real usage.
+
+Tasks:
+	1.	Add comprehensive test suite:
+
+	•	unit tests for validators, scorers, calculators, builders
+	•	integration tests for service pipelines
+	•	e2e tests for critical flow:
+upload/email → extract → resolve → shipment → approve → pricing → docs → invoice
+
+	2.	Fix tryTriggerPipeline race condition for concurrent extraction completion.
+
+	•	prevent duplicate shipment pipeline dispatch when multiple sibling docs complete simultaneously
+
+	3.	Harden idempotency.
+
+	•	make idempotency checks atomic where needed
+	•	ensure duplicate queue deliveries do not create duplicate shipments, quotes, charges, docs, or invoices
+
+	4.	Migrate financial columns from float/real to numeric(12,2) or equivalent precise decimal type.
+
+	•	update schema
+	•	write migration
+	•	update calculation logic/tests accordingly
+
+	5.	Fix N+1 queries on GET /shipments.
+
+	•	reduce excessive per-shipment lookups
+	•	preserve response shape if possible
+	•	optimize for Workbench performance
+
+	6.	Add pagination parameters to list endpoints.
+
+	•	use sane defaults
+	•	do not return hardcoded windows only
+
+Success criteria:
+	•	critical path tests exist and pass
+	•	duplicate pipeline dispatch is prevented
+	•	idempotency is durable under concurrent delivery
+	•	invoice/financial math uses decimal-safe types
+	•	shipments list is materially more efficient
+	•	list endpoints support pagination
+	•	existing full flow still works:
+approve shipment → pricing → docs → invoice → exception/trade-lane hooks
+
+At the end of this phase, stop and report:
+	•	tests added and pass counts
+	•	race condition fix details
+	•	idempotency hardening details
+	•	numeric migration details
+	•	performance fixes completed
+
+==================================================
+PHASE 5 — IMMEDIATE DEPLOYMENT HARDENING AND PILOT READINESS
+
+Goal:
+Make the system deployable and observable on AWS in a pilot-ready way immediately after core hardening.
+
+Tasks:
+	1.	Fix frontend CI/CD so it is actually wired, not placeholder echo statements.
+	2.	Add ALB HTTPS listener with ACM certificate and ensure secure path from CloudFront to ALB.
+	3.	Add ECS auto-scaling policies for API/services.
+	4.	Fix missing SSM permissions for ECS execution/task roles.
+	5.	Add queue consumer liveness/health checks.
+
+	•	API health is not enough
+	•	consumer health must be observable
+
+	6.	Separate heavy queue consumers from the API process where necessary.
+
+	•	extraction and other heavy workers should not block API responsiveness
+	•	use dedicated ECS services/tasks if required
+
+	7.	Tighten secrets handling and confirm no secrets remain embedded in repo/runtime config.
+
+	•	specifically verify JWT secret handling
+	•	document secret loading path
+
+	8.	Add production readiness verification:
+
+	•	migrations run successfully in staging
+	•	uploads persist correctly via S3
+	•	queues survive restarts
+	•	alerts/alarms are meaningful
+	•	core user journey works in staging
+
+Success criteria:
+	•	production CI/CD works end-to-end
+	•	HTTPS is properly configured
+	•	ECS can scale
+	•	workers are separated where needed
+	•	SSM permissions are correct
+	•	secrets handling is safe
+	•	staging environment can run the golden path successfully
+
+Golden path that must work at the end:
+email or upload
+→ extraction
+→ entity resolution
+→ shipment draft
+→ compliance/risk/insurance
+→ operator review
+→ approval
+→ pricing
+→ docs
+→ invoice
+→ exception/trade lane update
+
+==================================================
+IMPLEMENTATION STANDARDS
+
+Throughout remediation:
+	•	preserve existing service boundaries where possible
+	•	keep queue/event architecture explicit
+	•	do not quietly remove agent safety boundaries
+	•	every change should include tests where practical
+	•	every risky refactor should preserve backward compatibility with current code paths until replacement is verified
+	•	prefer configuration consistency over cleverness
+	•	prefer deterministic fallbacks over fragile LLM dependence
+	•	do not degrade tenant isolation for convenience
+	•	move immediately once the execution plan is produced
+
+==================================================
+OUTPUT FORMAT
+
+First, produce:
+	1.	Immediate remediation execution plan
+	2.	Dependency map showing which fixes must happen before others
+	3.	List of files/services likely to change in each phase
+	4.	Risk register of places where remediation could break the current product
+	5.	Test strategy for protecting the golden path during remediation
+	6.	Mapping table from audit findings → remediation tasks
+
+Then begin implementation immediately.
+
+Work phase by phase.
+Do not try to complete everything in one uncontrolled burst, but do move as fast as possible.
+
+At the end of each phase, stop and report:
+	•	files changed
+	•	services changed
+	•	migrations added
+	•	tests added
+	•	critical issues fixed
+	•	remaining blockers before the next phase
+
+Your objective is not more code.
+Your objective is a platform that can survive a real pilot without embarrassing failures, and to get there immediately.

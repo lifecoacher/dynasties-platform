@@ -44,13 +44,13 @@ export async function runShipmentPipeline(
     );
 
   if (documents.length !== documentIds.length) {
-    const found = new Set(documents.map((d) => d.id));
+    const found = new Set(documents.map((d: any) => d.id));
     const missing = documentIds.filter((id) => !found.has(id));
     console.log(`[pipeline] company scope mismatch: ${missing.length} docs filtered out`);
   }
 
   const extractedDocs = documents.filter(
-    (d) => d.extractionStatus === "EXTRACTED" && d.extractedData,
+    (d: any) => d.extractionStatus === "EXTRACTED" && d.extractedData,
   );
 
   if (extractedDocs.length === 0) {
@@ -70,11 +70,11 @@ export async function runShipmentPipeline(
   const alreadyLinked = await db
     .select({ documentId: shipmentDocumentsTable.documentId })
     .from(shipmentDocumentsTable)
-    .where(inArray(shipmentDocumentsTable.documentId, extractedDocs.map((d) => d.id)));
+    .where(inArray(shipmentDocumentsTable.documentId, extractedDocs.map((d: any) => d.id)));
 
   if (alreadyLinked.length > 0) {
-    const linked = new Set(alreadyLinked.map((r) => r.documentId));
-    const dedupDocs = extractedDocs.filter((d) => !linked.has(d.id));
+    const linked = new Set(alreadyLinked.map((r: any) => r.documentId));
+    const dedupDocs = extractedDocs.filter((d: any) => !linked.has(d.id));
     if (dedupDocs.length === 0) {
       console.log("[pipeline] all documents already linked to shipments, skipping (idempotency)");
       return {
@@ -92,7 +92,7 @@ export async function runShipmentPipeline(
   }
 
   const extractedDataList = extractedDocs.map(
-    (d) => d.extractedData as ExtractionOutput,
+    (d: any) => d.extractedData as ExtractionOutput,
   );
 
   const partyInputs: PartyInput[] = [];
@@ -144,73 +144,75 @@ export async function runShipmentPipeline(
 
   const shipmentId = generateId();
 
-  await db.insert(shipmentsTable).values({
-    id: shipmentId,
-    companyId: draft.companyId,
-    reference: draft.reference,
-    status: "DRAFT",
-    shipperId: draft.shipperId,
-    consigneeId: draft.consigneeId,
-    notifyPartyId: draft.notifyPartyId,
-    carrierId: draft.carrierId,
-    portOfLoading: draft.portOfLoading,
-    portOfDischarge: draft.portOfDischarge,
-    vessel: draft.vessel,
-    voyage: draft.voyage,
-    commodity: draft.commodity,
-    hsCode: draft.hsCode,
-    packageCount: draft.packageCount,
-    grossWeight: draft.grossWeight,
-    weightUnit: draft.weightUnit as "KG" | "LB" | null,
-    volume: draft.volume,
-    volumeUnit: draft.volumeUnit as "CBM" | "CFT" | null,
-    incoterms: draft.incoterms,
-    bookingNumber: draft.bookingNumber,
-    blNumber: draft.blNumber,
-  });
-
-  for (const doc of extractedDocs) {
-    await db.insert(shipmentDocumentsTable).values({
-      id: generateId(),
-      companyId,
-      shipmentId,
-      documentId: doc.id,
-      documentType: doc.documentType as typeof shipmentDocumentsTable.$inferInsert.documentType,
-      s3Key: doc.s3Key,
-    });
-  }
-
-  await db.insert(eventsTable).values({
-    actorType: "SERVICE",
-    id: generateId(),
-    companyId,
-    eventType: "SHIPMENT_CREATED",
-    entityType: "shipment",
-    entityId: shipmentId,
-    metadata: {
+  await db.transaction(async (tx: any) => {
+    await tx.insert(shipmentsTable).values({
+      id: shipmentId,
+      companyId: draft.companyId,
       reference: draft.reference,
-      documentCount: extractedDocs.length,
-      entitiesCreated: entityResult.newEntitiesCreated,
-      entitiesMatched: entityResult.matchedEntities,
-      conflictCount: draft.conflicts.length,
-      conflicts: draft.conflicts,
-      warnings: validation.warnings,
+      status: "DRAFT",
       shipperId: draft.shipperId,
       consigneeId: draft.consigneeId,
-    },
-  });
+      notifyPartyId: draft.notifyPartyId,
+      carrierId: draft.carrierId,
+      portOfLoading: draft.portOfLoading,
+      portOfDischarge: draft.portOfDischarge,
+      vessel: draft.vessel,
+      voyage: draft.voyage,
+      commodity: draft.commodity,
+      hsCode: draft.hsCode,
+      packageCount: draft.packageCount,
+      grossWeight: draft.grossWeight,
+      weightUnit: draft.weightUnit as "KG" | "LB" | null,
+      volume: draft.volume,
+      volumeUnit: draft.volumeUnit as "CBM" | "CFT" | null,
+      incoterms: draft.incoterms,
+      bookingNumber: draft.bookingNumber,
+      blNumber: draft.blNumber,
+    });
 
-  if (draft.conflicts.length > 0) {
-    await db.insert(eventsTable).values({
-    actorType: "SERVICE",
+    for (const doc of extractedDocs) {
+      await tx.insert(shipmentDocumentsTable).values({
+        id: generateId(),
+        companyId,
+        shipmentId,
+        documentId: doc.id,
+        documentType: doc.documentType as typeof shipmentDocumentsTable.$inferInsert.documentType,
+        s3Key: doc.s3Key,
+      });
+    }
+
+    await tx.insert(eventsTable).values({
+      actorType: "SERVICE",
       id: generateId(),
       companyId,
-      eventType: "DOCUMENT_CONFLICT",
+      eventType: "SHIPMENT_CREATED",
       entityType: "shipment",
       entityId: shipmentId,
-      metadata: { conflicts: draft.conflicts },
+      metadata: {
+        reference: draft.reference,
+        documentCount: extractedDocs.length,
+        entitiesCreated: entityResult.newEntitiesCreated,
+        entitiesMatched: entityResult.matchedEntities,
+        conflictCount: draft.conflicts.length,
+        conflicts: draft.conflicts,
+        warnings: validation.warnings,
+        shipperId: draft.shipperId,
+        consigneeId: draft.consigneeId,
+      },
     });
-  }
+
+    if (draft.conflicts.length > 0) {
+      await tx.insert(eventsTable).values({
+        actorType: "SERVICE",
+        id: generateId(),
+        companyId,
+        eventType: "DOCUMENT_CONFLICT",
+        entityType: "shipment",
+        entityId: shipmentId,
+        metadata: { conflicts: draft.conflicts },
+      });
+    }
+  });
 
   console.log(
     `[pipeline] shipment created id=${shipmentId} ref=${draft.reference} conflicts=${draft.conflicts.length}`,

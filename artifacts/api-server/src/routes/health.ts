@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import { getQueueStats } from "@workspace/queue";
 
 const router: IRouter = Router();
 
@@ -20,6 +21,18 @@ router.get("/healthz", async (_req, res) => {
       error: err instanceof Error ? err.message : "Unknown error",
     };
   }
+
+  const queueStats = getQueueStats();
+  const expectedConsumers = 11;
+  const activeConsumers = Object.entries(queueStats)
+    .filter(([k, v]) => k.endsWith("Listeners") && v === 1)
+    .length;
+  const queueHealthy = activeConsumers >= expectedConsumers;
+  if (!queueHealthy) healthy = false;
+  checks.queue = {
+    status: queueHealthy ? "ok" : "degraded",
+    latencyMs: 0,
+  };
 
   checks.uptime = {
     status: "ok",
@@ -45,6 +58,7 @@ router.get("/healthz", async (_req, res) => {
     environment: process.env["NODE_ENV"] || "development",
     checks,
     memory: memoryMb,
+    queue: queueStats,
   });
 });
 

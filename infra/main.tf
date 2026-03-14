@@ -42,6 +42,18 @@ variable "anthropic_api_key" {
   sensitive = true
 }
 
+variable "domain_name" {
+  type        = string
+  description = "Primary domain name for the application (e.g. app.dynasties.io)"
+  default     = ""
+}
+
+variable "hosted_zone_id" {
+  type        = string
+  description = "Route53 hosted zone ID for DNS validation"
+  default     = ""
+}
+
 data "aws_caller_identity" "current" {}
 
 resource "aws_vpc" "main" {
@@ -297,6 +309,27 @@ resource "aws_iam_role_policy_attachment" "ecs_exec" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "ecs_exec_ssm" {
+  name = "dynasties-ecs-exec-ssm-${var.environment}"
+  role = aws_iam_role.ecs_task_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+      ]
+      Resource = [
+        aws_ssm_parameter.database_url.arn,
+        aws_ssm_parameter.jwt_secret.arn,
+        aws_ssm_parameter.anthropic_key.arn,
+      ]
+    }]
+  })
+}
+
 resource "aws_iam_role" "ecs_task" {
   name = "dynasties-ecs-task-${var.environment}"
 
@@ -356,17 +389,19 @@ resource "aws_ecs_task_definition" "api" {
     portMappings = [{ containerPort = 8080, protocol = "tcp" }]
 
     environment = [
-      { name = "NODE_ENV", value = "production" },
       { name = "PORT", value = "8080" },
+      { name = "NODE_ENV", value = "production" },
       { name = "AWS_REGION", value = var.aws_region },
       { name = "S3_BUCKET_RAW_DOCUMENTS", value = aws_s3_bucket.raw_documents.id },
       { name = "S3_BUCKET_GENERATED_DOCUMENTS", value = aws_s3_bucket.generated_documents.id },
+      { name = "CORS_ALLOWED_ORIGINS", value = "https://${aws_cloudfront_distribution.main.domain_name}" },
     ]
 
     secrets = [
       { name = "DATABASE_URL", valueFrom = aws_ssm_parameter.database_url.arn },
       { name = "JWT_SECRET", valueFrom = aws_ssm_parameter.jwt_secret.arn },
       { name = "ANTHROPIC_API_KEY", valueFrom = aws_ssm_parameter.anthropic_key.arn },
+      { name = "AI_INTEGRATIONS_ANTHROPIC_API_KEY", valueFrom = aws_ssm_parameter.anthropic_key.arn },
     ]
 
     logConfiguration = {
@@ -421,14 +456,75 @@ resource "aws_lb_target_group" "api" {
   }
 }
 
+resource "aws_acm_certificate" "api" {
+  count             = var.domain_name != "" ? 1 : 0
+  domain_name       = "api.${var.domain_name}"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_route53_record" "api_cert_validation" {
+  for_each = var.domain_name != "" ? {
+    for dvo in aws_acm_certificate.api[0].domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  } : {}
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = var.hosted_zone_id
+}
+
+resource "aws_acm_certificate_validation" "api" {
+  count                   = var.domain_name != "" ? 1 : 0
+  certificate_arn         = aws_acm_certificate.api[0].arn
+  validation_record_fqdns = [for record in aws_route53_record.api_cert_validation : record.fqdn]
+}
+
+resource "aws_lb_listener" "https" {
+  count             = var.domain_name != "" ? 1 : 0
+  load_balancer_arn = aws_lb.main.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate_validation.api[0].certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+}
+
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = 80
   protocol          = "HTTP"
 
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.api.arn
+    type = var.domain_name != "" ? "redirect" : "forward"
+
+    dynamic "redirect" {
+      for_each = var.domain_name != "" ? [1] : []
+      content {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
+    }
+
+    target_group_arn = var.domain_name != "" ? null : aws_lb_target_group.api.arn
   }
 }
 
@@ -457,6 +553,48 @@ resource "aws_ecs_service" "api" {
   }
 }
 
+resource "aws_appautoscaling_target" "ecs_api" {
+  max_capacity       = 10
+  min_capacity       = 2
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.api.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "ecs_api_cpu" {
+  name               = "dynasties-api-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs_api.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_api.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_api.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+resource "aws_appautoscaling_policy" "ecs_api_memory" {
+  name               = "dynasties-api-memory-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs_api.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_api.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_api.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+    target_value       = 80.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html"
@@ -478,7 +616,7 @@ resource "aws_cloudfront_distribution" "main" {
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "http-only"
+      origin_protocol_policy = var.domain_name != "" ? "https-only" : "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }

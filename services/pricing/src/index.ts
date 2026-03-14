@@ -114,7 +114,7 @@ export async function runPricing(
     .from(rateTablesTable)
     .where(eq(rateTablesTable.companyId, companyId));
 
-  const matchingRates = rateTableEntries.filter((rate) => {
+  const matchingRates = rateTableEntries.filter((rate: any) => {
     const originMatch = (shipment.portOfLoading || "").toLowerCase().includes(rate.origin.toLowerCase());
     const destMatch = (shipment.portOfDischarge || "").toLowerCase().includes(rate.destination.toLowerCase());
     const now = new Date();
@@ -137,7 +137,7 @@ export async function runPricing(
     });
   }
 
-  if (!matchingRates.some((r) => r.chargeCode === "FRT")) {
+  if (!matchingRates.some((r: any) => r.chargeCode === "FRT")) {
     const volume = (shipment.volume as number) || 0;
     const weight = (shipment.grossWeight as number) || 0;
     const cbm = volume > 0 ? volume : weight / 1000;
@@ -240,43 +240,46 @@ export async function runPricing(
   }
 
   let totalAmount = 0;
-  for (const charge of charges) {
-    const id = generateId();
-    await db.insert(shipmentChargesTable).values({
-      id,
-      companyId,
-      shipmentId,
-      chargeCode: charge.chargeCode,
-      description: charge.description,
-      chargeType: charge.chargeType,
-      quantity: charge.quantity,
-      unitPrice: charge.unitPrice,
-      currency: charge.currency,
-      totalAmount: charge.totalAmount,
-      taxRate: 0,
-      taxAmount: 0,
-      source: charge.source,
-      rateTableId: charge.rateTableId || null,
-      metadata: null,
-    });
-    totalAmount += charge.totalAmount;
-  }
 
-  await db.insert(eventsTable).values({
-    actorType: "SERVICE",
-    id: generateId(),
-    companyId,
-    eventType: "CHARGES_CALCULATED" as string,
-    entityType: "shipment",
-    entityId: shipmentId,
-    serviceId: "pricing",
-    metadata: {
-      chargeCount: charges.length,
-      totalAmount,
-      currency: "USD",
-      agentUsed,
-      chargeCodes: charges.map((c) => c.chargeCode),
-    },
+  await db.transaction(async (tx: any) => {
+    for (const charge of charges) {
+      const id = generateId();
+      await tx.insert(shipmentChargesTable).values({
+        id,
+        companyId,
+        shipmentId,
+        chargeCode: charge.chargeCode,
+        description: charge.description,
+        chargeType: charge.chargeType,
+        quantity: charge.quantity,
+        unitPrice: charge.unitPrice,
+        currency: charge.currency,
+        totalAmount: charge.totalAmount,
+        taxRate: 0,
+        taxAmount: 0,
+        source: charge.source,
+        rateTableId: charge.rateTableId || null,
+        metadata: null,
+      });
+      totalAmount += charge.totalAmount;
+    }
+
+    await tx.insert(eventsTable).values({
+      actorType: "SERVICE",
+      id: generateId(),
+      companyId,
+      eventType: "CHARGES_CALCULATED" as string,
+      entityType: "shipment",
+      entityId: shipmentId,
+      serviceId: "pricing",
+      metadata: {
+        chargeCount: charges.length,
+        totalAmount,
+        currency: "USD",
+        agentUsed,
+        chargeCodes: charges.map((c) => c.chargeCode),
+      },
+    });
   });
 
   publishDocGenJob({ companyId, shipmentId, trigger: "charges_calculated" });

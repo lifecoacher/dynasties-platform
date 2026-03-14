@@ -41,7 +41,7 @@ export async function runTradeLaneAgent(context: string): Promise<TradeLaneAgent
     system: SYSTEM_PROMPT,
   });
 
-  const textBlock = response.content.find((b) => b.type === "text");
+  const textBlock = response.content.find((b: any) => b.type === "text");
   const raw = textBlock?.text || "{}";
 
   return {
