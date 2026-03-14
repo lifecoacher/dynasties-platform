@@ -1,0 +1,69 @@
+Next task: verify and prepare email ingestion for demo readiness.
+
+We already have the Workbench and shipment workflow working. The next demo path is:
+
+email sent
+→ email received by Dynasties
+→ attachments parsed
+→ extraction runs
+→ entity resolution runs
+→ shipment draft created
+→ shipment appears in Workbench
+
+I need you to determine exactly what is already working, what is only simulated, and what is still missing for a real email-ingestion demo.
+
+Do this in order:
+
+1. Audit the current email-ingestion path
+- confirm whether a real inbound email address exists right now
+- confirm whether inbound email is wired only in code or operationally testable
+- confirm whether SES or any inbound mail provider is actually configured and usable now
+- identify every missing dependency for live inbound email
+
+2. Verify the fastest test path
+I need the quickest reliable way to prove email ingestion without breaking the current demo.
+Check whether we can test using:
+- a real inbound email address
+- a simulated inbound email endpoint
+- raw MIME payload injection
+- POST /api/emails/ingest
+- forwarding an email with an attachment into the ingestion service
+
+3. Execute the best available test
+Use the fastest real path available and prove the full flow:
+email input
+→ attachment parsing
+→ extraction
+→ shipment draft creation
+→ visible in Workbench
+
+4. If real live inbound email is NOT ready
+Then set up the best demo-safe fallback:
+- simulated inbound email using the real ingestion pipeline
+- include realistic email body and attachment
+- ensure it creates a real shipment in the Workbench
+
+5. Report clearly
+I need a plain-English answer with:
+- what parts of email ingestion are fully working
+- what parts are simulated only
+- what is still missing for a true live inbound email demo
+- whether we can demo “email ingestion” right now
+- if yes, exact steps I should follow
+- if no, the exact fastest remaining work to make it demoable
+
+Important constraints:
+- do not add new product features unless absolutely required
+- do not redesign the system
+- use the existing ingestion pipeline
+- preserve auth, tenant isolation, validation, and queue safety
+- prefer proving the flow over building extra infrastructure
+
+Success criteria:
+- either a real inbound email creates a shipment visible in Workbench
+- or a simulated email path using the real ingestion service does so reliably enough for demo
+
+At the end, give me:
+1. demo-ready email test instructions
+2. fallback instructions if live email is not ready
+3. recommendation on whether email should be included in the next demo or kept for phase two

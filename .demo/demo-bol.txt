@@ -1,0 +1,81 @@
+═══════════════════════════════════════════════════════════
+                    BILL OF LADING
+              OCEAN BILL OF LADING (NON-NEGOTIABLE)
+═══════════════════════════════════════════════════════════
+
+B/L Number: OOLU7829345
+Booking Number: OOCL-2026-SZ-9912
+Date of Issue: March 12, 2026
+
+───────────────────────────────────────────────────────────
+SHIPPER / EXPORTER:
+  Shenzhen MegaTech Components Ltd.
+  Building 12, Nanshan Science Park
+  Shenzhen, Guangdong 518057, China
+  Tel: +86-755-2688-9900
+  Contact: Mr. Wang Li
+
+CONSIGNEE:
+  AutoParts Distribution LLC
+  4500 Industrial Parkway, Suite 200
+  Memphis, TN 38118, United States
+  Tel: +1 (901) 555-0142
+  Contact: Sarah Chen
+
+NOTIFY PARTY:
+  AutoParts Distribution LLC
+  Same as Consignee
+
+───────────────────────────────────────────────────────────
+VESSEL / VOYAGE:
+  Vessel: OOCL TOKYO
+  Voyage: 038E
+  Flag: Hong Kong
+
+PORT OF LOADING: CNSHE (Shekou, China)
+PORT OF DISCHARGE: USMEM (Memphis, TN via Long Beach)
+PLACE OF RECEIPT: Shenzhen, China
+PLACE OF DELIVERY: Memphis, TN, USA
+
+ETD: March 25, 2026
+ETA: April 18, 2026
+
+───────────────────────────────────────────────────────────
+PARTICULARS FURNISHED BY SHIPPER:
+
+Container No.     Seal No.     Type/Size
+OOLU 489 231 7    SH-2026-881  40' HC (High Cube)
+OOLU 392 776 4    SH-2026-882  40' HC (High Cube)
+
+DESCRIPTION OF GOODS:
+  Automotive Electronic Components
+  - ECU Control Modules (Part# MT-ECU-400)
+  - ABS Sensor Assemblies (Part# MT-ABS-220)
+  - LED Headlamp Driver Boards (Part# MT-LED-115)
+
+  HS Code: 8708.99
+  Country of Origin: China (PRC)
+
+  Number of Packages: 384 cartons
+  Gross Weight: 9,240 KG
+  Measurement: 52.8 CBM
+
+───────────────────────────────────────────────────────────
+FREIGHT AND CHARGES:
+  Freight Terms: PREPAID
+  Incoterms: FOB Shenzhen
+
+  Declared Value: USD 428,500.00
+
+───────────────────────────────────────────────────────────
+CARRIER: Orient Overseas Container Line (OOCL)
+
+This is to certify that the above-named carrier has received
+the goods described above in apparent good order and condition
+for carriage subject to the terms and conditions of this
+Bill of Lading.
+
+Signed: ___________________
+Date: March 12, 2026
+Place: Shekou, China
+═══════════════════════════════════════════════════════════
