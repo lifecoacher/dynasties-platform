@@ -72,7 +72,7 @@ Identify the 2-4 highest-impact risk factors and explain each. Return ONLY JSON.
     system: SYSTEM_PROMPT,
   });
 
-  const textBlock = response.content.find((b: any) => b.type === "text");
+  const textBlock = response.content.find((b: any) => b.type === "text") as { type: "text"; text: string } | undefined;
   const raw = textBlock?.text || '{"primaryRiskFactors":[]}';
 
   return {

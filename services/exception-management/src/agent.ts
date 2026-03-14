@@ -39,7 +39,7 @@ export async function runExceptionAgent(context: string): Promise<ExceptionAgent
     system: SYSTEM_PROMPT,
   });
 
-  const textBlock = response.content.find((b: any) => b.type === "text");
+  const textBlock = response.content.find((b: any) => b.type === "text") as { type: "text"; text: string } | undefined;
   const raw = textBlock?.text || "{}";
 
   return {

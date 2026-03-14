@@ -129,9 +129,9 @@ export async function runPricing(
       description: rate.description,
       chargeType: "FREIGHT",
       quantity: 1,
-      unitPrice: rate.unitPrice,
+      unitPrice: Number(rate.unitPrice),
       currency: rate.currency,
-      totalAmount: rate.unitPrice,
+      totalAmount: Number(rate.unitPrice),
       source: "RATE_TABLE",
       rateTableId: rate.id,
     });
@@ -178,15 +178,15 @@ export async function runPricing(
     .where(eq(insuranceQuotesTable.shipmentId, shipmentId))
     .limit(1);
 
-  if (insuranceQuote && insuranceQuote.estimatedPremium > 0) {
+  if (insuranceQuote && Number(insuranceQuote.estimatedPremium) > 0) {
     charges.push({
       chargeCode: "INS",
       description: `Cargo Insurance - ${insuranceQuote.coverageType}`,
       chargeType: "INSURANCE",
       quantity: 1,
-      unitPrice: insuranceQuote.estimatedPremium,
+      unitPrice: Number(insuranceQuote.estimatedPremium),
       currency: insuranceQuote.currency || "USD",
-      totalAmount: insuranceQuote.estimatedPremium,
+      totalAmount: Number(insuranceQuote.estimatedPremium),
       source: "RULE_ENGINE",
     });
   }
