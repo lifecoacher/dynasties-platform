@@ -100,7 +100,7 @@ jobs:
       - name: Run database migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: pnpm --filter @workspace/db run push-force
+        run: cd lib/db && npx drizzle-kit migrate
 
       - name: Login to ECR
         id: ecr-login

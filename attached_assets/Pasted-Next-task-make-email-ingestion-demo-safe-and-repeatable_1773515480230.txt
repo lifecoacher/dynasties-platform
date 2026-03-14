@@ -1,0 +1,68 @@
+Next task: make email ingestion demo-safe and repeatable.
+
+We have confirmed the email ingestion pipeline works end-to-end using POST /api/emails/ingest with a .eml file.
+
+Now prepare it for a live demo so I do not need to use raw terminal commands in front of people.
+
+Requirements:
+
+1. Create a simple demo trigger for email ingestion
+- either a small protected admin/demo page in the current app
+- or a single internal button/action labeled:
+  "Ingest Demo Email"
+- this should call the real existing email ingestion pipeline using .demo/demo-email.eml
+- do not fake data in the frontend
+- do not bypass the real backend flow
+
+2. Preserve the real flow
+The trigger must execute:
+email ingest
+→ MIME parse
+→ attachment extraction
+→ AI extraction
+→ entity resolution
+→ shipment draft creation
+→ compliance
+→ risk
+→ insurance
+→ visible in Workbench
+
+3. Prevent demo duplication
+- if the same demo email is ingested twice, do not create duplicate shipments
+- add a simple deduplication rule for the demo email if needed
+- or add a reset/cleanup option so I can restore the demo state before each presentation
+
+4. Add a demo reset utility
+I need a safe way to reset demo data between runs.
+Provide either:
+- a "Reset Demo Data" button
+- or a simple protected endpoint/script
+The reset should:
+- remove the demo-generated shipment(s)
+- remove demo-created entities if appropriate
+- restore the Workbench to a clean starting state
+
+5. Confirm the exact live demo sequence
+I want a demo flow that looks like this:
+- open Workbench
+- show current shipments
+- trigger "Ingest Demo Email"
+- refresh or auto-update
+- show new DRAFT shipment appear
+- open shipment
+- show extracted fields, compliance, risk, insurance
+- approve shipment
+
+6. Output required
+When done, report:
+- how I trigger the demo email flow
+- how I reset the demo
+- whether deduplication is handled
+- the exact clicks/steps for the live demo
+- any remaining caveats
+
+Important constraints:
+- do not add new product features beyond demo-safe controls
+- do not redesign the app
+- use the existing pipeline
+- preserve auth, validation, tenant isolation, and queue safety

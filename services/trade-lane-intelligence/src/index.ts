@@ -48,7 +48,7 @@ export async function runTradeLaneUpdate(
     .from(shipmentChargesTable)
     .where(eq(shipmentChargesTable.shipmentId, shipmentId));
 
-  const totalCost = charges.reduce((sum: any, c: any) => sum + c.totalAmount, 0);
+  const totalCost = charges.reduce((sum: number, c: any) => sum + Number(c.totalAmount), 0);
 
   const docs = await db
     .select()
@@ -85,7 +85,7 @@ export async function runTradeLaneUpdate(
       .from(shipmentChargesTable)
       .where(eq(shipmentChargesTable.shipmentId, ls.id));
 
-    const cost = lsCharges.reduce((sum: any, c: any) => sum + c.totalAmount, 0);
+    const cost = lsCharges.reduce((sum: number, c: any) => sum + Number(c.totalAmount), 0);
     if (cost > 0) laneCosts.push(cost);
 
     if (ls.etd && ls.eta) {
@@ -153,13 +153,34 @@ export async function runTradeLaneUpdate(
     )
     .limit(1);
 
-  let laneId: string;
+  let laneId: string = "";
 
-  if (existingLane) {
-    laneId = existingLane.id;
-    await db
-      .update(tradeLaneStatsTable)
-      .set({
+  await db.transaction(async (tx) => {
+    if (existingLane) {
+      laneId = existingLane.id;
+      await tx
+        .update(tradeLaneStatsTable)
+        .set({
+          shipmentCount,
+          avgCost,
+          minCost,
+          maxCost,
+          avgTransitDays,
+          delayCount,
+          delayFrequency,
+          avgDocumentCount,
+          documentComplexity,
+          agentAdvisory,
+          lastUpdated: new Date(),
+        })
+        .where(eq(tradeLaneStatsTable.id, existingLane.id));
+    } else {
+      laneId = generateId();
+      await tx.insert(tradeLaneStatsTable).values({
+        id: laneId,
+        companyId,
+        origin,
+        destination,
         shipmentCount,
         avgCost,
         minCost,
@@ -171,47 +192,28 @@ export async function runTradeLaneUpdate(
         documentComplexity,
         agentAdvisory,
         lastUpdated: new Date(),
-      })
-      .where(eq(tradeLaneStatsTable.id, existingLane.id));
-  } else {
-    laneId = generateId();
-    await db.insert(tradeLaneStatsTable).values({
-      id: laneId,
-      companyId,
-      origin,
-      destination,
-      shipmentCount,
-      avgCost,
-      minCost,
-      maxCost,
-      avgTransitDays,
-      delayCount,
-      delayFrequency,
-      avgDocumentCount,
-      documentComplexity,
-      agentAdvisory,
-      lastUpdated: new Date(),
-      metadata: null,
-    });
-  }
+        metadata: null,
+      });
+    }
 
-  await db.insert(eventsTable).values({
-    actorType: "SERVICE",
-    id: generateId(),
-    companyId,
-    eventType: "TRADE_LANE_UPDATED" as string,
-    entityType: "shipment",
-    entityId: shipmentId,
-    serviceId: "trade-lane-intelligence",
-    metadata: {
-      laneId,
-      origin,
-      destination,
-      shipmentCount,
-      avgCost,
-      documentComplexity,
-      hasAdvisory: !!agentAdvisory,
-    },
+    await tx.insert(eventsTable).values({
+      actorType: "SERVICE",
+      id: generateId(),
+      companyId,
+      eventType: "TRADE_LANE_UPDATED" as string,
+      entityType: "shipment",
+      entityId: shipmentId,
+      serviceId: "trade-lane-intelligence",
+      metadata: {
+        laneId,
+        origin,
+        destination,
+        shipmentCount,
+        avgCost,
+        documentComplexity,
+        hasAdvisory: !!agentAdvisory,
+      },
+    });
   });
 
   console.log(

@@ -35,20 +35,14 @@ export async function ingestEmail(
   const emailId = generateId();
   const attachments: Attachment[] = parsed.attachments || [];
 
-  await db.insert(ingestedEmailsTable).values({
-    id: emailId,
-    companyId,
-    messageId,
-    fromAddress,
-    toAddress,
-    subject,
-    bodyText,
-    s3Key: emailStorage.key,
-    attachmentCount: attachments.length,
-    status: "PROCESSING",
-  });
-
-  const documentIds: string[] = [];
+  const storedAttachments: Array<{
+    docId: string;
+    fileName: string;
+    mimeType: string;
+    s3Key: string;
+    documentType: string;
+    confidence: number;
+  }> = [];
 
   for (const attachment of attachments) {
     const docId = generateId();
@@ -59,37 +53,58 @@ export async function ingestEmail(
     const storage = await storeFile(buffer, fileName, `documents/${companyId}`);
     const classification = classifyDocumentType(fileName);
 
-    await db.insert(ingestedDocumentsTable).values({
-      id: docId,
-      companyId,
-      emailId,
+    storedAttachments.push({
+      docId,
       fileName,
       mimeType,
-      documentType: classification.documentType,
-      documentTypeConfidence: classification.confidence,
       s3Key: storage.key,
-      extractionStatus: "PENDING",
-    });
-
-    publishExtractionJob({
-      documentId: docId,
-      companyId,
-      s3Key: storage.key,
-      fileName,
-      mimeType,
       documentType: classification.documentType,
+      confidence: classification.confidence,
     });
-
-    documentIds.push(docId);
   }
 
-  await db
-    .update(ingestedEmailsTable)
-    .set({
+  await db.transaction(async (tx) => {
+    await tx.insert(ingestedEmailsTable).values({
+      id: emailId,
+      companyId,
+      messageId,
+      fromAddress,
+      toAddress,
+      subject,
+      bodyText,
+      s3Key: emailStorage.key,
+      attachmentCount: attachments.length,
       status: attachments.length > 0 ? "PROCESSING" : "PROCESSED",
       processedAt: attachments.length === 0 ? new Date() : undefined,
-    })
-    .where(eq(ingestedEmailsTable.id, emailId));
+    });
+
+    for (const att of storedAttachments) {
+      await tx.insert(ingestedDocumentsTable).values({
+        id: att.docId,
+        companyId,
+        emailId,
+        fileName: att.fileName,
+        mimeType: att.mimeType,
+        documentType: att.documentType,
+        documentTypeConfidence: att.confidence,
+        s3Key: att.s3Key,
+        extractionStatus: "PENDING",
+      });
+    }
+  });
+
+  const documentIds = storedAttachments.map((a) => a.docId);
+
+  for (const att of storedAttachments) {
+    publishExtractionJob({
+      documentId: att.docId,
+      companyId,
+      s3Key: att.s3Key,
+      fileName: att.fileName,
+      mimeType: att.mimeType,
+      documentType: att.documentType,
+    });
+  }
 
   return { emailId, documentIds, attachmentCount: attachments.length };
 }

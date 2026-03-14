@@ -86,33 +86,35 @@ export async function runComplianceScreening(
   if (parties.length === 0) {
     console.log(`[compliance] no parties to screen for shipment=${shipmentId}`);
     const screeningId = generateId();
-    await db.insert(complianceScreeningsTable).values({
-      id: screeningId,
-      companyId,
-      shipmentId,
-      status: "CLEAR",
-      screenedParties: 0,
-      matchCount: 0,
-      matches: [],
-      listsChecked: [],
-      screenedAt: new Date(),
-    });
-
-    await db.insert(eventsTable).values({
-    actorType: "SERVICE",
-      id: generateId(),
-      companyId,
-      eventType: "COMPLIANCE_SCREENED",
-      entityType: "shipment",
-      entityId: shipmentId,
-      serviceId: "compliance-screening",
-      metadata: {
-        screeningId,
+    await db.transaction(async (tx) => {
+      await tx.insert(complianceScreeningsTable).values({
+        id: screeningId,
+        companyId,
+        shipmentId,
         status: "CLEAR",
         screenedParties: 0,
         matchCount: 0,
+        matches: [],
         listsChecked: [],
-      },
+        screenedAt: new Date(),
+      });
+
+      await tx.insert(eventsTable).values({
+        actorType: "SERVICE",
+        id: generateId(),
+        companyId,
+        eventType: "COMPLIANCE_SCREENED",
+        entityType: "shipment",
+        entityId: shipmentId,
+        serviceId: "compliance-screening",
+        metadata: {
+          screeningId,
+          status: "CLEAR",
+          screenedParties: 0,
+          matchCount: 0,
+          listsChecked: [],
+        },
+      });
     });
 
     return {
@@ -200,52 +202,54 @@ export async function runComplianceScreening(
 
   const screeningId = generateId();
 
-  await db.insert(complianceScreeningsTable).values({
-    id: screeningId,
-    companyId,
-    shipmentId,
-    status: screenResult.status,
-    screenedParties: screenResult.screenedParties,
-    matchCount: screenResult.matchCount,
-    matches: screenResult.matches,
-    listsChecked: screenResult.listsChecked,
-    screenedAt: new Date(),
-  });
-
-  await db.insert(eventsTable).values({
-    actorType: "SERVICE",
-    id: generateId(),
-    companyId,
-    eventType: "COMPLIANCE_SCREENED",
-    entityType: "shipment",
-    entityId: shipmentId,
-    serviceId: "compliance-screening",
-    metadata: {
-      screeningId,
+  await db.transaction(async (tx) => {
+    await tx.insert(complianceScreeningsTable).values({
+      id: screeningId,
+      companyId,
+      shipmentId,
       status: screenResult.status,
       screenedParties: screenResult.screenedParties,
       matchCount: screenResult.matchCount,
+      matches: screenResult.matches,
       listsChecked: screenResult.listsChecked,
-    },
-  });
+      screenedAt: new Date(),
+    });
 
-  if (screenResult.status !== "CLEAR") {
-    await db.insert(eventsTable).values({
-    actorType: "SERVICE",
+    await tx.insert(eventsTable).values({
+      actorType: "SERVICE",
       id: generateId(),
       companyId,
-      eventType: "COMPLIANCE_ALERT",
+      eventType: "COMPLIANCE_SCREENED",
       entityType: "shipment",
       entityId: shipmentId,
       serviceId: "compliance-screening",
       metadata: {
         screeningId,
         status: screenResult.status,
-        matches: screenResult.matches,
-        agentResolutions,
+        screenedParties: screenResult.screenedParties,
+        matchCount: screenResult.matchCount,
+        listsChecked: screenResult.listsChecked,
       },
     });
-  }
+
+    if (screenResult.status !== "CLEAR") {
+      await tx.insert(eventsTable).values({
+        actorType: "SERVICE",
+        id: generateId(),
+        companyId,
+        eventType: "COMPLIANCE_ALERT",
+        entityType: "shipment",
+        entityId: shipmentId,
+        serviceId: "compliance-screening",
+        metadata: {
+          screeningId,
+          status: screenResult.status,
+          matches: screenResult.matches,
+          agentResolutions,
+        },
+      });
+    }
+  });
 
   console.log(
     `[compliance] screening complete: shipment=${shipmentId} status=${screenResult.status} parties=${screenResult.screenedParties} matches=${screenResult.matchCount}`,

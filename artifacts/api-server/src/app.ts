@@ -4,6 +4,7 @@ import router from "./routes";
 import authRouter from "./routes/auth.js";
 import adminRouter from "./routes/admin.js";
 import healthRouter from "./routes/health.js";
+import demoRouter from "./routes/demo.js";
 import { loginLimiter, apiLimiter } from "./middlewares/rate-limit.js";
 import { requestLogger } from "./middlewares/request-logger.js";
 
@@ -40,6 +41,7 @@ app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth/register", loginLimiter);
 app.use("/api", authRouter);
 app.use("/api", adminRouter);
+app.use("/api", demoRouter);
 app.use("/api", router);
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

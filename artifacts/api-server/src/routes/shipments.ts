@@ -174,26 +174,34 @@ router.get("/shipments/:id", async (req, res) => {
     return;
   }
 
-  const shipper = shipment.shipperId
-    ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.shipperId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
-    : null;
-  const consignee = shipment.consigneeId
-    ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.consigneeId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
-    : null;
-  const notifyParty = shipment.notifyPartyId
-    ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.notifyPartyId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
-    : null;
-  const carrier = shipment.carrierId
-    ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.carrierId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
-    : null;
+  const entityIds = [
+    shipment.shipperId,
+    shipment.consigneeId,
+    shipment.notifyPartyId,
+    shipment.carrierId,
+  ].filter((id): id is string => id !== null);
+
+  const entityRows = entityIds.length > 0
+    ? await db
+        .select()
+        .from(entitiesTable)
+        .where(
+          and(
+            inArray(entitiesTable.id, entityIds),
+            eq(entitiesTable.companyId, companyId),
+          ),
+        )
+    : [];
+
+  const entityMap = new Map(entityRows.map((e: any) => [e.id, e]));
 
   res.json({
     data: {
       ...shipment,
-      shipper: shipper || null,
-      consignee: consignee || null,
-      notifyParty: notifyParty || null,
-      carrier: carrier || null,
+      shipper: shipment.shipperId ? entityMap.get(shipment.shipperId) || null : null,
+      consignee: shipment.consigneeId ? entityMap.get(shipment.consigneeId) || null : null,
+      notifyParty: shipment.notifyPartyId ? entityMap.get(shipment.notifyPartyId) || null : null,
+      carrier: shipment.carrierId ? entityMap.get(shipment.carrierId) || null : null,
     },
   });
 });
@@ -549,36 +557,33 @@ router.post("/rate-tables", requireMinRole("MANAGER"), validateBody(createRateTa
     validTo?: string;
   };
 
-  if (!chargeCode || !description || !unitPrice || !carrier || !origin || !destination) {
-    res.status(400).json({ error: "chargeCode, description, carrier, origin, destination, and unitPrice are required" });
-    return;
-  }
-
   const id = generateId();
-  await db.insert(rateTablesTable).values({
-    id,
-    companyId,
-    carrier,
-    chargeCode,
-    description,
-    origin,
-    destination,
-    unitPrice: String(unitPrice),
-    currency: currency || "USD",
-    validFrom: validFrom ? new Date(validFrom) : null,
-    validTo: validTo ? new Date(validTo) : null,
-    metadata: null,
-  });
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.insert(rateTablesTable).values({
+      id,
+      companyId,
+      carrier,
+      chargeCode,
+      description,
+      origin,
+      destination,
+      unitPrice: String(unitPrice),
+      currency: currency || "USD",
+      validFrom: validFrom ? new Date(validFrom) : null,
+      validTo: validTo ? new Date(validTo) : null,
+      metadata: null,
+    });
 
-  await db.insert(eventsTable).values({
-    id: generateId(),
-    companyId,
-    eventType: "RATE_TABLE_CREATED",
-    entityType: "rate_table",
-    entityId: id,
-    actorType: "USER",
-    userId: req.user!.userId,
-    metadata: { chargeCode, carrier, origin, destination, unitPrice },
+    await tx.insert(eventsTable).values({
+      id: generateId(),
+      companyId,
+      eventType: "RATE_TABLE_CREATED",
+      entityType: "rate_table",
+      entityId: id,
+      actorType: "USER",
+      userId: req.user!.userId,
+      metadata: { chargeCode, carrier, origin, destination, unitPrice },
+    });
   });
 
   const [created] = await db.select().from(rateTablesTable).where(eq(rateTablesTable.id, id)).limit(1);
@@ -615,15 +620,9 @@ router.patch("/exceptions/:id", requireMinRole("OPERATOR"), validateBody(patchEx
     return;
   }
 
-  const VALID_EXCEPTION_STATUSES = ["OPEN", "INVESTIGATING", "RESOLVED", "ESCALATED", "DISMISSED"];
-
   const actorId = req.user!.userId;
   const updateData: Record<string, unknown> = {};
   if (status) {
-    if (!VALID_EXCEPTION_STATUSES.includes(status)) {
-      res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_EXCEPTION_STATUSES.join(", ")}` });
-      return;
-    }
     updateData.status = status;
   }
   if (resolutionNotes) updateData.resolutionNotes = resolutionNotes;
@@ -813,15 +812,9 @@ router.patch("/claims/:id", requireMinRole("OPERATOR"), validateBody(patchClaimS
     return;
   }
 
-  const VALID_CLAIM_STATUSES = ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "DENIED", "CLOSED"];
-
   const actorId = req.user!.userId;
   const updateData: Record<string, unknown> = {};
   if (status) {
-    if (!VALID_CLAIM_STATUSES.includes(status)) {
-      res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_CLAIM_STATUSES.join(", ")}` });
-      return;
-    }
     updateData.status = status;
   }
 
