@@ -9,6 +9,186 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface EntitySummary {
+  id: string;
+  name: string;
+}
+
+export type ComplianceSummaryStatus =
+  (typeof ComplianceSummaryStatus)[keyof typeof ComplianceSummaryStatus];
+
+export const ComplianceSummaryStatus = {
+  CLEAR: "CLEAR",
+  ALERT: "ALERT",
+  BLOCKED: "BLOCKED",
+} as const;
+
+export interface ComplianceSummary {
+  status: ComplianceSummaryStatus;
+  matchCount: number;
+  screenedParties: number;
+}
+
+export type RiskSummaryRecommendedAction =
+  (typeof RiskSummaryRecommendedAction)[keyof typeof RiskSummaryRecommendedAction];
+
+export const RiskSummaryRecommendedAction = {
+  AUTO_APPROVE: "AUTO_APPROVE",
+  OPERATOR_REVIEW: "OPERATOR_REVIEW",
+  ESCALATE: "ESCALATE",
+} as const;
+
+export interface RiskSummary {
+  compositeScore: number;
+  recommendedAction: RiskSummaryRecommendedAction;
+}
+
+export type InsuranceSummaryCoverageType =
+  (typeof InsuranceSummaryCoverageType)[keyof typeof InsuranceSummaryCoverageType];
+
+export const InsuranceSummaryCoverageType = {
+  ALL_RISK: "ALL_RISK",
+  NAMED_PERILS: "NAMED_PERILS",
+  TOTAL_LOSS: "TOTAL_LOSS",
+} as const;
+
+export interface InsuranceSummary {
+  coverageType: InsuranceSummaryCoverageType;
+  estimatedPremium: number;
+  currency?: string;
+}
+
+export type EnrichedShipmentStatus =
+  (typeof EnrichedShipmentStatus)[keyof typeof EnrichedShipmentStatus];
+
+export const EnrichedShipmentStatus = {
+  DRAFT: "DRAFT",
+  PENDING_REVIEW: "PENDING_REVIEW",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+  IN_TRANSIT: "IN_TRANSIT",
+  DELIVERED: "DELIVERED",
+  CLOSED: "CLOSED",
+  CANCELLED: "CANCELLED",
+} as const;
+
+export interface EnrichedShipment {
+  id: string;
+  companyId: string;
+  reference: string;
+  status: EnrichedShipmentStatus;
+  shipperId?: string | null;
+  consigneeId?: string | null;
+  portOfLoading?: string | null;
+  portOfDischarge?: string | null;
+  vessel?: string | null;
+  voyage?: string | null;
+  commodity?: string | null;
+  hsCode?: string | null;
+  grossWeight?: number | null;
+  freightTerms?: string | null;
+  bookingNumber?: string | null;
+  blNumber?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  shipper?: EntitySummary | null;
+  consignee?: EntitySummary | null;
+  compliance?: ComplianceSummary | null;
+  risk?: RiskSummary | null;
+  insurance?: InsuranceSummary | null;
+}
+
+export type ShipmentDetailStatus =
+  (typeof ShipmentDetailStatus)[keyof typeof ShipmentDetailStatus];
+
+export const ShipmentDetailStatus = {
+  DRAFT: "DRAFT",
+  PENDING_REVIEW: "PENDING_REVIEW",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+  IN_TRANSIT: "IN_TRANSIT",
+  DELIVERED: "DELIVERED",
+  CLOSED: "CLOSED",
+  CANCELLED: "CANCELLED",
+} as const;
+
+export type ShipmentDetailExtractionConfidence = {
+  [key: string]: unknown;
+} | null;
+
+export type EntityEntityType =
+  (typeof EntityEntityType)[keyof typeof EntityEntityType];
+
+export const EntityEntityType = {
+  SHIPPER: "SHIPPER",
+  CONSIGNEE: "CONSIGNEE",
+  CARRIER: "CARRIER",
+  NOTIFY_PARTY: "NOTIFY_PARTY",
+  FORWARDER: "FORWARDER",
+  AGENT: "AGENT",
+  VENDOR: "VENDOR",
+  CUSTOMER: "CUSTOMER",
+} as const;
+
+export type EntityStatus = (typeof EntityStatus)[keyof typeof EntityStatus];
+
+export const EntityStatus = {
+  VERIFIED: "VERIFIED",
+  UNVERIFIED: "UNVERIFIED",
+} as const;
+
+export interface Entity {
+  id: string;
+  companyId: string;
+  name: string;
+  normalizedName?: string;
+  entityType: EntityEntityType;
+  status: EntityStatus;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShipmentDetail {
+  id: string;
+  companyId: string;
+  reference: string;
+  status: ShipmentDetailStatus;
+  shipperId?: string | null;
+  consigneeId?: string | null;
+  notifyPartyId?: string | null;
+  carrierId?: string | null;
+  portOfLoading?: string | null;
+  portOfDischarge?: string | null;
+  vessel?: string | null;
+  voyage?: string | null;
+  commodity?: string | null;
+  hsCode?: string | null;
+  grossWeight?: number | null;
+  weightUnit?: string | null;
+  volume?: number | null;
+  volumeUnit?: string | null;
+  packageCount?: number | null;
+  incoterms?: string | null;
+  freightTerms?: string | null;
+  bookingNumber?: string | null;
+  blNumber?: string | null;
+  etd?: string | null;
+  eta?: string | null;
+  operatorNotes?: string | null;
+  extractionConfidence?: ShipmentDetailExtractionConfidence;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  shipper?: Entity | null;
+  consignee?: Entity | null;
+  notifyParty?: Entity | null;
+  carrier?: Entity | null;
+}
+
 export type ShipmentStatus =
   (typeof ShipmentStatus)[keyof typeof ShipmentStatus];
 
@@ -63,6 +243,7 @@ export interface ComplianceScreening {
   matchCount: number;
   matches?: ComplianceScreeningMatchesItem[];
   listsChecked?: string[];
+  agentExplanation?: string | null;
   screenedAt?: string;
 }
 
@@ -86,6 +267,7 @@ export interface RiskScore {
   subScores?: RiskScoreSubScores;
   primaryRiskFactors?: RiskScorePrimaryRiskFactorsItem[];
   recommendedAction: RiskScoreRecommendedAction;
+  agentExplanation?: string | null;
   scoredAt?: string;
 }
 
@@ -105,45 +287,10 @@ export interface InsuranceQuote {
   estimatedInsuredValue: number;
   estimatedPremium: number;
   currency?: string;
-  coverageRationale?: string;
+  coverageRationale?: string | null;
   exclusions?: string[];
   confidenceScore?: number;
   quotedAt?: string;
-}
-
-export type EntityEntityType =
-  (typeof EntityEntityType)[keyof typeof EntityEntityType];
-
-export const EntityEntityType = {
-  SHIPPER: "SHIPPER",
-  CONSIGNEE: "CONSIGNEE",
-  CARRIER: "CARRIER",
-  NOTIFY_PARTY: "NOTIFY_PARTY",
-  FORWARDER: "FORWARDER",
-  AGENT: "AGENT",
-  VENDOR: "VENDOR",
-  CUSTOMER: "CUSTOMER",
-} as const;
-
-export type EntityStatus = (typeof EntityStatus)[keyof typeof EntityStatus];
-
-export const EntityStatus = {
-  VERIFIED: "VERIFIED",
-  UNVERIFIED: "UNVERIFIED",
-} as const;
-
-export interface Entity {
-  id: string;
-  companyId: string;
-  name: string;
-  normalizedName?: string;
-  entityType: EntityEntityType;
-  status: EntityStatus;
-  address?: string | null;
-  city?: string | null;
-  country?: string | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export type IngestedDocumentExtractionStatus =
@@ -192,6 +339,10 @@ export interface IngestedEmail {
   createdAt: string;
 }
 
+export type EventBeforeState = { [key: string]: unknown } | null;
+
+export type EventAfterState = { [key: string]: unknown } | null;
+
 export type EventMetadata = { [key: string]: unknown } | null;
 
 export interface Event {
@@ -200,16 +351,89 @@ export interface Event {
   eventType: string;
   entityType: string;
   entityId: string;
+  userId?: string | null;
+  serviceId?: string | null;
+  beforeState?: EventBeforeState;
+  afterState?: EventAfterState;
   metadata?: EventMetadata;
   createdAt: string;
 }
 
+export type LinkedDocumentExtractionStatus =
+  (typeof LinkedDocumentExtractionStatus)[keyof typeof LinkedDocumentExtractionStatus];
+
+export const LinkedDocumentExtractionStatus = {
+  PENDING: "PENDING",
+  PROCESSING: "PROCESSING",
+  EXTRACTED: "EXTRACTED",
+  FAILED: "FAILED",
+} as const;
+
+export type LinkedDocumentExtractedData = { [key: string]: unknown } | null;
+
+export interface LinkedDocument {
+  id: string;
+  companyId: string;
+  fileName: string;
+  mimeType?: string;
+  documentType: string;
+  extractionStatus: LinkedDocumentExtractionStatus;
+  extractedData?: LinkedDocumentExtractedData;
+  createdAt: string;
+  shipmentDocumentId?: string;
+  linkedDocumentType?: string | null;
+}
+
+export interface OperatorCorrection {
+  id: string;
+  companyId: string;
+  shipmentId: string;
+  fieldName: string;
+  originalValue?: unknown | null;
+  correctedValue?: unknown | null;
+  originalConfidence?: number | null;
+  correctedBy: string;
+  createdAt: string;
+}
+
+export type ApprovalResultStatus =
+  (typeof ApprovalResultStatus)[keyof typeof ApprovalResultStatus];
+
+export const ApprovalResultStatus = {
+  APPROVED: "APPROVED",
+} as const;
+
+export interface ApprovalResult {
+  id: string;
+  status: ApprovalResultStatus;
+  approvedAt: string;
+}
+
+export type RejectionResultStatus =
+  (typeof RejectionResultStatus)[keyof typeof RejectionResultStatus];
+
+export const RejectionResultStatus = {
+  REJECTED: "REJECTED",
+} as const;
+
+export interface RejectionResult {
+  id: string;
+  status: RejectionResultStatus;
+  reason?: string | null;
+}
+
+export interface FieldUpdateResult {
+  id: string;
+  corrections: number;
+  correctedFields?: string[];
+}
+
 export type ListShipments200 = {
-  data: Shipment[];
+  data: EnrichedShipment[];
 };
 
 export type GetShipment200 = {
-  data: Shipment;
+  data: ShipmentDetail;
 };
 
 export type GetShipmentCompliance200 = {
@@ -222,6 +446,46 @@ export type GetShipmentRisk200 = {
 
 export type GetShipmentInsurance200 = {
   data?: InsuranceQuote;
+};
+
+export type GetShipmentDocuments200 = {
+  data: LinkedDocument[];
+};
+
+export type GetShipmentCorrections200 = {
+  data: OperatorCorrection[];
+};
+
+export type GetShipmentEvents200 = {
+  data: Event[];
+};
+
+export type ApproveShipmentBody = {
+  userId?: string;
+};
+
+export type ApproveShipment200 = {
+  data: ApprovalResult;
+};
+
+export type RejectShipmentBody = {
+  userId?: string;
+  reason?: string;
+};
+
+export type RejectShipment200 = {
+  data: RejectionResult;
+};
+
+export type UpdateShipmentFieldsBodyFields = { [key: string]: unknown };
+
+export type UpdateShipmentFieldsBody = {
+  fields: UpdateShipmentFieldsBodyFields;
+  userId?: string;
+};
+
+export type UpdateShipmentFields200 = {
+  data: FieldUpdateResult;
 };
 
 export type ListEntities200 = {

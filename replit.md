@@ -27,6 +27,7 @@ Dynasties is an AI operating layer for global freight forwarding and logistics. 
 workspace/
 ├── artifacts/                    # Deployable applications
 │   ├── api-server/               # Express API server
+│   ├── workbench/                # M5: Operator Workbench UI (React + Vite)
 │   └── mockup-sandbox/           # Design component sandbox
 ├── lib/                          # Shared libraries (composite, emit declarations)
 │   ├── api-spec/                 # OpenAPI spec + Orval codegen config
@@ -118,6 +119,12 @@ All routes are under `/api` on the Express server:
 | `/api/documents/upload` | POST | Upload document (multipart, triggers extraction) |
 | `/api/emails` | GET | List ingested emails |
 | `/api/emails/ingest` | POST | Ingest raw email (multipart .eml, extracts attachments) |
+| `/api/shipments/:id/documents` | GET | Linked documents for shipment |
+| `/api/shipments/:id/corrections` | GET | Operator correction history |
+| `/api/shipments/:id/events` | GET | Event log for shipment |
+| `/api/shipments/:id/approve` | POST | Approve a DRAFT shipment |
+| `/api/shipments/:id/reject` | POST | Reject a DRAFT shipment with reason |
+| `/api/shipments/:id/fields` | PATCH | Edit shipment fields (writes operator_corrections) |
 | `/api/events` | GET | List events (optional ?type= filter) |
 
 ## M2 Extraction Pipeline
@@ -192,7 +199,7 @@ Anthropic SDK client via Replit AI Integrations proxy. No API key required — u
 | M2 | Email Ingestion & Document Extraction | ✅ Complete |
 | M3 | Entity Resolution & Shipment Construction | ✅ Complete |
 | M4 | Compliance, Risk & Insurance | ✅ Complete |
-| M5 | Operator Workbench UI | Planned |
+| M5 | Operator Workbench UI | ✅ Complete |
 | M6 | Pricing, Document Generation & Invoicing | Planned |
 | M7 | Exceptions, Claims & Trade Lane Intelligence | Planned |
 | M8 | AWS Deployment & Pilot Readiness | Planned |

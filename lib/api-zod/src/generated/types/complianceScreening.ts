@@ -16,5 +16,6 @@ export interface ComplianceScreening {
   matchCount: number;
   matches?: ComplianceScreeningMatchesItem[];
   listsChecked?: string[];
+  agentExplanation?: string | null;
   screenedAt?: Date;
 }
