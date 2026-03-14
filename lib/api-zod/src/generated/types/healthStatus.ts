@@ -5,7 +5,15 @@
  * Dynasties API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { HealthStatusChecks } from "./healthStatusChecks";
+import type { HealthStatusMemory } from "./healthStatusMemory";
+import type { HealthStatusStatus } from "./healthStatusStatus";
 
 export interface HealthStatus {
-  status: string;
+  status: HealthStatusStatus;
+  timestamp?: Date;
+  version?: string;
+  environment?: string;
+  checks?: HealthStatusChecks;
+  memory?: HealthStatusMemory;
 }

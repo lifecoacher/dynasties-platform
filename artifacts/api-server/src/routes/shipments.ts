@@ -21,13 +21,17 @@ import {
 import { eq, and, desc } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { publishPricingJob, publishClaimsJob } from "@workspace/queue";
+import { getCompanyId } from "../middlewares/tenant.js";
+import { requireMinRole } from "../middlewares/auth.js";
 
 const router: IRouter = Router();
 
-router.get("/shipments", async (_req, res) => {
+router.get("/shipments", async (req, res) => {
+  const companyId = getCompanyId(req);
   const shipments = await db
     .select()
     .from(shipmentsTable)
+    .where(eq(shipmentsTable.companyId, companyId))
     .orderBy(desc(shipmentsTable.createdAt))
     .limit(50);
 
@@ -36,27 +40,27 @@ router.get("/shipments", async (_req, res) => {
       const [compliance] = await db
         .select()
         .from(complianceScreeningsTable)
-        .where(eq(complianceScreeningsTable.shipmentId, shipment.id))
+        .where(and(eq(complianceScreeningsTable.shipmentId, shipment.id), eq(complianceScreeningsTable.companyId, companyId)))
         .limit(1);
 
       const [risk] = await db
         .select()
         .from(riskScoresTable)
-        .where(eq(riskScoresTable.shipmentId, shipment.id))
+        .where(and(eq(riskScoresTable.shipmentId, shipment.id), eq(riskScoresTable.companyId, companyId)))
         .limit(1);
 
       const [insurance] = await db
         .select()
         .from(insuranceQuotesTable)
-        .where(eq(insuranceQuotesTable.shipmentId, shipment.id))
+        .where(and(eq(insuranceQuotesTable.shipmentId, shipment.id), eq(insuranceQuotesTable.companyId, companyId)))
         .limit(1);
 
       const shipper = shipment.shipperId
-        ? (await db.select().from(entitiesTable).where(eq(entitiesTable.id, shipment.shipperId)).limit(1))[0]
+        ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.shipperId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
         : null;
 
       const consignee = shipment.consigneeId
-        ? (await db.select().from(entitiesTable).where(eq(entitiesTable.id, shipment.consigneeId)).limit(1))[0]
+        ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.consigneeId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
         : null;
 
       return {
@@ -80,11 +84,12 @@ router.get("/shipments", async (_req, res) => {
 });
 
 router.get("/shipments/:id", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const [shipment] = await db
     .select()
     .from(shipmentsTable)
-    .where(eq(shipmentsTable.id, id))
+    .where(and(eq(shipmentsTable.id, id), eq(shipmentsTable.companyId, companyId)))
     .limit(1);
 
   if (!shipment) {
@@ -93,16 +98,16 @@ router.get("/shipments/:id", async (req, res) => {
   }
 
   const shipper = shipment.shipperId
-    ? (await db.select().from(entitiesTable).where(eq(entitiesTable.id, shipment.shipperId)).limit(1))[0]
+    ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.shipperId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
     : null;
   const consignee = shipment.consigneeId
-    ? (await db.select().from(entitiesTable).where(eq(entitiesTable.id, shipment.consigneeId)).limit(1))[0]
+    ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.consigneeId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
     : null;
   const notifyParty = shipment.notifyPartyId
-    ? (await db.select().from(entitiesTable).where(eq(entitiesTable.id, shipment.notifyPartyId)).limit(1))[0]
+    ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.notifyPartyId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
     : null;
   const carrier = shipment.carrierId
-    ? (await db.select().from(entitiesTable).where(eq(entitiesTable.id, shipment.carrierId)).limit(1))[0]
+    ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.carrierId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
     : null;
 
   res.json({
@@ -117,42 +122,46 @@ router.get("/shipments/:id", async (req, res) => {
 });
 
 router.get("/shipments/:id/compliance", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const screenings = await db
     .select()
     .from(complianceScreeningsTable)
-    .where(eq(complianceScreeningsTable.shipmentId, id));
+    .where(and(eq(complianceScreeningsTable.shipmentId, id), eq(complianceScreeningsTable.companyId, companyId)));
   res.json({ data: screenings });
 });
 
 router.get("/shipments/:id/risk", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const [riskScore] = await db
     .select()
     .from(riskScoresTable)
-    .where(eq(riskScoresTable.shipmentId, id))
+    .where(and(eq(riskScoresTable.shipmentId, id), eq(riskScoresTable.companyId, companyId)))
     .limit(1);
   res.json({ data: riskScore ?? null });
 });
 
 router.get("/shipments/:id/insurance", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const [quote] = await db
     .select()
     .from(insuranceQuotesTable)
-    .where(eq(insuranceQuotesTable.shipmentId, id))
+    .where(and(eq(insuranceQuotesTable.shipmentId, id), eq(insuranceQuotesTable.companyId, companyId)))
     .limit(1);
   res.json({ data: quote ?? null });
 });
 
 router.get("/shipments/:id/documents", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const links = await db
     .select()
     .from(shipmentDocumentsTable)
-    .where(eq(shipmentDocumentsTable.shipmentId, id));
+    .where(and(eq(shipmentDocumentsTable.shipmentId, id), eq(shipmentDocumentsTable.companyId, companyId)));
 
-  const docIds = links.map((l) => l.documentId);
+  const docIds = links.map((l) => l.documentId).filter(Boolean) as string[];
   if (docIds.length === 0) {
     res.json({ data: [] });
     return;
@@ -160,7 +169,8 @@ router.get("/shipments/:id/documents", async (req, res) => {
 
   const docs = await db
     .select()
-    .from(ingestedDocumentsTable);
+    .from(ingestedDocumentsTable)
+    .where(eq(ingestedDocumentsTable.companyId, companyId));
 
   const linkedDocs = docs
     .filter((d) => docIds.includes(d.id))
@@ -177,34 +187,36 @@ router.get("/shipments/:id/documents", async (req, res) => {
 });
 
 router.get("/shipments/:id/corrections", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const corrections = await db
     .select()
     .from(operatorCorrectionsTable)
-    .where(eq(operatorCorrectionsTable.shipmentId, id))
+    .where(and(eq(operatorCorrectionsTable.shipmentId, id), eq(operatorCorrectionsTable.companyId, companyId)))
     .orderBy(desc(operatorCorrectionsTable.createdAt));
   res.json({ data: corrections });
 });
 
 router.get("/shipments/:id/events", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const events = await db
     .select()
     .from(eventsTable)
-    .where(eq(eventsTable.entityId, id))
+    .where(and(eq(eventsTable.entityId, id), eq(eventsTable.companyId, companyId)))
     .orderBy(desc(eventsTable.createdAt))
     .limit(100);
   res.json({ data: events });
 });
 
-router.post("/shipments/:id/approve", async (req, res) => {
+router.post("/shipments/:id/approve", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
-  const { userId } = req.body as { userId?: string };
 
   const [shipment] = await db
     .select()
     .from(shipmentsTable)
-    .where(eq(shipmentsTable.id, id))
+    .where(and(eq(shipmentsTable.id, id), eq(shipmentsTable.companyId, companyId)))
     .limit(1);
 
   if (!shipment) {
@@ -218,40 +230,44 @@ router.post("/shipments/:id/approve", async (req, res) => {
   }
 
   const now = new Date();
+  const actorId = req.user!.userId;
+
   await db
     .update(shipmentsTable)
     .set({
       status: "APPROVED",
       approvedAt: now,
-      approvedBy: userId || "operator",
+      approvedBy: actorId,
     })
     .where(eq(shipmentsTable.id, id));
 
   await db.insert(eventsTable).values({
     id: generateId(),
-    companyId: shipment.companyId,
+    companyId,
     eventType: "SHIPMENT_APPROVED",
     entityType: "shipment",
     entityId: id,
-    userId: userId || "operator",
+    actorType: "USER",
+    userId: actorId,
     beforeState: { status: shipment.status },
     afterState: { status: "APPROVED" },
     metadata: { approvedAt: now.toISOString() },
   });
 
-  publishPricingJob({ companyId: shipment.companyId, shipmentId: id, trigger: "shipment_approved" });
+  publishPricingJob({ companyId, shipmentId: id, trigger: "shipment_approved" });
 
   res.json({ data: { id, status: "APPROVED", approvedAt: now } });
 });
 
-router.post("/shipments/:id/reject", async (req, res) => {
+router.post("/shipments/:id/reject", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
-  const { userId, reason } = req.body as { userId?: string; reason?: string };
+  const { reason } = req.body as { reason?: string };
 
   const [shipment] = await db
     .select()
     .from(shipmentsTable)
-    .where(eq(shipmentsTable.id, id))
+    .where(and(eq(shipmentsTable.id, id), eq(shipmentsTable.companyId, companyId)))
     .limit(1);
 
   if (!shipment) {
@@ -264,6 +280,8 @@ router.post("/shipments/:id/reject", async (req, res) => {
     return;
   }
 
+  const actorId = req.user!.userId;
+
   await db
     .update(shipmentsTable)
     .set({ status: "REJECTED" })
@@ -271,11 +289,12 @@ router.post("/shipments/:id/reject", async (req, res) => {
 
   await db.insert(eventsTable).values({
     id: generateId(),
-    companyId: shipment.companyId,
+    companyId,
     eventType: "SHIPMENT_REJECTED",
     entityType: "shipment",
     entityId: id,
-    userId: userId || "operator",
+    actorType: "USER",
+    userId: actorId,
     beforeState: { status: shipment.status },
     afterState: { status: "REJECTED" },
     metadata: { reason: reason || "No reason provided" },
@@ -291,12 +310,10 @@ const EDITABLE_FIELDS = new Set([
   "incoterms", "operatorNotes",
 ]);
 
-router.patch("/shipments/:id/fields", async (req, res) => {
+router.patch("/shipments/:id/fields", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
-  const { fields, userId } = req.body as {
-    fields: Record<string, unknown>;
-    userId?: string;
-  };
+  const { fields } = req.body as { fields: Record<string, unknown> };
 
   if (!fields || typeof fields !== "object") {
     res.status(400).json({ error: "fields object is required" });
@@ -306,7 +323,7 @@ router.patch("/shipments/:id/fields", async (req, res) => {
   const [shipment] = await db
     .select()
     .from(shipmentsTable)
-    .where(eq(shipmentsTable.id, id))
+    .where(and(eq(shipmentsTable.id, id), eq(shipmentsTable.companyId, companyId)))
     .limit(1);
 
   if (!shipment) {
@@ -320,6 +337,7 @@ router.patch("/shipments/:id/fields", async (req, res) => {
     return;
   }
 
+  const actorId = req.user!.userId;
   const corrections: Array<{ fieldName: string; original: unknown; corrected: unknown }> = [];
   const updateData: Record<string, unknown> = {};
 
@@ -344,22 +362,23 @@ router.patch("/shipments/:id/fields", async (req, res) => {
   for (const correction of corrections) {
     await db.insert(operatorCorrectionsTable).values({
       id: generateId(),
-      companyId: shipment.companyId,
+      companyId,
       shipmentId: id,
       fieldName: correction.fieldName,
       originalValue: correction.original as Record<string, unknown> | null,
       correctedValue: correction.corrected as Record<string, unknown> | null,
-      correctedBy: userId || "operator",
+      correctedBy: actorId,
     });
   }
 
   await db.insert(eventsTable).values({
     id: generateId(),
-    companyId: shipment.companyId,
+    companyId,
     eventType: "OPERATOR_CORRECTION",
     entityType: "shipment",
     entityId: id,
-    userId: userId || "operator",
+    actorType: "USER",
+    userId: actorId,
     metadata: {
       correctionCount: corrections.length,
       fields: corrections.map((c) => c.fieldName),
@@ -376,20 +395,22 @@ router.patch("/shipments/:id/fields", async (req, res) => {
 });
 
 router.get("/shipments/:id/charges", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const charges = await db
     .select()
     .from(shipmentChargesTable)
-    .where(eq(shipmentChargesTable.shipmentId, id));
+    .where(and(eq(shipmentChargesTable.shipmentId, id), eq(shipmentChargesTable.companyId, companyId)));
   res.json({ data: charges });
 });
 
 router.get("/shipments/:id/invoice", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const [invoice] = await db
     .select()
     .from(invoicesTable)
-    .where(eq(invoicesTable.shipmentId, id))
+    .where(and(eq(invoicesTable.shipmentId, id), eq(invoicesTable.companyId, companyId)))
     .limit(1);
   if (!invoice) {
     res.status(404).json({ error: "No invoice found for this shipment" });
@@ -398,25 +419,30 @@ router.get("/shipments/:id/invoice", async (req, res) => {
   res.json({ data: invoice });
 });
 
-router.get("/invoices", async (_req, res) => {
+router.get("/invoices", async (req, res) => {
+  const companyId = getCompanyId(req);
   const invoices = await db
     .select()
     .from(invoicesTable)
+    .where(eq(invoicesTable.companyId, companyId))
     .orderBy(desc(invoicesTable.issuedAt))
     .limit(100);
   res.json({ data: invoices });
 });
 
-router.get("/rate-tables", async (_req, res) => {
+router.get("/rate-tables", async (req, res) => {
+  const companyId = getCompanyId(req);
   const rates = await db
     .select()
     .from(rateTablesTable)
+    .where(eq(rateTablesTable.companyId, companyId))
     .orderBy(desc(rateTablesTable.createdAt))
     .limit(200);
   res.json({ data: rates });
 });
 
-router.post("/rate-tables", async (req, res) => {
+router.post("/rate-tables", requireMinRole("MANAGER"), async (req, res) => {
+  const companyId = getCompanyId(req);
   const {
     chargeCode,
     description,
@@ -427,7 +453,6 @@ router.post("/rate-tables", async (req, res) => {
     currency,
     validFrom,
     validTo,
-    companyId,
   } = req.body as {
     chargeCode: string;
     description: string;
@@ -438,11 +463,10 @@ router.post("/rate-tables", async (req, res) => {
     currency?: string;
     validFrom?: string;
     validTo?: string;
-    companyId: string;
   };
 
-  if (!chargeCode || !description || !unitPrice || !companyId || !carrier || !origin || !destination) {
-    res.status(400).json({ error: "chargeCode, description, carrier, origin, destination, unitPrice, and companyId are required" });
+  if (!chargeCode || !description || !unitPrice || !carrier || !origin || !destination) {
+    res.status(400).json({ error: "chargeCode, description, carrier, origin, destination, and unitPrice are required" });
     return;
   }
 
@@ -462,32 +486,44 @@ router.post("/rate-tables", async (req, res) => {
     metadata: null,
   });
 
+  await db.insert(eventsTable).values({
+    id: generateId(),
+    companyId,
+    eventType: "RATE_TABLE_CREATED",
+    entityType: "rate_table",
+    entityId: id,
+    actorType: "USER",
+    userId: req.user!.userId,
+    metadata: { chargeCode, carrier, origin, destination, unitPrice },
+  });
+
   const [created] = await db.select().from(rateTablesTable).where(eq(rateTablesTable.id, id)).limit(1);
   res.status(201).json({ data: created });
 });
 
 router.get("/shipments/:id/exceptions", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const exceptions = await db
     .select()
     .from(exceptionsTable)
-    .where(eq(exceptionsTable.shipmentId, id))
+    .where(and(eq(exceptionsTable.shipmentId, id), eq(exceptionsTable.companyId, companyId)))
     .orderBy(desc(exceptionsTable.createdAt));
   res.json({ data: exceptions });
 });
 
-router.patch("/exceptions/:id", async (req, res) => {
+router.patch("/exceptions/:id", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
-  const { status, resolvedBy, resolutionNotes } = req.body as {
+  const { status, resolutionNotes } = req.body as {
     status?: string;
-    resolvedBy?: string;
     resolutionNotes?: string;
   };
 
   const [exception] = await db
     .select()
     .from(exceptionsTable)
-    .where(eq(exceptionsTable.id, id))
+    .where(and(eq(exceptionsTable.id, id), eq(exceptionsTable.companyId, companyId)))
     .limit(1);
 
   if (!exception) {
@@ -495,16 +531,32 @@ router.patch("/exceptions/:id", async (req, res) => {
     return;
   }
 
+  const actorId = req.user!.userId;
   const updateData: Record<string, unknown> = {};
   if (status) updateData.status = status;
-  if (resolvedBy) updateData.resolvedBy = resolvedBy;
   if (resolutionNotes) updateData.resolutionNotes = resolutionNotes;
-  if (status === "RESOLVED") updateData.resolvedAt = new Date();
+  if (status === "RESOLVED") {
+    updateData.resolvedAt = new Date();
+    updateData.resolvedBy = actorId;
+  }
 
   await db
     .update(exceptionsTable)
     .set(updateData)
     .where(eq(exceptionsTable.id, id));
+
+  await db.insert(eventsTable).values({
+    id: generateId(),
+    companyId,
+    eventType: "EXCEPTION_UPDATED",
+    entityType: "exception",
+    entityId: id,
+    actorType: "USER",
+    userId: actorId,
+    beforeState: { status: exception.status },
+    afterState: { status: status || exception.status },
+    metadata: { resolutionNotes },
+  });
 
   const [updated] = await db
     .select()
@@ -516,11 +568,12 @@ router.patch("/exceptions/:id", async (req, res) => {
 });
 
 router.get("/exceptions/:id", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const [exception] = await db
     .select()
     .from(exceptionsTable)
-    .where(eq(exceptionsTable.id, id))
+    .where(and(eq(exceptionsTable.id, id), eq(exceptionsTable.companyId, companyId)))
     .limit(1);
 
   if (!exception) {
@@ -530,30 +583,35 @@ router.get("/exceptions/:id", async (req, res) => {
   res.json({ data: exception });
 });
 
-router.get("/exceptions", async (_req, res) => {
+router.get("/exceptions", async (req, res) => {
+  const companyId = getCompanyId(req);
   const exceptions = await db
     .select()
     .from(exceptionsTable)
+    .where(eq(exceptionsTable.companyId, companyId))
     .orderBy(desc(exceptionsTable.createdAt))
     .limit(100);
   res.json({ data: exceptions });
 });
 
-router.get("/trade-lanes", async (_req, res) => {
+router.get("/trade-lanes", async (req, res) => {
+  const companyId = getCompanyId(req);
   const lanes = await db
     .select()
     .from(tradeLaneStatsTable)
+    .where(eq(tradeLaneStatsTable.companyId, companyId))
     .orderBy(desc(tradeLaneStatsTable.lastUpdated))
     .limit(100);
   res.json({ data: lanes });
 });
 
 router.get("/trade-lanes/:id", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const [lane] = await db
     .select()
     .from(tradeLaneStatsTable)
-    .where(eq(tradeLaneStatsTable.id, id))
+    .where(and(eq(tradeLaneStatsTable.id, id), eq(tradeLaneStatsTable.companyId, companyId)))
     .limit(1);
 
   if (!lane) {
@@ -564,16 +622,18 @@ router.get("/trade-lanes/:id", async (req, res) => {
 });
 
 router.get("/shipments/:id/claims", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const claims = await db
     .select()
     .from(claimsTable)
-    .where(eq(claimsTable.shipmentId, id))
+    .where(and(eq(claimsTable.shipmentId, id), eq(claimsTable.companyId, companyId)))
     .orderBy(desc(claimsTable.createdAt));
   res.json({ data: claims });
 });
 
-router.post("/shipments/:id/claims", async (req, res) => {
+router.post("/shipments/:id/claims", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const { claimType, incidentDescription } = req.body as {
     claimType: string;
@@ -588,7 +648,7 @@ router.post("/shipments/:id/claims", async (req, res) => {
   const [shipment] = await db
     .select()
     .from(shipmentsTable)
-    .where(eq(shipmentsTable.id, id))
+    .where(and(eq(shipmentsTable.id, id), eq(shipmentsTable.companyId, companyId)))
     .limit(1);
 
   if (!shipment) {
@@ -597,7 +657,7 @@ router.post("/shipments/:id/claims", async (req, res) => {
   }
 
   publishClaimsJob({
-    companyId: shipment.companyId,
+    companyId,
     shipmentId: id,
     claimType,
     incidentDescription,
@@ -607,21 +667,24 @@ router.post("/shipments/:id/claims", async (req, res) => {
   res.status(202).json({ data: { shipmentId: id, claimType, status: "PROCESSING" } });
 });
 
-router.get("/claims", async (_req, res) => {
+router.get("/claims", async (req, res) => {
+  const companyId = getCompanyId(req);
   const claims = await db
     .select()
     .from(claimsTable)
+    .where(eq(claimsTable.companyId, companyId))
     .orderBy(desc(claimsTable.createdAt))
     .limit(100);
   res.json({ data: claims });
 });
 
 router.get("/claims/:id", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const [claim] = await db
     .select()
     .from(claimsTable)
-    .where(eq(claimsTable.id, id))
+    .where(and(eq(claimsTable.id, id), eq(claimsTable.companyId, companyId)))
     .limit(1);
 
   if (!claim) {
@@ -632,23 +695,25 @@ router.get("/claims/:id", async (req, res) => {
 });
 
 router.get("/claims/:id/communications", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const comms = await db
     .select()
     .from(claimCommunicationsTable)
-    .where(eq(claimCommunicationsTable.claimId, id))
+    .where(and(eq(claimCommunicationsTable.claimId, id), eq(claimCommunicationsTable.companyId, companyId)))
     .orderBy(desc(claimCommunicationsTable.createdAt));
   res.json({ data: comms });
 });
 
-router.patch("/claims/:id", async (req, res) => {
+router.patch("/claims/:id", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const { status } = req.body as { status?: string };
 
   const [claim] = await db
     .select()
     .from(claimsTable)
-    .where(eq(claimsTable.id, id))
+    .where(and(eq(claimsTable.id, id), eq(claimsTable.companyId, companyId)))
     .limit(1);
 
   if (!claim) {
@@ -656,6 +721,7 @@ router.patch("/claims/:id", async (req, res) => {
     return;
   }
 
+  const actorId = req.user!.userId;
   const updateData: Record<string, unknown> = {};
   if (status) updateData.status = status;
 
@@ -663,6 +729,18 @@ router.patch("/claims/:id", async (req, res) => {
     .update(claimsTable)
     .set(updateData)
     .where(eq(claimsTable.id, id));
+
+  await db.insert(eventsTable).values({
+    id: generateId(),
+    companyId,
+    eventType: "CLAIM_UPDATED",
+    entityType: "claim",
+    entityId: id,
+    actorType: "USER",
+    userId: actorId,
+    beforeState: { status: claim.status },
+    afterState: { status: status || claim.status },
+  });
 
   const [updated] = await db
     .select()

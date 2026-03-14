@@ -305,6 +305,7 @@ export async function runDocumentGeneration(
   docTypes.push("SHIPMENT_SUMMARY");
 
   await db.insert(eventsTable).values({
+    actorType: "SERVICE",
     id: generateId(),
     companyId,
     eventType: "DOCUMENT_GENERATED" as string,

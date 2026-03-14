@@ -12,7 +12,135 @@ import * as zod from "zod";
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
+  status: zod.enum(["ok", "degraded"]),
+  timestamp: zod.date().optional(),
+  version: zod.string().optional(),
+  environment: zod.string().optional(),
+  checks: zod
+    .record(
+      zod.string(),
+      zod.object({
+        status: zod.string().optional(),
+        latencyMs: zod.number().optional(),
+        error: zod.string().nullish(),
+      }),
+    )
+    .optional(),
+  memory: zod
+    .object({
+      rss: zod.number().optional(),
+      heapUsed: zod.number().optional(),
+      heapTotal: zod.number().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * @summary Readiness probe
+ */
+export const ReadinessCheckResponse = zod.object({
   status: zod.string(),
+});
+
+/**
+ * @summary Authenticate user
+ */
+export const LoginBody = zod.object({
+  email: zod.string().email(),
+  password: zod.string(),
+});
+
+export const LoginResponse = zod.object({
+  data: zod.object({
+    token: zod.string(),
+    user: zod.object({
+      id: zod.string(),
+      email: zod.string(),
+      name: zod.string(),
+      role: zod.enum(["ADMIN", "MANAGER", "OPERATOR", "VIEWER"]),
+      companyId: zod.string(),
+    }),
+  }),
+});
+
+/**
+ * @summary Get current user profile
+ */
+export const GetMeResponse = zod.object({
+  data: zod.object({
+    id: zod.string(),
+    email: zod.string(),
+    name: zod.string(),
+    role: zod.enum(["ADMIN", "MANAGER", "OPERATOR", "VIEWER"]),
+    companyId: zod.string(),
+    isActive: zod.boolean(),
+    lastLoginAt: zod.date().nullish(),
+    createdAt: zod.date(),
+    company: zod
+      .object({
+        id: zod.string(),
+        name: zod.string(),
+        slug: zod.string(),
+      })
+      .nullish(),
+  }),
+});
+
+/**
+ * @summary List all companies (ADMIN only)
+ */
+export const ListCompaniesResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      slug: zod.string(),
+      contactEmail: zod.string().nullish(),
+      sesEmailAddress: zod.string().nullish(),
+      settings: zod.object({}).passthrough().optional(),
+      createdAt: zod.date(),
+      updatedAt: zod.date().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a new company (ADMIN only)
+ */
+export const CreateCompanyBody = zod.object({
+  name: zod.string(),
+  slug: zod.string(),
+  contactEmail: zod.string().optional(),
+  sesEmailAddress: zod.string().optional(),
+});
+
+/**
+ * @summary List all users (ADMIN only)
+ */
+export const ListUsersResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      email: zod.string(),
+      name: zod.string(),
+      role: zod.enum(["ADMIN", "MANAGER", "OPERATOR", "VIEWER"]),
+      companyId: zod.string(),
+      isActive: zod.boolean(),
+      lastLoginAt: zod.date().nullish(),
+      createdAt: zod.date().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a new user (ADMIN only)
+ */
+export const CreateUserBody = zod.object({
+  email: zod.string().email(),
+  name: zod.string(),
+  password: zod.string(),
+  role: zod.enum(["ADMIN", "MANAGER", "OPERATOR", "VIEWER"]),
+  companyId: zod.string(),
 });
 
 /**
@@ -1163,7 +1291,6 @@ export const ListRateTablesResponse = zod.object({
  * @summary Create a rate table entry
  */
 export const CreateRateTableEntryBody = zod.object({
-  companyId: zod.string(),
   carrier: zod.string(),
   chargeCode: zod.string(),
   description: zod.string(),

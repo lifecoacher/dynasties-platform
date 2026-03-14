@@ -1,25 +1,29 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { entitiesTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { getCompanyId } from "../middlewares/tenant.js";
 
 const router: IRouter = Router();
 
-router.get("/entities", async (_req, res) => {
+router.get("/entities", async (req, res) => {
+  const companyId = getCompanyId(req);
   const entities = await db
     .select()
     .from(entitiesTable)
+    .where(eq(entitiesTable.companyId, companyId))
     .orderBy(entitiesTable.createdAt)
     .limit(100);
   res.json({ data: entities });
 });
 
 router.get("/entities/:id", async (req, res) => {
+  const companyId = getCompanyId(req);
   const { id } = req.params;
   const [entity] = await db
     .select()
     .from(entitiesTable)
-    .where(eq(entitiesTable.id, id))
+    .where(and(eq(entitiesTable.id, id), eq(entitiesTable.companyId, companyId)))
     .limit(1);
 
   if (!entity) {

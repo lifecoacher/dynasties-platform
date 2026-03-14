@@ -61,6 +61,7 @@ export async function resolveParties(
       matchedCount++;
 
       await db.insert(eventsTable).values({
+    actorType: "SERVICE",
         id: generateId(),
         companyId,
         eventType: "ENTITY_RESOLVED",
@@ -98,6 +99,7 @@ export async function resolveParties(
       newCount++;
 
       await db.insert(eventsTable).values({
+    actorType: "SERVICE",
         id: generateId(),
         companyId,
         eventType: "ENTITY_CREATED",

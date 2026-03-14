@@ -159,6 +159,7 @@ export async function runClaimPreparation(
   });
 
   await db.insert(eventsTable).values({
+    actorType: "SERVICE",
     id: generateId(),
     companyId,
     eventType: "CLAIM_CREATED" as string,

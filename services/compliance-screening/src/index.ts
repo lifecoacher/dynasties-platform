@@ -99,6 +99,7 @@ export async function runComplianceScreening(
     });
 
     await db.insert(eventsTable).values({
+    actorType: "SERVICE",
       id: generateId(),
       companyId,
       eventType: "COMPLIANCE_SCREENED",
@@ -212,6 +213,7 @@ export async function runComplianceScreening(
   });
 
   await db.insert(eventsTable).values({
+    actorType: "SERVICE",
     id: generateId(),
     companyId,
     eventType: "COMPLIANCE_SCREENED",
@@ -229,6 +231,7 @@ export async function runComplianceScreening(
 
   if (screenResult.status !== "CLEAR") {
     await db.insert(eventsTable).values({
+    actorType: "SERVICE",
       id: generateId(),
       companyId,
       eventType: "COMPLIANCE_ALERT",

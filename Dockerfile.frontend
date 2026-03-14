@@ -1,0 +1,21 @@
+FROM node:20-slim AS base
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /app
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY lib/ ./lib/
+COPY artifacts/workbench/ ./artifacts/workbench/
+
+FROM base AS deps
+RUN pnpm install --frozen-lockfile --prod=false
+
+FROM deps AS build
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+RUN pnpm --filter @workspace/workbench run build
+
+FROM nginx:alpine AS runner
+COPY --from=build /app/artifacts/workbench/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

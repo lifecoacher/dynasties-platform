@@ -1,0 +1,117 @@
+Start Milestone 8 implementation.
+
+Goal:
+Move the current system from development-grade functionality to pilot-ready infrastructure and operational hardening.
+
+The target outcome is:
+
+the existing end-to-end Dynasties workflow remains working
+while the platform becomes deployable, secure, tenant-safe, observable, and ready for pilot onboarding on AWS.
+
+Prioritize this exact sequence:
+	1.	Authentication and authorization
+
+	•	implement operator authentication
+	•	add JWT or OIDC-based auth middleware
+	•	enforce authenticated access on all API routes
+	•	support roles at minimum:
+	•	admin
+	•	manager
+	•	operator
+	•	viewer
+
+	2.	Multi-tenant enforcement
+
+	•	ensure every service and query is scoped by company_id
+	•	audit all DB reads and writes for tenant isolation
+	•	prevent cross-tenant reads, writes, and event leakage
+	•	add tests for tenant isolation
+
+	3.	Audit logging
+
+	•	ensure every major service write creates an immutable event record
+	•	include:
+	•	actor type (user/service/agent)
+	•	action
+	•	entity type
+	•	entity id
+	•	before state where relevant
+	•	after state where relevant
+	•	metadata
+	•	preserve agent reasoning provenance where relevant
+
+	4.	AWS deployment architecture
+
+	•	containerize all services with production Dockerfiles
+	•	prepare infrastructure code for:
+	•	ECS/Fargate
+	•	RDS Postgres
+	•	S3
+	•	SQS
+	•	SNS
+	•	SES
+	•	CloudFront
+	•	Redis/ElastiCache if needed
+	•	do not redesign the app, just make current services deployable
+
+	5.	CI/CD pipeline
+
+	•	implement GitHub Actions deployment pipeline
+	•	build changed services
+	•	push images to ECR
+	•	deploy to ECS
+	•	deploy frontend to AWS hosting path
+	•	keep pipeline incremental and production-oriented
+
+	6.	Secrets and config hardening
+
+	•	move production secrets to AWS Secrets Manager or equivalent
+	•	ensure no secrets are embedded in code
+	•	make config environment-specific and validated
+
+	7.	Monitoring and alarms
+
+	•	add health endpoints where missing
+	•	define logging and error monitoring
+	•	add queue depth monitoring
+	•	add service failure alarms
+	•	add DLQ monitoring
+
+	8.	Pilot onboarding readiness
+
+	•	create the minimum onboarding flow for a pilot customer:
+	•	create company
+	•	assign intake email
+	•	upload/import first shipment data
+	•	access Workbench
+	•	do not overbuild customer-facing polish
+
+Important constraints:
+	•	do not add new product features
+	•	do not redesign the Workbench
+	•	do not add carrier APIs yet
+	•	do not add advanced analytics dashboards yet
+	•	do not expand claims functionality beyond what already exists
+	•	focus on hardening and deployability only
+
+Core rule remains absolute:
+LLMs never write directly to the system of record.
+All agent outputs must be validated before deterministic services write to the database or trigger external actions.
+
+Milestone is complete only when:
+	•	the existing workflow remains functional
+	•	auth is enforced
+	•	multi-tenant isolation is enforced
+	•	services are deployable to AWS
+	•	CI/CD exists
+	•	monitoring exists
+	•	pilot onboarding can be completed
+
+When complete, stop and report:
+	•	files created
+	•	infrastructure implemented
+	•	auth approach used
+	•	tenant isolation protections added
+	•	CI/CD pipeline details
+	•	monitoring added
+	•	what remains before pilot demo or audit

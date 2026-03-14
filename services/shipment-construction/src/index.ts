@@ -181,6 +181,7 @@ export async function runShipmentPipeline(
   }
 
   await db.insert(eventsTable).values({
+    actorType: "SERVICE",
     id: generateId(),
     companyId,
     eventType: "SHIPMENT_CREATED",
@@ -201,6 +202,7 @@ export async function runShipmentPipeline(
 
   if (draft.conflicts.length > 0) {
     await db.insert(eventsTable).values({
+    actorType: "SERVICE",
       id: generateId(),
       companyId,
       eventType: "DOCUMENT_CONFLICT",

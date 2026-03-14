@@ -1,0 +1,68 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dynasties
+      POSTGRES_PASSWORD: dynasties_dev
+      POSTGRES_DB: dynasties
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dynasties"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  localstack:
+    image: localstack/localstack:latest
+    environment:
+      SERVICES: s3,sqs
+      DEFAULT_REGION: us-east-1
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://dynasties:dynasties_dev@postgres:5432/dynasties
+      NODE_ENV: production
+      PORT: "8080"
+      JWT_SECRET: "${JWT_SECRET:-dev-jwt-secret-change-in-production}"
+      AWS_REGION: us-east-1
+      S3_ENDPOINT: http://localstack:4566
+      SQS_ENDPOINT: http://localstack:4566
+      S3_BUCKET_RAW_DOCUMENTS: dynasties-raw-documents
+      S3_BUCKET_GENERATED_DOCUMENTS: dynasties-generated-documents
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: /api
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  localstack_data:

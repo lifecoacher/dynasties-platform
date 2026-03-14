@@ -1,11 +1,13 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { eventsTable } from "@workspace/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
+import { getCompanyId } from "../middlewares/tenant.js";
 
 const router: IRouter = Router();
 
 router.get("/events", async (req, res) => {
+  const companyId = getCompanyId(req);
   const eventType = req.query["type"] as string | undefined;
 
   if (eventType) {
@@ -13,9 +15,9 @@ router.get("/events", async (req, res) => {
       .select()
       .from(eventsTable)
       .where(
-        eq(
-          eventsTable.eventType,
-          eventType as (typeof eventsTable.eventType.enumValues)[number],
+        and(
+          eq(eventsTable.companyId, companyId),
+          eq(eventsTable.eventType, eventType),
         ),
       )
       .orderBy(desc(eventsTable.createdAt))
@@ -27,6 +29,7 @@ router.get("/events", async (req, res) => {
   const events = await db
     .select()
     .from(eventsTable)
+    .where(eq(eventsTable.companyId, companyId))
     .orderBy(desc(eventsTable.createdAt))
     .limit(100);
   res.json({ data: events });

@@ -1,19 +1,11 @@
+import { loadEnv } from "@workspace/config";
+
+const env = loadEnv();
+
 import app from "./app";
 import { startConsumers } from "./extraction-consumer.js";
 
-const rawPort = process.env["PORT"];
-
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
-
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
+const port = env.PORT || Number(process.env["PORT"]) || 8080;
 
 startConsumers();
 

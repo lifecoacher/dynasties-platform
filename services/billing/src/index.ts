@@ -193,6 +193,7 @@ export async function runBilling(
   });
 
   await db.insert(eventsTable).values({
+    actorType: "SERVICE",
     id: generateId(),
     companyId,
     eventType: "INVOICE_CREATED" as string,
