@@ -60,7 +60,7 @@ Return ONLY a JSON array of resolution objects.`;
     system: SYSTEM_PROMPT,
   });
 
-  const textBlock = response.content.find((b: any) => b.type === "text");
+  const textBlock = response.content.find((b: any) => b.type === "text") as { type: "text"; text: string } | undefined;
   const raw = textBlock?.text || "[]";
 
   return {

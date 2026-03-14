@@ -42,7 +42,7 @@ export function InsuranceQuoteCard({ quote }: { quote?: InsuranceQuote }) {
         </div>
         <div className="p-3 bg-background rounded-lg border border-border/50">
           <div className="text-xs text-muted-foreground mb-1">AI Confidence</div>
-          <div className="font-semibold text-primary">{(quote.confidenceScore * 100).toFixed(0)}%</div>
+          <div className="font-semibold text-primary">{((quote.confidenceScore ?? 0) * 100).toFixed(0)}%</div>
         </div>
       </div>
 
