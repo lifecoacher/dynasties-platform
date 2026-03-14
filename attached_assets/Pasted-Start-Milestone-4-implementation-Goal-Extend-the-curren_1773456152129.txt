@@ -1,0 +1,94 @@
+Start Milestone 4 implementation.
+
+Goal:
+Extend the current working pipeline so that every DRAFT shipment automatically triggers three parallel intelligence workflows:
+	1.	compliance screening
+	2.	risk scoring
+	3.	insurance quote generation
+
+The target end-to-end development flow is:
+
+document upload or email
+→ extraction
+→ entity resolution
+→ shipment draft created
+→ compliance screening runs
+→ risk score generated
+→ insurance quote generated
+→ results stored and linked to the shipment
+
+Prioritize this exact sequence:
+	1.	Compliance Screening Service
+
+	•	consume shipment-created or shipment-draft-created event
+	•	screen all parties against sanctions/restricted party data sources
+	•	store results in compliance_screenings
+	•	publish compliance-alert event for any non-clear result
+	•	keep this deterministic wherever possible
+
+	2.	Compliance Agent
+
+	•	handle ambiguous matches only
+	•	return structured JSON only
+	•	do not write directly to database
+	•	use a cheap/fast model where appropriate
+
+	3.	Risk Intelligence Service
+
+	•	compute a composite shipment risk score
+	•	store in risk_scores
+	•	include sub-factors where possible
+	•	publish risk-score-generated event
+
+	4.	Risk Intelligence Agent
+
+	•	explain primary risk drivers
+	•	return structured JSON only
+	•	no direct writes
+
+	5.	Insurance Service
+
+	•	generate insurance quote estimate for the shipment
+	•	write insurance_quotes
+	•	publish insurance-quote-generated event
+
+	6.	Cargo Insurance Agent
+
+	•	recommend coverage type and quote rationale
+	•	structured JSON only
+	•	no direct writes
+
+	7.	Parallel dispatch
+
+	•	once shipment draft is created, dispatch compliance, risk, and insurance jobs in parallel
+	•	do not run these sequentially unless dependency requires it
+
+Important constraints:
+	•	do not start Workbench UI yet
+	•	do not start pricing/invoicing yet
+	•	do not start claims or exceptions yet
+	•	do not start auth expansion yet
+	•	do not add unnecessary abstractions
+	•	preserve idempotency and company scoping
+
+Core rule remains absolute:
+LLMs never write directly to the system of record.
+All agent outputs must be validated before deterministic services write to the database.
+
+Milestone is complete only when this works end-to-end in development:
+
+upload/email
+→ extraction
+→ entity resolution
+→ shipment draft
+→ compliance result
+→ risk score
+→ insurance quote
+
+When complete, stop and report:
+	•	files created
+	•	services implemented
+	•	events used
+	•	queues used
+	•	database writes performed
+	•	what remains before Workbench UI can begin

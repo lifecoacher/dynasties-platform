@@ -128,21 +128,28 @@ The first executable intelligence pipeline:
 Upload/Email → File stored → Extraction job queued → OCR → Agent → Validator → DB write
   → Pipeline job published → Entity Resolution (exact/normalized/fuzzy match)
   → Shipment Draft created (with field conflict detection) → Events logged
+  → M4 jobs dispatched in parallel:
+    → Compliance Screening (sanctions lists + agent for ambiguous matches) → compliance_screenings
+    → Risk Intelligence (deterministic scorer + agent for risk explanation) → risk_scores
+    → Insurance Quote (deterministic calculator + agent for rationale/exclusions) → insurance_quotes
 ```
 
 ### Components:
 - **`lib/storage`** (`@workspace/storage`): File storage abstraction. Local filesystem (`.data/uploads/`) for dev; will swap to S3 in M8.
-- **`lib/queue`** (`@workspace/queue`): Job queue abstraction. In-process EventEmitter for dev; will swap to SQS in M8. Supports `ExtractionJob` and `ShipmentPipelineJob` channels.
+- **`lib/queue`** (`@workspace/queue`): Job queue abstraction. In-process EventEmitter for dev; will swap to SQS in M8. Supports `ExtractionJob`, `ShipmentPipelineJob`, `ComplianceJob`, `RiskJob`, `InsuranceJob` channels. `publishM4Jobs()` dispatches compliance/risk/insurance in parallel.
 - **`services/email-ingestion`** (`@workspace/svc-email-ingestion`): MIME parsing via `mailparser`, attachment extraction, creates `ingested_emails` + `ingested_documents` records.
 - **`services/document-extraction`** (`@workspace/svc-document-extraction`): OCR via `pdf-parse`, Document Extraction Agent (Claude Sonnet), ExtractionValidator (Zod schema validation). After successful extraction, triggers `ShipmentPipelineJob` (waits for all sibling docs in email batches).
 - **`services/entity-resolution`** (`@workspace/svc-entity-resolution`): Deterministic entity matching — exact (case-insensitive), normalized (strip legal suffixes), fuzzy (Levenshtein ≥0.9 auto-match, 0.8–0.9 flagged). Creates or reuses `entities` records.
-- **`services/shipment-construction`** (`@workspace/svc-shipment-construction`): Orchestrates entity resolution → shipment draft creation. `runShipmentPipeline` consumes pipeline jobs, resolves parties, builds `shipments` record with field conflict detection, logs events.
+- **`services/shipment-construction`** (`@workspace/svc-shipment-construction`): Orchestrates entity resolution → shipment draft creation → M4 dispatch. `runShipmentPipeline` consumes pipeline jobs, resolves parties, builds `shipments` record with field conflict detection, logs events, then dispatches compliance/risk/insurance jobs in parallel.
+- **`services/compliance-screening`** (`@workspace/svc-compliance-screening`): Screens all shipment parties against OFAC SDN, EU, UN sanctions lists. Deterministic exact/fuzzy matching. Claude Haiku agent resolves ambiguous matches (0.75-0.9 similarity). Results stored in `compliance_screenings`. Events: `COMPLIANCE_SCREENED`, `COMPLIANCE_ALERT`.
+- **`services/risk-intelligence`** (`@workspace/svc-risk-intelligence`): Computes composite risk score from 6 weighted sub-factors (cargo type, trade lane, counterparty, route geopolitical, seasonal, document completeness). Claude Haiku agent explains primary risk drivers. Results stored in `risk_scores`. Event: `RISK_SCORED`. Recommends: `AUTO_APPROVE` / `OPERATOR_REVIEW` / `ESCALATE`.
+- **`services/insurance`** (`@workspace/svc-insurance`): Generates cargo insurance quote based on commodity value estimation, route risk, coverage type. Claude Haiku agent provides coverage rationale and exclusions. Results stored in `insurance_quotes`. Event: `INSURANCE_QUOTED`.
 
 ### Core Rule Enforcement:
-- `agent.ts`: Claude Sonnet returns structured JSON only. System prompt enforces JSON-only output.
-- `validator.ts`: ExtractionValidator validates agent output against `ExtractionOutputSchema` (Zod). Only validated data is written to `ingested_documents.extracted_data`.
-- If validation fails: document marked as FAILED, `AGENT_VALIDATION_FAILURE` event logged.
-- If validation passes: document marked as EXTRACTED, `EXTRACTION_COMPLETED` event logged with field/review counts.
+- All agents (extraction, compliance, risk, insurance) return structured JSON only.
+- All validators include markdown fence stripping for robustness.
+- If agent validation fails: service falls back to deterministic output. No silent failures.
+- LLMs NEVER write directly to DB. Agent → JSON → Validator (Zod) → deterministic service → DB write.
 
 ### Extracted Fields:
 shipper, consignee, notifyParty, vessel, voyage, portOfLoading, portOfDischarge, commodity, hsCode, packageCount, weight, volume, freightTerms, releaseType, shipmentDate, containerNumbers, bookingNumber, blNumber
@@ -184,7 +191,7 @@ Anthropic SDK client via Replit AI Integrations proxy. No API key required — u
 | M1 | Foundation & Repo Setup | ✅ Complete |
 | M2 | Email Ingestion & Document Extraction | ✅ Complete |
 | M3 | Entity Resolution & Shipment Construction | ✅ Complete |
-| M4 | Compliance, Risk & Insurance | Planned |
+| M4 | Compliance, Risk & Insurance | ✅ Complete |
 | M5 | Operator Workbench UI | Planned |
 | M6 | Pricing, Document Generation & Invoicing | Planned |
 | M7 | Exceptions, Claims & Trade Lane Intelligence | Planned |
