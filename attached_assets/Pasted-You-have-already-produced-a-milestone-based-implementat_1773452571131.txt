@@ -1,0 +1,189 @@
+You have already produced a milestone-based implementation plan for the attached Dynasties Phase One Framework v5.
+
+Your task now is to tighten and improve that plan before build mode starts.
+
+Do not rewrite the entire strategy.
+Do not generate production code yet.
+Do not expand scope.
+
+Your job is to refine the existing plan so it is more executable, less bloated, and more precise.
+
+Apply the following corrections.
+
+1. Reduce Milestone 1 scope
+
+Milestone 1 is too heavy. Split it into a true minimum foundation.
+
+Refine M1 so it only includes what is necessary to begin building the first executable slice.
+
+M1 must include only:
+	•	monorepo scaffold
+	•	shared schemas package
+	•	minimal database foundation for first slice
+	•	local Docker/LocalStack dev environment
+	•	Next.js app scaffold
+	•	basic config/logging package
+	•	minimal CI (lint, typecheck, build)
+
+Move anything not required for the first executable slice into later milestones or a secondary foundation pass.
+
+In particular:
+	•	do not require all 26 tables to be fully production-modeled in M1
+	•	do not overbuild UI or design-system variants in M1
+	•	do not overbuild the API gateway in M1 if it is not essential
+
+2. Minimize the initial schema
+
+Refine the schema planning so the first executable slice uses only the minimum required tables.
+
+For the first slice, prioritize:
+	•	companies
+	•	users
+	•	ingested_emails
+	•	ingested_documents
+	•	entities
+	•	shipments
+	•	shipment_documents
+	•	compliance_screenings
+	•	risk_scores
+	•	insurance_quotes
+	•	operator_corrections
+	•	events
+
+All other tables may be scaffolded later or marked as phase-following schema extensions.
+
+Clearly distinguish:
+	•	required for first slice
+	•	required for phase one
+	•	deferred schema
+
+3. Re-evaluate the API gateway
+
+Challenge whether a separate Express API gateway is necessary in Milestone 1.
+
+Return one of these two recommendations:
+	•	keep API gateway in M1 and explain exactly why
+	•	move API gateway later and use a simpler early architecture
+
+You must justify the decision in terms of:
+	•	speed to first executable slice
+	•	complexity
+	•	service boundaries
+	•	auth implications
+	•	AWS deployment implications
+
+Do not assume the gateway is automatically correct.
+
+4. Normalize model assignments
+
+Refine the plan’s model architecture so it uses a more explicit and modern routing strategy.
+
+Use this model-routing logic unless you can justify something better:
+	•	Document extraction / document-heavy tasks: Claude Sonnet 4
+	•	Complex reasoning / orchestration / multi-factor risk analysis: GPT-5.4-class reasoning model
+	•	High-volume low-cost structured tasks: GPT-5 mini-class model
+	•	Very large-context or historical bulk analysis: Gemini 2.5 Pro
+
+For each agent in the current plan, assign:
+	•	primary model
+	•	fallback model
+	•	reason for the assignment
+
+Be explicit and consistent.
+
+5. Clarify insurance scope in Phase One
+
+The current plan includes insurance quoting but defers binding.
+
+Refine the plan by deciding explicitly between:
+	•	Phase One includes quote only
+	•	Phase One includes quote + bind for one provider
+
+Recommend one option and justify it based on:
+	•	wow factor
+	•	engineering complexity
+	•	partner dependency
+	•	speed to pilot
+	•	real business value
+
+Do not leave this ambiguous.
+
+6. Ensure Workbench is tied to real execution
+
+Milestone 5 currently risks becoming too UI-heavy.
+
+Refine the plan so that by the end of the Workbench milestone:
+	•	the operator can review a real shipment draft
+	•	approve it
+	•	trigger at least one real downstream action
+
+At minimum, approval must trigger one of:
+	•	document generation
+	•	pricing confirmation
+	•	invoice draft creation
+	•	insurance quote acceptance flow
+
+The Workbench cannot be only a beautiful shell.
+
+7. Reprioritize Milestone 7 internally
+
+Within the current M7 grouping, change the internal priority to:
+	1.	Exception handling
+	2.	Trade lane intelligence
+	3.	Claims management
+
+Make it clear that:
+	•	exception handling is core operational leverage
+	•	trade lane intelligence is strategic moat
+	•	claims management is important but lower-frequency
+
+Do not remove claims. Just reduce its priority relative to the other two.
+
+8. Add measurable success metrics to every milestone
+
+For every milestone, add quantitative success criteria.
+
+Examples:
+	•	email received to shipment draft under X seconds
+	•	extraction accuracy above X%
+	•	entity resolution precision above X%
+	•	compliance results returned under X seconds
+	•	risk and insurance quote available before operator review
+	•	approval to document generation under X seconds
+
+Every milestone must include:
+	•	success metric
+	•	acceptable threshold
+	•	what gets measured
+
+No vague “done looks like” language without measurable criteria.
+
+9. Preserve the core rule
+
+Reconfirm in the refined plan:
+
+LLMs never directly write to the system of record.
+
+All AI outputs are structured JSON only.
+
+All writes, external API actions, emails, quoting, document generation, and workflow transitions must happen through deterministic services with validation and approval.
+
+10. Output format
+
+Return the refined answer in this exact structure:
+	1.	Executive refinement summary
+	2.	Revised milestone structure
+	3.	Refined Milestone 1 scope
+	4.	Minimum schema for first executable slice
+	5.	API gateway recommendation
+	6.	Updated agent-to-model routing table
+	7.	Insurance scope recommendation
+	8.	Workbench execution requirement
+	9.	Reprioritized Milestone 7
+	10.	Quantitative success metrics by milestone
+	11.	Key remaining technical risks
+	12.	Final recommendation before build mode
+
+Do not generate code.
+Do not expand the product.
+Tighten the plan so build mode can begin with less waste and more precision.

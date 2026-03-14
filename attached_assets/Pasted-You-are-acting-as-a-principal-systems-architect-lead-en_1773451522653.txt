@@ -1,0 +1,302 @@
+You are acting as a principal systems architect, lead engineer, and implementation planner.
+
+You have been given the attached Dynasties Phase One Framework v5. Your job is not to rewrite strategy. Your job is to convert this framework into a buildable engineering plan and repo architecture inside Replit, with deployment designed for AWS production.
+
+Follow these instructions exactly.
+
+1. Development and production model
+
+Development happens in Replit.
+
+Production runs on AWS, not on Replit.
+
+Deployment model must be:
+
+Replit development
+→ GitHub repository
+→ GitHub Actions CI/CD
+→ Docker build
+→ AWS ECR
+→ AWS ECS/Fargate deployment
+
+Frontend deployment:
+
+GitHub
+→ build Next.js app
+→ deploy to S3 / CloudFront or equivalent AWS frontend setup
+
+Do not design a production architecture that depends on Replit hosting.
+
+2. Core architecture rule
+
+This rule is absolute:
+
+LLMs never directly write to the system of record.
+
+Agents may only produce structured JSON outputs.
+
+All writes, external API calls, emails, policy binding, invoicing, and state changes must be performed by deterministic services after validation and approval.
+
+Design explicit enforcement for this rule in code architecture, permissions, service boundaries, and queue flows.
+
+3. What you must produce in plan mode
+
+Convert the attached framework into these outputs:
+	1.	Monorepo structure
+	2.	Service decomposition
+	3.	Agent definitions
+	4.	Database schema plan
+	5.	Shared schemas and contracts
+	6.	Queue and event architecture
+	7.	Local development architecture in Replit
+	8.	AWS deployment architecture
+	9.	30-60 day build roadmap
+	10.	First end-to-end executable slice
+
+Do not generate large amounts of production code yet. First create a clear implementation plan.
+
+4. Monorepo structure
+
+Propose a monorepo structure that supports parallel build work. Example target shape:
+	•	apps/web for Next.js frontend
+	•	services/api-gateway
+	•	services/email-ingestion
+	•	services/document-extraction
+	•	services/entity-resolution
+	•	services/shipment-construction
+	•	services/compliance-screening
+	•	services/pricing
+	•	services/document-generation
+	•	services/billing
+	•	services/insurance
+	•	services/risk-intelligence
+	•	services/trade-lane-intelligence
+	•	services/exception-management
+	•	services/claims-management
+	•	services/workflow-orchestrator
+	•	services/model-router
+	•	services/agent-worker
+	•	packages/shared-schemas
+	•	packages/design-system
+	•	packages/shared-utils
+	•	packages/config
+	•	infrastructure/terraform or infrastructure/cdk
+	•	scripts
+	•	tests
+
+Recommend concrete languages/frameworks for each service.
+
+5. Service decomposition
+
+Break the framework into concrete services with responsibility boundaries.
+
+At minimum include:
+
+Operational Services:
+	•	Email Ingestion Service
+	•	Document Extraction Service
+	•	Entity Resolution Service
+	•	Shipment Construction Service
+	•	Compliance Screening Service
+	•	Pricing and Charge Calculation Service
+	•	Document Generation Service
+	•	Billing and Invoicing Service
+
+Financial and Intelligence Services:
+	•	Insurance Service
+	•	Risk Intelligence Service
+	•	Trade Lane Intelligence Service
+	•	Claims Management Service
+	•	Exception Management Service
+
+Infrastructure Services:
+	•	Workflow Orchestrator
+	•	Model Routing Service
+	•	Agent Worker Service
+	•	API Gateway Service
+
+For each service define:
+	•	purpose
+	•	inputs
+	•	outputs
+	•	queue/topic dependencies
+	•	database access pattern
+	•	whether it is deterministic or agent-assisted
+
+6. Agent definitions
+
+Define the first agent set clearly:
+	•	Intake Agent
+	•	Document Extraction Agent
+	•	Entity Resolution Agent
+	•	Classification Agent
+	•	Compliance Agent
+	•	Risk Intelligence Agent
+	•	Cargo Insurance Agent
+	•	Trade Lane Agent
+	•	Carrier Agent
+	•	Pricing Agent
+	•	Document Generation Agent
+	•	Operations Exception Agent
+	•	Claims Preparation Agent
+	•	Memory Agent
+	•	Natural Language Agent
+
+For each agent provide:
+	•	input schema
+	•	output schema
+	•	tools allowed
+	•	model used
+	•	fallback model
+	•	confidence strategy
+	•	human approval requirements
+
+7. Database planning
+
+Turn the framework’s schema into an actual build plan.
+
+At minimum include:
+	•	companies
+	•	users
+	•	entities
+	•	shipments
+	•	shipment_documents
+	•	shipment_charges
+	•	invoices
+	•	containers
+	•	memory_graph_nodes
+	•	memory_graph_edges
+	•	classification_precedents
+	•	compliance_screenings
+	•	risk_scores
+	•	trade_lane_stats
+	•	operator_corrections
+	•	rules
+	•	insurance_quotes
+	•	insurance_policies
+	•	claims
+	•	claim_communications
+	•	exceptions
+	•	rate_tables
+	•	ingested_emails
+	•	ingested_documents
+	•	migration_imports
+
+Define:
+	•	primary relationships
+	•	indexing strategy
+	•	read/write ownership by service
+	•	what should be stored in Postgres vs S3 vs Redis
+
+8. Queue and event design
+
+Design SQS queues and SNS topics for this system.
+
+At minimum include queues for:
+	•	email intake
+	•	extraction
+	•	classification
+	•	compliance
+	•	risk
+	•	insurance
+	•	pricing
+	•	documents
+	•	billing
+	•	exceptions
+	•	claims
+	•	migration
+	•	dead-letter queues
+
+At minimum include event topics for:
+	•	shipment-created
+	•	shipment-updated
+	•	shipment-approved
+	•	compliance-alert
+	•	risk-score-generated
+	•	insurance-quote-generated
+	•	document-generated
+	•	invoice-created
+	•	exception-detected
+	•	claim-filed
+
+Show how data flows through them.
+
+9. Design system and Replit Design Mode handling
+
+Respect the attached design system requirements.
+
+Create an implementation plan for:
+	•	centralized design tokens
+	•	globals.css token architecture
+	•	shadcn/ui-based component system
+	•	reusable operational components
+	•	responsive layouts
+	•	dark and light mode
+	•	visual consistency across queues, risk panels, insurance panels, claims views, and shipment approval views
+
+Recommend how to use Replit Design Mode first, then connect approved designs to the production codebase.
+
+10. First executable slice
+
+Define the first end-to-end slice that should be built before everything else.
+
+It should be:
+
+email received
+→ parse attachments
+→ extract shipment fields
+→ resolve entities
+→ create shipment draft
+→ run compliance
+→ run risk
+→ generate insurance quote
+→ show in workbench for approval
+
+This is the first slice to prove the architecture.
+
+Break it into implementation order.
+
+11. Build roadmap
+
+Produce a 30-60 day phased roadmap, acknowledging that this framework is broader than a rushed MVP.
+
+Organize it by milestones, not vague categories.
+
+Suggested milestone structure:
+	•	Milestone 1: foundation and repo setup
+	•	Milestone 2: ingestion and extraction
+	•	Milestone 3: entity/shipment core
+	•	Milestone 4: compliance/risk/insurance
+	•	Milestone 5: workbench UI
+	•	Milestone 6: pricing/docs/invoicing
+	•	Milestone 7: exceptions/claims/trade lane intelligence
+	•	Milestone 8: AWS deployment and pilot readiness
+
+12. Implementation constraints
+
+Assume:
+	•	2 engineers plus founder
+	•	Replit as build environment
+	•	GitHub as source of truth
+	•	AWS as production target
+	•	need for pilot-ready execution, not theoretical architecture
+	•	no direct LLM writes
+	•	preference for durable architecture over hacky speed
+
+13. Output format
+
+Return your answer in this exact structure:
+	1.	Executive implementation summary
+	2.	Monorepo architecture
+	3.	Service decomposition table
+	4.	Agent definitions table
+	5.	Database implementation plan
+	6.	Queue and event architecture
+	7.	Replit local development setup
+	8.	AWS production deployment design
+	9.	Design system implementation plan
+	10.	First executable slice plan
+	11.	30-60 day milestone roadmap
+	12.	Key technical risks and mitigation
+
+Do not start building yet. Produce the plan only.

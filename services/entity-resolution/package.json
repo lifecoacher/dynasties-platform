@@ -1,0 +1,7 @@
+{
+  "name": "@workspace/svc-entity-resolution",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {}
+}

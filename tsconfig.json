@@ -11,6 +11,15 @@
     },
     {
       "path": "./lib/api-zod"
+    },
+    {
+      "path": "./lib/shared-schemas"
+    },
+    {
+      "path": "./lib/config"
+    },
+    {
+      "path": "./lib/shared-utils"
     }
   ]
 }

@@ -1,0 +1,217 @@
+You are acting as a principal systems architect and lead engineer tasked with converting the attached framework into a buildable technical plan and repository architecture.
+
+The document describes Dynasties — an agentic operating system for global trade logistics.
+
+Your task is NOT to rewrite the strategy.
+Your task is to convert it into a concrete engineering execution plan suitable for implementation inside Replit with deployment to AWS.
+
+Follow these rules strictly.
+
+⸻
+
+1. Development and Deployment Architecture
+
+Development environment:
+
+Replit for development and iteration.
+
+Production environment:
+
+AWS deployment using:
+
+• Docker containers
+• AWS ECS or Fargate
+• RDS Postgres
+• S3 document storage
+• SQS task queues
+• SES email ingestion
+• CloudFront frontend distribution
+
+CI/CD pipeline:
+
+Replit → GitHub repository → GitHub Actions → Docker build → AWS deployment.
+
+Do not design a system that runs production inside Replit.
+
+⸻
+
+2. System Architecture Decomposition
+
+Break the system into concrete services.
+
+Expected categories:
+
+Core Operational Services
+• Email ingestion service
+• Document extraction service
+• Entity resolution service
+• Shipment construction service
+• Compliance screening service
+• Pricing and charge calculation service
+• Document generation service
+• Billing and invoicing service
+
+AI / Agent Services
+• Agent orchestration layer
+• Model router
+• Structured output validation layer
+• Agent memory interface
+
+Infrastructure Services
+• Task queue system
+• Event bus
+• Company Memory Graph service
+• Authentication service
+• API gateway
+
+System of Record
+• PostgreSQL operational database
+
+⸻
+
+3. Critical Architectural Rule
+
+LLMs must never directly write to the system of record.
+
+Agents must only produce structured JSON outputs.
+
+Execution must occur through deterministic services that validate the output before writing to the database.
+
+Design a validation layer that enforces this.
+
+⸻
+
+4. Agent System Definition
+
+Define the first set of operational agents:
+
+Email Intake Agent
+Document Extraction Agent
+Entity Resolution Agent
+Shipment Builder Agent
+Compliance Screening Agent
+Pricing Agent
+Invoice Generation Agent
+
+For each agent define:
+
+Inputs
+Tools it can call
+Output JSON schema
+Confidence scoring
+Fallback logic
+
+⸻
+
+5. Database Schema
+
+Design the core relational schema.
+
+Expected entities include:
+
+Companies
+Users
+Customers
+Vendors
+Shipments
+Containers
+Documents
+Charges
+Invoices
+Events
+ComplianceChecks
+TradeLanes
+Commodities
+
+Define relationships and indexing strategy.
+
+⸻
+
+6. Phase One Product Scope
+
+Phase One must support a full workflow:
+
+Email received
+→ Documents parsed
+→ Entities resolved
+→ Shipment draft created
+→ Compliance screening run
+→ Charges calculated
+→ Documents generated
+→ Invoice generated
+→ Operator approval
+
+Design the system so this workflow works end-to-end.
+
+⸻
+
+7. Repository Structure
+
+Propose a monorepo structure such as:
+
+frontend/
+services/
+agents/
+shared-schemas/
+infrastructure/
+scripts/
+
+Include recommended frameworks and languages.
+
+Preferred stack:
+
+Frontend
+React or Next.js
+
+Backend
+Node.js or Python services
+
+AI layer
+Python
+
+Database
+Postgres
+
+⸻
+
+8. Infrastructure Plan
+
+Design AWS infrastructure including:
+
+Container services
+Networking
+Database provisioning
+Queue architecture
+Email ingestion
+Document storage
+Logging and monitoring
+
+⸻
+
+9. Build Roadmap
+
+Produce a 30–45 day engineering roadmap showing:
+
+Milestone 1 – core ingestion pipeline
+Milestone 2 – entity resolution and shipment creation
+Milestone 3 – agent orchestration
+Milestone 4 – operator workbench UI
+Milestone 5 – billing and document generation
+Milestone 6 – AWS deployment pipeline
+
+⸻
+
+10. Deliverables
+
+Produce:
+	1.	System architecture diagram
+	2.	Service decomposition
+	3.	Agent definitions
+	4.	Database schema
+	5.	Repository structure
+	6.	Infrastructure architecture
+	7.	Development roadmap
+
+Do not generate production code yet.
+
+Focus on producing a clear and executable architecture plan ready for build mode.

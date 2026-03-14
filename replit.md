@@ -1,8 +1,10 @@
-# Workspace
+# Dynasties — Agentic Operating System for Global Trade
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+Dynasties is an AI operating layer for global freight forwarding and logistics. It converts unstructured operational inputs (emails, PDFs, spreadsheets) into structured operational workflows using AI agents and deterministic execution services.
+
+**Core Architectural Rule**: LLMs never directly write to the system of record. Agents produce structured JSON only. All writes happen through deterministic services with validation and approval.
 
 ## Stack
 
@@ -15,82 +17,135 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **Logging**: pino
+- **ID generation**: ULID
 
 ## Structure
 
 ```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+workspace/
+├── artifacts/                    # Deployable applications
+│   ├── api-server/               # Express API server (single service for now)
+│   └── mockup-sandbox/           # Design component sandbox
+├── lib/                          # Shared libraries (composite, emit declarations)
+│   ├── api-spec/                 # OpenAPI spec + Orval codegen config
+│   ├── api-client-react/         # Generated React Query hooks
+│   ├── api-zod/                  # Generated Zod schemas from OpenAPI
+│   ├── db/                       # Drizzle ORM schema + DB connection
+│   ├── shared-schemas/           # Domain Zod schemas (inter-service contracts)
+│   ├── config/                   # Env var loading, logger, error types
+│   └── shared-utils/             # ID generation, entity normalization, doc classifier
+├── services/                     # Service stubs (built in later milestones)
+│   ├── email-ingestion/          # M2: MIME parsing, S3 storage
+│   ├── document-extraction/      # M2: OCR + agent extraction (Python FastAPI)
+│   ├── entity-resolution/        # M3: fuzzy matching, entity creation
+│   ├── shipment-construction/    # M3: shipment draft assembly
+│   ├── compliance-screening/     # M4: sanctions list screening (Python)
+│   ├── risk-intelligence/        # M4: risk scoring algorithm (Python)
+│   ├── insurance/                # M4: cargo insurance quoting
+│   ├── pricing/                  # M6: charge calculation
+│   ├── document-generation/      # M6: PDF generation (Python)
+│   ├── billing/                  # M6: invoicing
+│   ├── exception-management/     # M7: exception detection and routing
+│   ├── claims-management/        # M7: claims lifecycle
+│   ├── trade-lane-intelligence/  # M7: lane analytics (Python)
+│   ├── agent-worker/             # Agent definitions and orchestration
+│   └── workflow-orchestrator/    # Workflow state machine
+├── infrastructure/               # AWS IaC (Terraform, M8)
+├── tests/                        # Integration and isolation tests
+├── scripts/                      # Utility scripts
+├── pnpm-workspace.yaml
+├── tsconfig.base.json
+└── tsconfig.json
 ```
+
+## Database Schema (12 First-Slice Tables)
+
+All tables use ULID text primary keys. All tables include `company_id` for multi-tenancy.
+
+| Table | Purpose | Milestone |
+|-------|---------|-----------|
+| companies | Tenant companies | M1 |
+| users | Operators and admins | M1 |
+| ingested_emails | Raw email intake records | M1 |
+| ingested_documents | Parsed documents with extraction data (JSONB) | M1 |
+| entities | Resolved parties (shipper, consignee, carrier, etc.) | M1 |
+| shipments | Core shipment records | M1 |
+| shipment_documents | Join table linking shipments to documents | M1 |
+| compliance_screenings | Sanctions screening results | M1 |
+| risk_scores | Multi-factor risk assessments | M1 |
+| insurance_quotes | Cargo insurance quotes (Phase One: quote only) | M1 |
+| operator_corrections | Field corrections by operators (learning loop) | M1 |
+| events | Immutable audit log of all system actions | M1 |
+
+### Deferred Tables
+- `containers`, `memory_graph_nodes`, `memory_graph_edges`, `classification_precedents` → M3
+- `shipment_charges`, `invoices`, `rate_tables`, `rules` → M6
+- `exceptions`, `trade_lane_stats` → M7
+- `claims`, `claim_communications` → M7
+- `insurance_policies` → Phase Two (binding requires insurer API)
+- `migration_imports` → M2
 
 ## TypeScript & Composite Projects
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+Every `lib/*` package extends `tsconfig.base.json` with `composite: true`. The root `tsconfig.json` lists all lib packages as project references.
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+- **Typecheck from root**: `pnpm run typecheck`
+- **Build libs only**: `pnpm run typecheck:libs` (runs `tsc --build`)
+- `artifacts/*` and `services/*` are leaf workspace packages checked with `tsc --noEmit`
+
+## API Routes (Current)
+
+All routes are under `/api` on the Express server:
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/healthz` | GET | Health check |
+| `/api/shipments` | GET | List shipments |
+| `/api/shipments/:id` | GET | Get shipment by ID |
+| `/api/shipments/:id/compliance` | GET | Compliance screening for shipment |
+| `/api/shipments/:id/risk` | GET | Risk score for shipment |
+| `/api/shipments/:id/insurance` | GET | Insurance quote for shipment |
+| `/api/entities` | GET | List entities |
+| `/api/entities/:id` | GET | Get entity by ID |
+| `/api/documents` | GET | List ingested documents |
+| `/api/emails` | GET | List ingested emails |
+| `/api/events` | GET | List events (optional ?type= filter) |
 
 ## Root Scripts
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+- `pnpm run build` — typecheck then recursively build all packages
+- `pnpm run typecheck` — full workspace typecheck
+- `pnpm --filter @workspace/api-spec run codegen` — generate React Query hooks + Zod schemas from OpenAPI
 
-## Packages
+## Key Packages
 
-### `artifacts/api-server` (`@workspace/api-server`)
+### `lib/shared-schemas` (`@workspace/shared-schemas`)
+Domain Zod schemas for all 12 first-slice entities. Used as the single source of truth for inter-service contracts and message validation.
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+### `lib/config` (`@workspace/config`)
+- `loadEnv()` — Zod-validated environment variable loader
+- `createLogger(serviceName)` — pino logger factory
+- Error types: `AppError`, `ValidationError`, `AgentOutputError`
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+### `lib/shared-utils` (`@workspace/shared-utils`)
+- `generateId()` — ULID generation
+- `normalizeEntityName(name)` — Strip legal suffixes, lowercase, normalize whitespace
+- `classifyDocumentType(fileName, contentPreview?)` — Deterministic document type classification
 
 ### `lib/db` (`@workspace/db`)
+Drizzle ORM with PostgreSQL. 12 tables with foreign keys and indexes.
+- `pnpm --filter @workspace/db run push` — push schema to dev database
 
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
+## Build Roadmap
 
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+| Milestone | Focus | Status |
+|-----------|-------|--------|
+| M1 | Foundation & Repo Setup | ✅ Complete |
+| M2 | Email Ingestion & Document Extraction | Next |
+| M3 | Entity Resolution & Shipment Construction | Planned |
+| M4 | Compliance, Risk & Insurance | Planned |
+| M5 | Operator Workbench UI | Planned |
+| M6 | Pricing, Document Generation & Invoicing | Planned |
+| M7 | Exceptions, Claims & Trade Lane Intelligence | Planned |
+| M8 | AWS Deployment & Pilot Readiness | Planned |

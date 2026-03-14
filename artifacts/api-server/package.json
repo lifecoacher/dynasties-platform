@@ -11,6 +11,9 @@
   "dependencies": {
     "@workspace/db": "workspace:*",
     "@workspace/api-zod": "workspace:*",
+    "@workspace/shared-schemas": "workspace:*",
+    "@workspace/config": "workspace:*",
+    "@workspace/shared-utils": "workspace:*",
     "drizzle-orm": "catalog:",
     "express": "^5",
     "cookie-parser": "^1.4.7",

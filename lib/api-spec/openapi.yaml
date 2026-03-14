@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Dynasties API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: shipments
+    description: Shipment operations
+  - name: entities
+    description: Entity operations
+  - name: documents
+    description: Document and email operations
+  - name: events
+    description: Event log operations
 paths:
   /healthz:
     get:
@@ -24,6 +32,224 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /shipments:
+    get:
+      operationId: listShipments
+      tags: [shipments]
+      summary: List shipments
+      responses:
+        "200":
+          description: List of shipments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Shipment"
+                required:
+                  - data
+  /shipments/{id}:
+    get:
+      operationId: getShipment
+      tags: [shipments]
+      summary: Get a shipment by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Shipment details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Shipment"
+                required:
+                  - data
+        "404":
+          description: Shipment not found
+  /shipments/{id}/compliance:
+    get:
+      operationId: getShipmentCompliance
+      tags: [shipments]
+      summary: Get compliance screening for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Compliance screening data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ComplianceScreening"
+                required:
+                  - data
+  /shipments/{id}/risk:
+    get:
+      operationId: getShipmentRisk
+      tags: [shipments]
+      summary: Get risk score for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Risk score data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/RiskScore"
+  /shipments/{id}/insurance:
+    get:
+      operationId: getShipmentInsurance
+      tags: [shipments]
+      summary: Get insurance quote for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Insurance quote data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/InsuranceQuote"
+  /entities:
+    get:
+      operationId: listEntities
+      tags: [entities]
+      summary: List entities
+      responses:
+        "200":
+          description: List of entities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Entity"
+                required:
+                  - data
+  /entities/{id}:
+    get:
+      operationId: getEntity
+      tags: [entities]
+      summary: Get an entity by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Entity details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Entity"
+                required:
+                  - data
+        "404":
+          description: Entity not found
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List ingested documents
+      responses:
+        "200":
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/IngestedDocument"
+                required:
+                  - data
+  /emails:
+    get:
+      operationId: listEmails
+      tags: [documents]
+      summary: List ingested emails
+      responses:
+        "200":
+          description: List of emails
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/IngestedEmail"
+                required:
+                  - data
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List events
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Event"
+                required:
+                  - data
 components:
   schemas:
     HealthStatus:
@@ -33,4 +259,284 @@ components:
           type: string
       required:
         - status
-
+    Shipment:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        reference:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, PENDING_REVIEW, APPROVED, REJECTED, IN_TRANSIT, DELIVERED, CLOSED, CANCELLED]
+        shipperId:
+          type: string
+          nullable: true
+        consigneeId:
+          type: string
+          nullable: true
+        portOfLoading:
+          type: string
+          nullable: true
+        portOfDischarge:
+          type: string
+          nullable: true
+        vessel:
+          type: string
+          nullable: true
+        voyage:
+          type: string
+          nullable: true
+        commodity:
+          type: string
+          nullable: true
+        hsCode:
+          type: string
+          nullable: true
+        grossWeight:
+          type: number
+          nullable: true
+        freightTerms:
+          type: string
+          nullable: true
+        bookingNumber:
+          type: string
+          nullable: true
+        blNumber:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - reference
+        - status
+        - createdAt
+        - updatedAt
+    ComplianceScreening:
+      type: object
+      properties:
+        id:
+          type: string
+        shipmentId:
+          type: string
+        status:
+          type: string
+          enum: [CLEAR, ALERT, BLOCKED]
+        screenedParties:
+          type: integer
+        matchCount:
+          type: integer
+        matches:
+          type: array
+          items:
+            type: object
+        listsChecked:
+          type: array
+          items:
+            type: string
+        screenedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - shipmentId
+        - status
+        - screenedParties
+        - matchCount
+    RiskScore:
+      type: object
+      properties:
+        id:
+          type: string
+        shipmentId:
+          type: string
+        compositeScore:
+          type: number
+        subScores:
+          type: object
+        primaryRiskFactors:
+          type: array
+          items:
+            type: object
+        recommendedAction:
+          type: string
+          enum: [AUTO_APPROVE, OPERATOR_REVIEW, ESCALATE]
+        scoredAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - shipmentId
+        - compositeScore
+        - recommendedAction
+    InsuranceQuote:
+      type: object
+      properties:
+        id:
+          type: string
+        shipmentId:
+          type: string
+        coverageType:
+          type: string
+          enum: [ALL_RISK, NAMED_PERILS, TOTAL_LOSS]
+        estimatedInsuredValue:
+          type: number
+        estimatedPremium:
+          type: number
+        currency:
+          type: string
+        coverageRationale:
+          type: string
+        exclusions:
+          type: array
+          items:
+            type: string
+        confidenceScore:
+          type: number
+        quotedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - shipmentId
+        - coverageType
+        - estimatedInsuredValue
+        - estimatedPremium
+    Entity:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        name:
+          type: string
+        normalizedName:
+          type: string
+        entityType:
+          type: string
+          enum: [SHIPPER, CONSIGNEE, CARRIER, NOTIFY_PARTY, FORWARDER, AGENT, VENDOR, CUSTOMER]
+        status:
+          type: string
+          enum: [VERIFIED, UNVERIFIED]
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - name
+        - entityType
+        - status
+        - createdAt
+        - updatedAt
+    IngestedDocument:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        emailId:
+          type: string
+          nullable: true
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        documentType:
+          type: string
+        extractionStatus:
+          type: string
+          enum: [PENDING, PROCESSING, EXTRACTED, FAILED]
+        extractedData:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - fileName
+        - documentType
+        - extractionStatus
+        - createdAt
+    IngestedEmail:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        messageId:
+          type: string
+        fromAddress:
+          type: string
+        toAddress:
+          type: string
+        subject:
+          type: string
+          nullable: true
+        attachmentCount:
+          type: integer
+        status:
+          type: string
+          enum: [RECEIVED, PROCESSING, PROCESSED, FAILED]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - messageId
+        - fromAddress
+        - toAddress
+        - status
+        - createdAt
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        eventType:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - eventType
+        - entityType
+        - entityId
+        - createdAt
