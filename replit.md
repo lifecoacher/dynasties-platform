@@ -16,7 +16,14 @@ Do not make changes to the `tests/` folder without prior discussion.
 The core architectural principle is that LLMs never directly write to the system of record; instead, agents produce structured JSON outputs which are then processed by deterministic services with validation and approval mechanisms before any database writes occur.
 
 **UI/UX Decisions:**
-The project includes a React-based Operator Workbench UI (`workbench/`) for managing operations and interacting with the system. A mockup sandbox (`mockup-sandbox/`) is used for design component development.
+The project uses an AI-native operating system design philosophy (inspired by Linear, Notion, Anthropic). The workbench (`workbench/`) features a three-zone layout: left sidebar (navigation), center workspace, right context panel (agent activity stream + alerts). The design system uses Inter font, dark palette with subtle accent colors, 8px grid system, and Framer Motion animations. A mockup sandbox (`mockup-sandbox/`) is used for design component development.
+
+**Design System:**
+- Font: Inter (loaded from Google Fonts)
+- Color theme: Custom dark palette defined in `src/index.css` via CSS custom properties
+- Layout: Three-zone (240px sidebar, flex center, 300px right panel) via `AppLayout` component
+- Components: `Sidebar`, `RightPanel`, `CommandInput`, plus existing Radix UI primitives
+- Motion: Framer Motion for page transitions, list animations, and agent state visualization
 
 **Data Normalization:**
 - Risk scores stored and displayed in 0-100 scale (not 0-1). Frontend uses `normalizeRiskScore()` from `@/lib/format` for safety.
@@ -27,11 +34,14 @@ The project includes a React-based Operator Workbench UI (`workbench/`) for mana
 - Formatting helpers centralized in `artifacts/workbench/src/lib/format.ts`.
 
 **Frontend Routes:**
-- `/` — Operator Workbench (shipment list with filters, search, Intelligence + Demo buttons)
-- `/intelligence` — Shipment Intelligence dashboard (all shipments with compliance/risk/insurance analytics)
-- `/shipments/:id` — Shipment detail (editable fields, approval, compliance/risk/insurance panels)
+- `/` — Trade Command Center (AI command input, metric cards, shipment activity feed)
+- `/shipments` — Shipments list (filter tabs, search, timeline progress bars)
+- `/shipments/:id` — Shipment detail (editable fields, approval, compliance/risk/insurance panels, processing timeline)
 - `/shipments/:id/trace` — AI Decision Trace (full transparency: document → extraction → entity → compliance → risk → insurance layers)
-- `/demo` — Demo Controls (pipeline ingestion/reset)
+- `/intelligence` — Intelligence dashboard (stat cards, analytics table with compliance/risk/premium data)
+- `/customers` — Customer directory (card grid with location/email, search, pagination)
+- `/settings` — Account settings (profile, organization, security/sign-out)
+- `/demo` — Demo Pipeline (email ingestion trigger, pipeline steps, reset)
 
 **Demo Files:** `.demo/` contains demo email files, validation report, architecture summary, and product explanation.
 

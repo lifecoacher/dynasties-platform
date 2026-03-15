@@ -1,0 +1,525 @@
+You are the lead product designer and frontend architect responsible for redesigning the Dynasties platform interface.
+
+Your mission is to transform Dynasties into a world-class AI-native operating system for global trade and logistics.
+
+The backend infrastructure is already operational and must remain unchanged.
+
+The backend currently includes:
+
+multi-tenant accounts
+customer import
+email ingestion
+global trade data
+shipment creation
+agent pipeline
+demo data
+
+You are redesigning the entire user interface and product experience.
+
+Do not modify:
+
+backend services
+database schema
+API contracts
+agent pipeline logic
+
+You may reorganize the UI and presentation layer freely but must use the existing backend APIs.
+
+---
+
+PRODUCT GOAL
+
+Dynasties should feel like the future operating system for logistics.
+
+The interface must resemble the design philosophy of:
+
+Apple (Jony Ive era)
+Anthropic
+OpenAI
+Linear
+Notion
+
+It must not resemble traditional enterprise SaaS dashboards.
+
+The system should feel:
+
+calm
+minimal
+intelligent
+premium
+inevitable
+
+Users should feel like they are operating an AI logistics command center rather than navigating freight management software.
+
+---
+
+FRONTEND TECHNOLOGY
+
+Use a modern scalable frontend architecture.
+
+Recommended stack:
+
+React
+TypeScript
+Tailwind
+Radix UI primitives
+Framer Motion animations
+
+Structure the system as a reusable component architecture with:
+
+component library
+design tokens
+layout system
+agent event stream
+command input layer
+
+---
+
+DESIGN SYSTEM
+
+Create a formal design system.
+
+Typography
+
+Primary font: Inter or SF Pro
+Large readable scale
+Clear hierarchy
+
+Spacing
+
+8px grid system
+large whitespace
+clear visual rhythm
+
+Color system
+
+neutral background palette
+minimal accent colors
+soft gradients used sparingly
+
+Motion
+
+Subtle transitions when agents complete tasks or workflows progress.
+
+Animations must communicate system intelligence.
+
+---
+
+CORE PRODUCT MODEL
+
+Dynasties must transition from a dashboard product into an AI operating system.
+
+The interface revolves around three primary areas:
+
+Command
+Agents
+Operations
+
+---
+
+PRIMARY SCREEN
+
+Create a main interface called the Trade Command Center.
+
+This becomes the default landing experience.
+
+The layout should contain:
+
+AI command interface
+agent activity stream
+shipment timeline
+intelligence panels
+
+This screen should feel like an AI mission control system.
+
+---
+
+AI COMMAND INTERFACE
+
+The command interface behaves similarly to OpenAI and Anthropic interfaces.
+
+Users type natural language instructions.
+
+Examples:
+
+create shipment from this email
+check compliance risk
+generate insurance quote
+show delayed shipments
+explain risk score
+
+The system responds with:
+
+structured outputs
+agent reasoning summaries
+suggested next actions
+
+Example:
+
+Shipment extracted successfully
+Compliance cleared
+Risk score: Medium
+
+Suggested actions:
+
+Approve shipment
+Generate documents
+Send invoice
+
+---
+
+AGENT ACTIVITY STREAM
+
+Display a real-time stream of agent operations.
+
+Each event shows:
+
+agent name
+task performed
+timestamp
+result summary
+
+Example entries:
+
+Email Ingestion Agent extracted shipment
+Compliance Agent validated HS codes
+Risk Agent flagged geopolitical exposure
+Insurance Agent generated quote
+
+The stream should visually resemble an AI execution console.
+
+---
+
+SHIPMENT TIMELINE
+
+Replace traditional shipment tables with timeline views.
+
+Each shipment becomes a workflow timeline.
+
+Stages include:
+
+email received
+shipment created
+compliance review
+risk analysis
+insurance quote
+pricing
+document generation
+billing
+
+Clicking a stage reveals:
+
+agent reasoning
+data inputs
+generated outputs
+
+---
+
+INTELLIGENCE PANELS
+
+Add contextual intelligence cards showing:
+
+risk alerts
+trade lane insights
+insurance exposure
+compliance flags
+
+These appear as modular cards rather than dashboards.
+
+---
+
+NAVIGATION
+
+Navigation must remain simple and minimal.
+
+Command Center
+Shipments
+Customers
+Intelligence
+Settings
+
+Avoid nested menus.
+
+---
+
+INTERFACE ARCHITECTURE
+
+The interface must follow a clear spatial layout.
+
+Use a three-zone structure across the entire application.
+
+LEFT SIDEBAR
+
+Persistent navigation and workspace context.
+
+Contains:
+
+organization selector
+primary navigation
+recent shipments
+notifications
+
+CENTER WORKSPACE
+
+Primary operational surface.
+
+Displays:
+
+command center
+shipment timelines
+customer data
+operational workflows
+
+RIGHT CONTEXT PANEL
+
+Contextual intelligence and AI insights.
+
+Displays:
+
+agent activity stream
+risk alerts
+AI suggestions
+trade lane insights
+
+This panel should dynamically update based on user actions.
+
+---
+
+COMMAND CENTER LAYOUT
+
+The Command Center should be structured vertically.
+
+Top section
+
+AI command interface
+
+Middle section
+
+shipment activity timeline
+
+Bottom section
+
+intelligence panels
+
+The command interface must remain visible at all times.
+
+---
+
+COMMAND INTERACTION MODEL
+
+When a user submits a command the interface should show three phases.
+
+Understanding
+
+The system parses the command.
+
+Processing
+
+Agents execute the workflow.
+
+Result
+
+Structured responses and suggested actions appear.
+
+During processing the agent activity stream should update in real time.
+
+---
+
+AGENT STATE VISUALIZATION
+
+Each agent action must display a visible state.
+
+States include:
+
+processing
+completed
+warning
+error
+
+Use subtle color cues and motion to represent state changes.
+
+Avoid aggressive alert visuals.
+
+---
+
+ACCOUNT CREATION
+
+Design a frictionless onboarding flow.
+
+A user must create an account in under two minutes.
+
+Steps:
+
+create account
+create organization
+select migration method
+connect email inbox
+import shipment data
+
+---
+
+COMPETITOR MIGRATION
+
+Design a Switch to Dynasties migration system inspired by Apple and Google migration flows.
+
+Support migration from platforms such as:
+
+Flexport
+Freightos
+CargoWise
+ShipStation
+ShipHero
+custom freight ERPs
+
+Migration methods:
+
+CSV import
+
+Users upload export files.
+
+Use AI field mapping to map:
+
+customers
+shipments
+ports
+HS codes
+cargo descriptions
+trade lanes
+
+API migration
+
+Allow users to connect API credentials from supported systems to pull historical shipment data.
+
+Email migration
+
+Allow users to connect Gmail or Outlook.
+
+The email ingestion agent scans historical shipment emails and reconstructs shipment records.
+
+---
+
+MIGRATION DECISION FLOW
+
+During onboarding the user must choose a migration path.
+
+Option 1
+
+Import from existing system.
+
+Option 2
+
+Connect email inbox.
+
+Option 3
+
+Upload shipment exports.
+
+Option 4
+
+Start fresh.
+
+Each option should display an estimated time to completion.
+
+---
+
+MIGRATION EXPERIENCE
+
+During migration show:
+
+shipments detected
+customers detected
+data mapped
+agents validating shipments
+
+Display agent activity while migration runs.
+
+Example messages:
+
+Analyzing shipment emails
+Identifying customers
+Mapping trade lanes
+Validating HS codes
+Reconstructing shipment timelines
+
+Users should feel the AI rebuilding their operations.
+
+---
+
+COMPONENT SYSTEM
+
+Create reusable UI components including:
+
+AgentActivityCard
+ShipmentTimelineNode
+CommandResponsePanel
+TradeLaneInsightCard
+MigrationProgressPanel
+AISuggestionPanel
+
+---
+
+EMPTY STATE DESIGN
+
+When no data exists guide the user with suggestions.
+
+Examples:
+
+Import your shipments
+Connect your email
+Create your first shipment
+
+Avoid blank dashboards.
+
+---
+
+ERROR HANDLING
+
+If an agent fails display:
+
+clear explanation
+suggested corrective action
+
+Never expose raw system errors.
+
+---
+
+DEMO EXPERIENCE
+
+The UI must support the existing seeded demo data.
+
+The demo should allow a viewer to:
+
+create shipment from email ingestion
+watch agents process shipment
+review compliance and risk reasoning
+generate documents and billing
+
+---
+
+PERFORMANCE
+
+Ensure the interface remains fast and responsive.
+
+Use:
+
+lazy loading
+component modularization
+efficient state management
+
+---
+
+OUTPUT REQUIRED
+
+Provide a report describing:
+
+the redesigned interface architecture
+primary screens created
+design system
+component library
+migration flow
+AI command interface behavior
+agent workflow visualization
+
+Do not modify backend APIs or database structures.
+
+Your objective is to transform Dynasties into a beautiful AI-native logistics operating system while preserving the working backend infrastructure.
