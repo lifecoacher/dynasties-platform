@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Ship, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Ship, Loader2, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const { login, isLoading: authLoading } = useAuth();
@@ -17,10 +18,9 @@ export default function LoginPage() {
     const isDev = import.meta.env.DEV;
     if (isDev) {
       setIsSubmitting(true);
-      login("admin@dynasties.io", "DynastiesAdmin2026!")
-        .catch(() => {
-          setIsSubmitting(false);
-        });
+      login("admin@dynasties.io", "DynastiesAdmin2026!").catch(() => {
+        setIsSubmitting(false);
+      });
     }
   }, [autoLoginAttempted, login]);
 
@@ -39,34 +39,48 @@ export default function LoginPage() {
   if (authLoading || (import.meta.env.DEV && isSubmitting && !error)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Authenticating...</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Ship className="w-6 h-6 text-primary" />
+          </div>
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <p className="text-[13px] text-muted-foreground">Connecting to Dynasties...</p>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-sm mx-4">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-sm mx-4"
+      >
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <Ship className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold tracking-tight">Dynasties</h1>
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Ship className="w-6 h-6 text-primary" />
           </div>
-          <p className="text-muted-foreground text-sm">Global Freight Intelligence Platform</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dynasties</h1>
+          <p className="text-[14px] text-muted-foreground mt-1">Trade Intelligence OS</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-lg">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-card-border bg-card p-6">
           {error && (
-            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-[13px] text-destructive">
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1.5">Email</label>
+            <label htmlFor="email" className="block text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+              Email
+            </label>
             <input
               id="email"
               type="email"
@@ -74,13 +88,15 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="admin@dynasties.io"
+              className="w-full rounded-lg border border-card-border bg-background px-3 py-2.5 text-[14px] outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all"
+              placeholder="you@company.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-1.5">Password</label>
+            <label htmlFor="password" className="block text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+              Password
+            </label>
             <input
               id="password"
               type="password"
@@ -88,7 +104,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-lg border border-card-border bg-background px-3 py-2.5 text-[14px] outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all"
               placeholder="Enter password"
             />
           </div>
@@ -96,19 +112,22 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[14px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
             {isSubmitting ? (
-              <span className="flex items-center justify-center gap-2">
+              <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Signing in...
-              </span>
+              </>
             ) : (
-              "Sign In"
+              <>
+                Continue
+                <ArrowRight className="w-4 h-4" />
+              </>
             )}
           </button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }

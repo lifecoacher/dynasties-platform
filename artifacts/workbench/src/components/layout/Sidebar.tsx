@@ -1,0 +1,115 @@
+import { Link, useLocation } from "wouter";
+import { motion } from "framer-motion";
+import {
+  Command,
+  Ship,
+  Users,
+  Brain,
+  Settings,
+  Zap,
+  LogOut,
+  ChevronRight,
+} from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useListShipments } from "@workspace/api-client-react";
+
+const NAV_ITEMS = [
+  { href: "/", icon: Command, label: "Command Center" },
+  { href: "/shipments", icon: Ship, label: "Shipments" },
+  { href: "/customers", icon: Users, label: "Customers" },
+  { href: "/intelligence", icon: Brain, label: "Intelligence" },
+  { href: "/settings", icon: Settings, label: "Settings" },
+];
+
+export function Sidebar() {
+  const [location] = useLocation();
+  const { user, logout } = useAuth();
+  const { data: shipmentsRes } = useListShipments();
+  const recentShipments = (shipmentsRes?.data || []).slice(0, 4);
+
+  const isActive = (href: string) => {
+    if (href === "/") return location === "/";
+    return location.startsWith(href);
+  };
+
+  return (
+    <aside className="w-[240px] h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0 sticky top-0">
+      <div className="px-5 py-5 border-b border-sidebar-border">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Ship className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-[15px] font-semibold text-foreground tracking-tight">Dynasties</h1>
+            <p className="text-[11px] text-muted-foreground leading-none mt-0.5">Trade Intelligence OS</p>
+          </div>
+        </div>
+      </div>
+
+      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+        {NAV_ITEMS.map((item) => {
+          const active = isActive(item.href);
+          return (
+            <Link key={item.href} href={item.href}>
+              <motion.div
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors cursor-pointer relative ${
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "text-sidebar-foreground hover:text-foreground hover:bg-white/[0.04]"
+                }`}
+                whileHover={{ x: 2 }}
+                transition={{ duration: 0.15 }}
+              >
+                {active && (
+                  <motion.div
+                    layoutId="nav-indicator"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                  />
+                )}
+                <item.icon className="w-4 h-4 shrink-0" />
+                {item.label}
+              </motion.div>
+            </Link>
+          );
+        })}
+
+        <Link href="/demo">
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors cursor-pointer mt-2">
+            <Zap className="w-4 h-4 shrink-0" />
+            Demo Pipeline
+          </div>
+        </Link>
+
+        {recentShipments.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-sidebar-border">
+            <p className="px-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Recent</p>
+            {recentShipments.map((s: any) => (
+              <Link key={s.id} href={`/shipments/${s.id}`}>
+                <div className="flex items-center justify-between px-3 py-1.5 rounded-md text-[12px] text-sidebar-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors cursor-pointer group">
+                  <span className="font-mono truncate">{s.reference}</span>
+                  <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </nav>
+
+      <div className="px-3 py-3 border-t border-sidebar-border">
+        <div className="flex items-center gap-2.5 px-3 py-2">
+          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-semibold text-primary">
+            {user?.name?.charAt(0)?.toUpperCase() || "U"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-medium text-foreground truncate">{user?.name}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{user?.role}</p>
+          </div>
+          <button onClick={logout} className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors">
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}

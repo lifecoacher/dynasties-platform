@@ -3,10 +3,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import Workbench from "./pages/Workbench";
+import CommandCenter from "./pages/CommandCenter";
+import ShipmentsPage from "./pages/ShipmentsPage";
 import ShipmentDetail from "./pages/ShipmentDetail";
-import ShipmentIntelligence from "./pages/ShipmentIntelligence";
+import IntelligencePage from "./pages/IntelligencePage";
 import DecisionTrace from "./pages/DecisionTrace";
+import CustomersPage from "./pages/CustomersPage";
+import SettingsPage from "./pages/SettingsPage";
 import LoginPage from "./pages/LoginPage";
 import DemoControls from "./pages/DemoControls";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
@@ -28,10 +31,13 @@ function AuthenticatedRouter() {
 
   return (
     <Switch>
-      <Route path="/" component={Workbench} />
-      <Route path="/intelligence" component={ShipmentIntelligence} />
+      <Route path="/" component={CommandCenter} />
+      <Route path="/shipments" component={ShipmentsPage} />
       <Route path="/shipments/:id/trace" component={DecisionTrace} />
       <Route path="/shipments/:id" component={ShipmentDetail} />
+      <Route path="/intelligence" component={IntelligencePage} />
+      <Route path="/customers" component={CustomersPage} />
+      <Route path="/settings" component={SettingsPage} />
       <Route path="/demo" component={DemoControls} />
       <Route component={NotFound} />
     </Switch>

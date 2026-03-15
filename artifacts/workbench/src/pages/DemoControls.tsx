@@ -2,19 +2,20 @@ import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../hooks/use-auth";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 import {
   Mail,
   RotateCcw,
   CheckCircle2,
   AlertCircle,
   Loader2,
-  ArrowLeft,
   Ship,
   Zap,
   Shield,
   TrendingUp,
   FileText,
 } from "lucide-react";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 function getBaseUrl() {
   return import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -50,14 +51,11 @@ export default function DemoControls() {
     async (emailId: string, maxAttempts = 20) => {
       for (let i = 0; i < maxAttempts; i++) {
         await new Promise((r) => setTimeout(r, 2000));
-
         const res = await fetch(`${getBaseUrl()}/api/demo/status`, { headers: headers() });
         if (!res.ok) continue;
-
         const { data } = await res.json();
         if (!data.ingested) continue;
 
-        const emailStatus = data.email?.status;
         const docs = data.documents || [];
         const shipments = data.shipments || [];
 
@@ -92,7 +90,7 @@ export default function DemoControls() {
           return shipments[0];
         }
 
-        if (emailStatus === "PROCESSED" && shipments.length === 0) {
+        if (data.email?.status === "PROCESSED" && shipments.length === 0) {
           setPipelineSteps((prev) =>
             prev.map((s) => {
               if (s.label === "Entity Resolution") return { ...s, status: "active" as StepStatus, detail: "Resolving parties..." };
@@ -111,19 +109,15 @@ export default function DemoControls() {
     setMessage(null);
     setNewShipmentId(null);
     setPipelineSteps([
-      { label: "Email Ingestion", icon: <Mail className="w-4 h-4" />, status: "active", detail: "Parsing MIME..." },
-      { label: "AI Extraction", icon: <FileText className="w-4 h-4" />, status: "pending" },
-      { label: "Entity Resolution", icon: <Zap className="w-4 h-4" />, status: "pending" },
-      { label: "Shipment Created", icon: <Ship className="w-4 h-4" />, status: "pending" },
-      { label: "Compliance & Risk", icon: <Shield className="w-4 h-4" />, status: "pending" },
+      { label: "Email Ingestion", icon: <Mail className="w-3.5 h-3.5" />, status: "active", detail: "Parsing MIME..." },
+      { label: "AI Extraction", icon: <FileText className="w-3.5 h-3.5" />, status: "pending" },
+      { label: "Entity Resolution", icon: <Zap className="w-3.5 h-3.5" />, status: "pending" },
+      { label: "Shipment Created", icon: <Ship className="w-3.5 h-3.5" />, status: "pending" },
+      { label: "Compliance & Risk", icon: <Shield className="w-3.5 h-3.5" />, status: "pending" },
     ]);
 
     try {
-      const res = await fetch(`${getBaseUrl()}/api/demo/ingest`, {
-        method: "POST",
-        headers: headers(),
-      });
-
+      const res = await fetch(`${getBaseUrl()}/api/demo/ingest`, { method: "POST", headers: headers() });
       const body = await res.json();
 
       if (!res.ok) {
@@ -144,19 +138,12 @@ export default function DemoControls() {
       );
 
       const shipment = await pollForShipment(body.data.emailId);
-
       if (shipment) {
-        setMessage({
-          type: "success",
-          text: `Shipment ${shipment.reference} created successfully as ${shipment.status}.`,
-        });
+        setMessage({ type: "success", text: `Shipment ${shipment.reference} created successfully.` });
       } else {
-        setMessage({
-          type: "info",
-          text: "Pipeline is still processing. Check the Workbench in a moment.",
-        });
+        setMessage({ type: "info", text: "Pipeline is still processing. Check back shortly." });
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Network error during ingestion" });
       setPipelineSteps([]);
     } finally {
@@ -169,22 +156,16 @@ export default function DemoControls() {
     setMessage(null);
     setPipelineSteps([]);
     setNewShipmentId(null);
-
     try {
-      const res = await fetch(`${getBaseUrl()}/api/demo/reset`, {
-        method: "POST",
-        headers: headers(),
-      });
-
+      const res = await fetch(`${getBaseUrl()}/api/demo/reset`, { method: "POST", headers: headers() });
       const body = await res.json();
-
       if (!res.ok) {
         setMessage({ type: "error", text: body.error || "Reset failed" });
       } else {
         setMessage({ type: "success", text: body.data.message });
         queryClient.invalidateQueries({ queryKey: ["shipments"] });
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Network error during reset" });
     } finally {
       setResetting(false);
@@ -192,90 +173,71 @@ export default function DemoControls() {
   }, [headers, queryClient]);
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-3xl mx-auto">
-        <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Workbench
-        </Link>
-
+    <AppLayout>
+      <div className="max-w-2xl mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Zap className="w-8 h-8 text-primary" />
-            Demo Controls
+          <h1 className="text-xl font-semibold text-foreground tracking-tight flex items-center gap-2">
+            <Zap className="w-5 h-5 text-primary" />
+            Demo Pipeline
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-[13px] text-muted-foreground mt-1">
             Trigger the full email ingestion pipeline and manage demo data.
           </p>
         </div>
 
-        <div className="grid gap-6">
-          <div className="glass-panel rounded-xl p-6">
-            <h2 className="font-display text-xl font-bold mb-2">Ingest Demo Email</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Sends a realistic Bill of Lading email through the full pipeline:
-              email parsing, AI extraction, entity resolution, shipment creation,
-              compliance screening, risk scoring, and insurance quoting.
+        <div className="space-y-4">
+          <div className="p-5 rounded-xl bg-card border border-card-border">
+            <h2 className="text-[14px] font-semibold text-foreground mb-1">Ingest Demo Email</h2>
+            <p className="text-[12px] text-muted-foreground mb-4">
+              Sends a realistic Bill of Lading through the full pipeline: email parsing, AI extraction, entity resolution, compliance screening, and risk scoring.
             </p>
 
             <button
               onClick={handleIngest}
               disabled={ingesting || resetting}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               {ingesting ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Processing Pipeline...
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processing...
                 </>
               ) : (
                 <>
-                  <Mail className="w-5 h-5" />
+                  <Mail className="w-4 h-4" />
                   Ingest Demo Email
                 </>
               )}
             </button>
 
             {pipelineSteps.length > 0 && (
-              <div className="mt-6 space-y-3">
+              <div className="mt-5 space-y-2">
                 {pipelineSteps.map((step, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                        step.status === "done"
-                          ? "bg-green-500/20 text-green-400"
-                          : step.status === "active"
-                            ? "bg-primary/20 text-primary"
-                            : step.status === "error"
-                              ? "bg-destructive/20 text-destructive"
-                              : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {step.status === "done" ? (
-                        <CheckCircle2 className="w-4 h-4" />
-                      ) : step.status === "active" ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        step.icon
-                      )}
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
+                      step.status === "done"
+                        ? "bg-emerald-400/10 text-emerald-400"
+                        : step.status === "active"
+                          ? "bg-primary/10 text-primary"
+                          : step.status === "error"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-muted text-muted-foreground"
+                    }`}>
+                      {step.status === "done" ? <CheckCircle2 className="w-3.5 h-3.5" /> : step.status === "active" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : step.icon}
                     </div>
                     <div className="flex-1">
-                      <span
-                        className={`text-sm font-medium ${
-                          step.status === "done"
-                            ? "text-green-400"
-                            : step.status === "active"
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                        }`}
-                      >
+                      <span className={`text-[12px] font-medium ${step.status === "done" ? "text-emerald-400" : step.status === "active" ? "text-foreground" : "text-muted-foreground"}`}>
                         {step.label}
                       </span>
-                      {step.detail && (
-                        <span className="text-xs text-muted-foreground ml-2">— {step.detail}</span>
-                      )}
+                      {step.detail && <span className="text-[11px] text-muted-foreground ml-2">— {step.detail}</span>}
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}
@@ -284,62 +246,43 @@ export default function DemoControls() {
               <div className="mt-4">
                 <Link
                   href={`/shipments/${newShipmentId}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 font-medium text-sm transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 text-[12px] font-medium transition-colors"
                 >
-                  <Ship className="w-4 h-4" />
+                  <Ship className="w-3.5 h-3.5" />
                   View Created Shipment
                 </Link>
               </div>
             )}
           </div>
 
-          <div className="glass-panel rounded-xl p-6">
-            <h2 className="font-display text-xl font-bold mb-2">Reset Demo Data</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Removes the demo-generated shipment, entities, and related data.
-              Use this before each presentation to start fresh.
-              Does not affect your 3 seed shipments.
+          <div className="p-5 rounded-xl bg-card border border-card-border">
+            <h2 className="text-[14px] font-semibold text-foreground mb-1">Reset Demo Data</h2>
+            <p className="text-[12px] text-muted-foreground mb-4">
+              Removes demo-generated shipments and related data. Does not affect seed data.
             </p>
-
             <button
               onClick={handleReset}
               disabled={ingesting || resetting}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted text-foreground text-[13px] font-medium hover:bg-muted/80 disabled:opacity-50 transition-colors"
             >
-              {resetting ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                <>
-                  <RotateCcw className="w-5 h-5" />
-                  Reset Demo Data
-                </>
-              )}
+              {resetting ? <><Loader2 className="w-4 h-4 animate-spin" />Resetting...</> : <><RotateCcw className="w-4 h-4" />Reset Demo Data</>}
             </button>
           </div>
         </div>
 
         {message && (
-          <div
-            className={`mt-6 p-4 rounded-lg flex items-start gap-3 ${
-              message.type === "success"
-                ? "bg-green-500/10 border border-green-500/30 text-green-400"
-                : message.type === "error"
-                  ? "bg-destructive/10 border border-destructive/30 text-destructive"
-                  : "bg-primary/10 border border-primary/30 text-primary"
-            }`}
-          >
-            {message.type === "success" ? (
-              <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
-            ) : (
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            )}
-            <span className="text-sm">{message.text}</span>
+          <div className={`mt-5 p-4 rounded-xl flex items-start gap-3 text-[13px] ${
+            message.type === "success"
+              ? "bg-emerald-400/5 border border-emerald-400/20 text-emerald-400"
+              : message.type === "error"
+                ? "bg-destructive/5 border border-destructive/20 text-destructive"
+                : "bg-primary/5 border border-primary/20 text-primary"
+          }`}>
+            {message.type === "success" ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" /> : <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />}
+            {message.text}
           </div>
         )}
       </div>
-    </div>
+    </AppLayout>
   );
 }

@@ -1,24 +1,48 @@
 import { useState, useEffect } from "react";
 import { useRoute, Link } from "wouter";
-import { 
-  useGetShipment, 
-  useGetShipmentCompliance, 
-  useGetShipmentRisk, 
+import {
+  useGetShipment,
+  useGetShipmentCompliance,
+  useGetShipmentRisk,
   useGetShipmentInsurance,
   useGetShipmentEvents,
   useGetShipmentDocuments,
-  useGetShipmentCorrections
+  useGetShipmentCorrections,
 } from "@workspace/api-client-react";
 import { useShipmentActions } from "@/hooks/use-shipment-actions";
-import { StatusBadge } from "@/components/StatusBadge";
-import { RiskPanel } from "@/components/RiskPanel";
-import { CompliancePanel } from "@/components/CompliancePanel";
-import { InsuranceQuoteCard } from "@/components/InsuranceQuoteCard";
-import { AgentActionLog } from "@/components/AgentActionLog";
-import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
-import { ArrowLeft, Save, CheckCircle2, XCircle, Loader2, FileBox, ExternalLink, Pencil, Brain } from "lucide-react";
-import { motion } from "framer-motion";
-import { humanizeDocType } from "@/lib/format";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { format } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ArrowLeft,
+  Save,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  FileBox,
+  Pencil,
+  Brain,
+  Shield,
+  TrendingUp,
+  Umbrella,
+  Bot,
+  FileText,
+  DollarSign,
+  FileOutput,
+  Receipt,
+  AlertCircle,
+  BarChart3,
+} from "lucide-react";
+import {
+  normalizeRiskScore,
+  riskColor,
+  riskLabel,
+  formatCurrency,
+  humanizeDocType,
+  humanizeLabel,
+  humanizeCoverageType,
+  agentLabel,
+} from "@/lib/format";
 
 const EDITABLE_FIELDS = [
   { key: "commodity", label: "Commodity", type: "text" },
@@ -37,6 +61,32 @@ const EDITABLE_FIELDS = [
   { key: "incoterms", label: "Incoterms", type: "text" },
 ];
 
+function getEventIcon(type: string) {
+  if (type.includes("EXTRACT")) return <FileText className="w-3.5 h-3.5" />;
+  if (type.includes("COMPLIANCE")) return <Shield className="w-3.5 h-3.5" />;
+  if (type.includes("RISK")) return <TrendingUp className="w-3.5 h-3.5" />;
+  if (type.includes("INSURANCE")) return <Umbrella className="w-3.5 h-3.5" />;
+  if (type.includes("PRIC")) return <DollarSign className="w-3.5 h-3.5" />;
+  if (type.includes("DOCGEN") || type.includes("DOCUMENT_GENERATED")) return <FileOutput className="w-3.5 h-3.5" />;
+  if (type.includes("BILLING") || type.includes("INVOICE")) return <Receipt className="w-3.5 h-3.5" />;
+  if (type.includes("EXCEPTION")) return <AlertCircle className="w-3.5 h-3.5" />;
+  if (type.includes("TRADE_LANE")) return <BarChart3 className="w-3.5 h-3.5" />;
+  if (type.includes("APPROVED")) return <CheckCircle2 className="w-3.5 h-3.5" />;
+  if (type.includes("REJECTED")) return <XCircle className="w-3.5 h-3.5" />;
+  return <Bot className="w-3.5 h-3.5" />;
+}
+
+function getEventColor(type: string) {
+  if (type.includes("COMPLIANCE")) return "text-emerald-400 bg-emerald-400/10";
+  if (type.includes("RISK")) return "text-amber-400 bg-amber-400/10";
+  if (type.includes("INSURANCE")) return "text-violet-400 bg-violet-400/10";
+  if (type.includes("EXTRACT")) return "text-blue-400 bg-blue-400/10";
+  if (type.includes("APPROVED")) return "text-emerald-400 bg-emerald-400/10";
+  if (type.includes("REJECTED")) return "text-red-400 bg-red-400/10";
+  if (type.includes("EXCEPTION")) return "text-red-400 bg-red-400/10";
+  return "text-primary bg-primary/10";
+}
+
 export default function ShipmentDetail() {
   const [, params] = useRoute("/shipments/:id");
   const id = params?.id || "";
@@ -50,8 +100,15 @@ export default function ShipmentDetail() {
   const { data: correctionsRes } = useGetShipmentCorrections(id);
 
   const { approve, reject, updateFields } = useShipmentActions(id);
-  
-  const shipment = shipmentRes?.data;
+
+  const shipment = shipmentRes?.data as any;
+  const compliance = complianceRes?.data as any;
+  const risk = riskRes?.data as any;
+  const insurance = insuranceRes?.data as any;
+  const events = (eventsRes?.data || []) as any[];
+  const docs = (docsRes?.data || []) as any[];
+  const corrections = (correctionsRes?.data || []) as any[];
+
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -60,7 +117,7 @@ export default function ShipmentDetail() {
   useEffect(() => {
     if (shipment) {
       const initialData: Record<string, any> = {};
-      EDITABLE_FIELDS.forEach(field => {
+      EDITABLE_FIELDS.forEach((field) => {
         initialData[field.key] = (shipment as any)[field.key] || "";
       });
       setFormData(initialData);
@@ -69,242 +126,357 @@ export default function ShipmentDetail() {
   }, [shipment]);
 
   const handleFieldChange = (key: string, value: string | number) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
+    setFormData((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
 
   const handleSave = () => {
     const cleanData = { ...formData };
-    EDITABLE_FIELDS.filter(f => f.type === 'number').forEach(f => {
+    EDITABLE_FIELDS.filter((f) => f.type === "number").forEach((f) => {
       if (cleanData[f.key] !== "") {
         cleanData[f.key] = Number(cleanData[f.key]);
       } else {
         cleanData[f.key] = null;
       }
     });
-    
-    updateFields.mutate({ id, data: { fields: cleanData } }, {
-      onSuccess: () => setHasChanges(false)
-    });
+    updateFields.mutate({ id, data: { fields: cleanData } }, { onSuccess: () => setHasChanges(false) });
   };
 
   const isPendingReview = shipment?.status === "DRAFT" || shipment?.status === "PENDING_REVIEW";
+  const riskScore = normalizeRiskScore(risk?.compositeScore);
 
   if (loadingShipment || !shipment) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-      </div>
+      <AppLayout hideRightPanel>
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      </AppLayout>
     );
   }
 
-  const visibleFields = EDITABLE_FIELDS.filter(field => {
+  const visibleFields = EDITABLE_FIELDS.filter((field) => {
     const val = formData[field.key];
     return isPendingReview || (val !== "" && val != null);
   });
 
   return (
-    <div className="min-h-screen p-4 md:p-8 max-w-[1400px] mx-auto pb-24">
-      <div className="flex items-center gap-4 mb-8">
-        <Link href="/" className="p-2 rounded-full hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-6 h-6" />
-        </Link>
-        <div className="flex-grow">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-display font-bold text-foreground">{shipment.reference}</h1>
-            <StatusBadge status={shipment.status} />
+    <AppLayout hideRightPanel>
+      <div className="px-6 py-6 max-w-[1200px] mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <Link href="/shipments" className="p-1.5 rounded-lg hover:bg-card transition-colors text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div className="flex-grow">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl font-semibold text-foreground font-mono">{shipment.reference}</h1>
+              <StatusPill status={shipment.status} />
+            </div>
+            <p className="text-[12px] text-muted-foreground mt-0.5">
+              Created {format(new Date(shipment.createdAt), "MMM d, yyyy 'at' HH:mm")}
+            </p>
           </div>
-          <p className="text-muted-foreground text-sm mt-1">
-            Created {new Date(shipment.createdAt).toLocaleString()}
-          </p>
+
+          <Link
+            href={`/shipments/${id}/trace`}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary text-[13px] font-medium hover:bg-primary/20 transition-colors"
+          >
+            <Brain className="w-3.5 h-3.5" />
+            Decision Trace
+          </Link>
+
+          {isPendingReview && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowRejectModal(true)}
+                className="px-3.5 py-2 rounded-lg text-[13px] font-medium border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => approve.mutate({ id, data: {} })}
+                disabled={approve.isPending || hasChanges}
+                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-emerald-500 hover:bg-emerald-500/90 text-white disabled:opacity-50 transition-colors flex items-center gap-1.5"
+              >
+                {approve.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                Approve
+              </button>
+            </div>
+          )}
         </div>
-        
-        <Link
-          href={`/shipments/${id}/trace`}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-semibold text-sm transition-all border border-violet-500/20"
-        >
-          <Brain className="w-4 h-4" />
-          View AI Decision Trace
-        </Link>
 
-        {isPendingReview && (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowRejectModal(true)}
-              className="px-4 py-2.5 rounded-lg font-semibold border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all"
-            >
-              Reject
-            </button>
-            <button
-              onClick={() => approve.mutate({ id, data: {} })}
-              disabled={approve.isPending || hasChanges}
-              className="px-6 py-2.5 rounded-lg font-semibold bg-success hover:bg-success/90 text-success-foreground shadow-lg shadow-success/20 transition-all flex items-center gap-2 disabled:opacity-50"
-            >
-              {approve.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-              Approve Shipment
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          
-          <div className="glass-panel rounded-xl p-6 grid grid-cols-2 gap-6">
-            <div>
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Shipper</div>
-              {shipment.shipper ? (
-                <div>
-                  <div className="font-bold text-lg text-primary">{shipment.shipper.name}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{shipment.shipper.address || ''}</div>
-                </div>
-              ) : <div className="text-muted-foreground italic">Unresolved</div>}
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Consignee</div>
-              {shipment.consignee ? (
-                <div>
-                  <div className="font-bold text-lg text-primary">{shipment.consignee.name}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{shipment.consignee.address || ''}</div>
-                </div>
-              ) : <div className="text-muted-foreground italic">Unresolved</div>}
-            </div>
-          </div>
-
-          <div className="glass-panel rounded-xl p-6 relative">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-display font-bold">Extracted Fields</h3>
-              {hasChanges && (
-                <button
-                  onClick={handleSave}
-                  disabled={updateFields.isPending}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all animate-in fade-in"
-                >
-                  {updateFields.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Save Corrections
-                </button>
-              )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2 space-y-5">
+            <div className="grid grid-cols-2 gap-4 p-5 rounded-xl bg-card border border-card-border">
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Shipper</p>
+                {shipment.shipper ? (
+                  <div>
+                    <p className="text-[14px] font-semibold text-foreground">{shipment.shipper.name}</p>
+                    {shipment.shipper.address && <p className="text-[12px] text-muted-foreground mt-0.5">{shipment.shipper.address}</p>}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-muted-foreground italic">Unresolved</p>
+                )}
+              </div>
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Consignee</p>
+                {shipment.consignee ? (
+                  <div>
+                    <p className="text-[14px] font-semibold text-foreground">{shipment.consignee.name}</p>
+                    {shipment.consignee.address && <p className="text-[12px] text-muted-foreground mt-0.5">{shipment.consignee.address}</p>}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-muted-foreground italic">Unresolved</p>
+                )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-              {visibleFields.map((field) => {
-                const confidence = shipment.extractionConfidence?.[field.key] as number | undefined;
-                return (
-                  <div key={field.key} className="space-y-1.5">
-                    <label className="text-sm font-semibold text-foreground/80 flex items-center">
+            <div className="p-5 rounded-xl bg-card border border-card-border">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-[14px] font-semibold text-foreground">Extracted Fields</h3>
+                {hasChanges && (
+                  <button
+                    onClick={handleSave}
+                    disabled={updateFields.isPending}
+                    className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-[12px] font-medium flex items-center gap-1.5 hover:bg-primary/90 transition-colors"
+                  >
+                    {updateFields.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                    Save Changes
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-3">
+                {visibleFields.map((field) => (
+                  <div key={field.key}>
+                    <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">
                       {field.label}
-                      <ConfidenceIndicator confidence={confidence} fieldName={field.label} />
                     </label>
                     {isPendingReview ? (
                       <input
                         type={field.type}
-                        value={formData[field.key] ?? ''}
+                        value={formData[field.key] ?? ""}
                         onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-lg bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm"
+                        className="w-full px-3 py-2 rounded-lg bg-background border border-card-border focus:border-primary/40 focus:ring-1 focus:ring-primary/20 outline-none transition-all text-[13px]"
                       />
                     ) : (
-                      <div className="px-3 py-2.5 rounded-lg bg-background/50 border border-border/30 text-sm text-foreground">
+                      <p className="px-3 py-2 rounded-lg bg-background/50 border border-card-border/30 text-[13px] text-foreground">
                         {formData[field.key] || <span className="text-muted-foreground italic">Not specified</span>}
-                      </div>
+                      </p>
                     )}
                   </div>
-                );
-              })}
+                ))}
+              </div>
+
+              {corrections.length > 0 && (
+                <div className="mt-5 pt-4 border-t border-card-border">
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Pencil className="w-3 h-3" /> Correction History
+                  </p>
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto text-[12px]">
+                    {corrections.map((c: any) => (
+                      <div key={c.id} className="flex justify-between items-center px-3 py-1.5 rounded bg-muted/30">
+                        <span>
+                          <span className="font-medium">{c.fieldName}</span> — {c.correctedBy}
+                        </span>
+                        <span className="text-muted-foreground">{format(new Date(c.createdAt), "MMM d")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            
-            {correctionsRes?.data && correctionsRes.data.length > 0 && (
-              <div className="mt-8 pt-6 border-t border-border">
-                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Pencil className="w-4 h-4 text-accent" /> Correction History
-                </h4>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 text-sm">
-                  {correctionsRes.data.map((c: any) => (
-                    <div key={c.id} className="flex justify-between bg-secondary/30 p-2 rounded">
-                      <span><span className="font-medium">{c.fieldName}</span> changed by {c.correctedBy}</span>
-                      <span className="text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</span>
-                    </div>
+
+            {events.length > 0 && (
+              <div className="p-5 rounded-xl bg-card border border-card-border">
+                <h3 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-primary" />
+                  Processing Timeline
+                </h3>
+                <div className="space-y-2">
+                  {events.map((event: any, i: number) => (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/30 transition-colors"
+                    >
+                      <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${getEventColor(event.eventType)}`}>
+                        {getEventIcon(event.eventType)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-medium text-foreground">{humanizeLabel(event.eventType)}</p>
+                        <p className="text-[11px] text-muted-foreground">{agentLabel(event.eventType)}</p>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/60 shrink-0 font-mono">
+                        {format(new Date(event.createdAt), "HH:mm:ss")}
+                      </span>
+                    </motion.div>
                   ))}
                 </div>
               </div>
             )}
           </div>
 
-          <AgentActionLog events={eventsRes?.data} />
-
-        </div>
-
-        <div className="space-y-6">
-          <CompliancePanel screenings={complianceRes?.data} />
-          <RiskPanel risk={riskRes?.data} />
-          <InsuranceQuoteCard quote={insuranceRes?.data} />
-          
-          <div className="glass-panel rounded-xl p-6">
-            <h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
-              <FileBox className="w-5 h-5 text-primary" /> Source Documents
-            </h3>
-            {docsRes?.data && docsRes.data.length > 0 ? (
-              <div className="space-y-3">
-                {docsRes.data.map((doc: any) => (
-                  <div key={doc.id} className="p-3 rounded-lg bg-secondary/50 border border-border/50 flex items-center justify-between group hover:border-primary/50 transition-colors">
-                    <div className="truncate pr-4">
-                      <div className="text-sm font-semibold truncate" title={doc.fileName}>{doc.fileName}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{humanizeDocType(doc.documentType)}</div>
-                    </div>
-                    <button className="p-1.5 rounded bg-background text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover:opacity-100">
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+          <div className="space-y-4">
+            {compliance && (
+              <div className="p-4 rounded-xl bg-card border border-card-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield className="w-4 h-4 text-emerald-400" />
+                  <h3 className="text-[13px] font-semibold text-foreground">Compliance</h3>
+                </div>
+                <div className={`flex items-center gap-1.5 text-[14px] font-semibold ${compliance.status === "CLEAR" ? "text-emerald-400" : "text-red-400"}`}>
+                  {compliance.status === "CLEAR" ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                  {compliance.status}
+                </div>
+                {compliance.explanation && (
+                  <p className="text-[12px] text-muted-foreground mt-2 leading-relaxed">{compliance.explanation}</p>
+                )}
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Documents processed via pipeline ingestion.</p>
+            )}
+
+            {risk && (
+              <div className="p-4 rounded-xl bg-card border border-card-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-[13px] font-semibold text-foreground">Risk Score</h3>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className={`text-3xl font-semibold tabular-nums ${riskColor(riskScore)}`}>
+                    {riskScore ?? 0}
+                  </span>
+                  <div>
+                    <p className={`text-[13px] font-semibold ${riskColor(riskScore)}`}>{riskLabel(riskScore)}</p>
+                    <p className="text-[11px] text-muted-foreground">{risk.recommendedAction?.replace(/_/g, " ")}</p>
+                  </div>
+                </div>
+                {risk.subScores && (
+                  <div className="mt-3 space-y-2">
+                    {Object.entries(risk.subScores).map(([key, val]: [string, any]) => {
+                      const normalized = Number(val) <= 1 ? Number(val) * 100 : Number(val);
+                      return (
+                        <div key={key} className="flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground">{key.replace(/([A-Z])/g, " $1").trim()}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${normalized < 30 ? "bg-emerald-400" : normalized < 60 ? "bg-amber-400" : "bg-red-400"}`}
+                                style={{ width: `${Math.min(normalized, 100)}%` }}
+                              />
+                            </div>
+                            <span className="font-mono w-6 text-right">{Math.round(normalized)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {insurance && (
+              <div className="p-4 rounded-xl bg-card border border-card-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <Umbrella className="w-4 h-4 text-violet-400" />
+                  <h3 className="text-[13px] font-semibold text-foreground">Insurance</h3>
+                </div>
+                <div className="space-y-2 text-[12px]">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Coverage</span>
+                    <span className="font-medium text-foreground">{humanizeCoverageType(insurance.coverageType)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Cargo Value</span>
+                    <span className="font-medium text-foreground">{formatCurrency(insurance.estimatedInsuredValue || insurance.cargoValue, insurance.currency)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Premium</span>
+                    <span className="font-semibold text-emerald-400">{formatCurrency(insurance.estimatedPremium, insurance.currency)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {docs.length > 0 && (
+              <div className="p-4 rounded-xl bg-card border border-card-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileBox className="w-4 h-4 text-primary" />
+                  <h3 className="text-[13px] font-semibold text-foreground">Documents</h3>
+                </div>
+                <div className="space-y-1.5">
+                  {docs.map((doc: any) => (
+                    <div key={doc.id} className="px-3 py-2 rounded-lg bg-muted/30 text-[12px]">
+                      <p className="font-medium text-foreground truncate">{doc.fileName}</p>
+                      <p className="text-[11px] text-muted-foreground">{humanizeDocType(doc.documentType)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-
         </div>
+
+        <AnimatePresence>
+          {showRejectModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="rounded-xl bg-card border border-card-border p-5 w-full max-w-md"
+              >
+                <div className="flex items-center gap-2 mb-3 text-destructive">
+                  <XCircle className="w-5 h-5" />
+                  <h2 className="text-[16px] font-semibold">Reject Shipment</h2>
+                </div>
+                <p className="text-[13px] text-muted-foreground mb-4">
+                  Provide a reason for rejection. This will be logged in the event history.
+                </p>
+                <textarea
+                  className="w-full p-3 rounded-lg bg-background border border-card-border focus:border-primary/40 outline-none resize-none h-28 text-[13px] mb-4"
+                  placeholder="Reason for rejection..."
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowRejectModal(false)}
+                    className="px-4 py-2 rounded-lg text-[13px] font-medium hover:bg-muted transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      reject.mutate({ id, data: { reason: rejectReason } });
+                      setShowRejectModal(false);
+                    }}
+                    disabled={!rejectReason.trim() || reject.isPending}
+                    className="px-4 py-2 rounded-lg text-[13px] font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground disabled:opacity-50 transition-colors"
+                  >
+                    Confirm Rejection
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
+    </AppLayout>
+  );
+}
 
-      {showRejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-panel rounded-xl p-6 w-full max-w-md border border-destructive/20 shadow-2xl"
-          >
-            <div className="flex items-center gap-3 mb-4 text-destructive">
-              <XCircle className="w-6 h-6" />
-              <h2 className="text-xl font-bold">Reject Shipment</h2>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Please provide a reason for rejecting this shipment draft. This will be logged in the event history.
-            </p>
-            <textarea
-              className="w-full p-3 rounded-lg bg-background border border-border focus:border-destructive outline-none resize-none h-32 mb-6"
-              placeholder="Reason for rejection..."
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-            />
-            <div className="flex justify-end gap-3">
-              <button 
-                onClick={() => setShowRejectModal(false)}
-                className="px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => {
-                  reject.mutate({ id, data: { reason: rejectReason } });
-                  setShowRejectModal(false);
-                }}
-                disabled={!rejectReason.trim() || reject.isPending}
-                className="px-4 py-2 rounded-lg font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground disabled:opacity-50 transition-colors"
-              >
-                {reject.isPending ? "Rejecting..." : "Confirm Rejection"}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </div>
+function StatusPill({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    DRAFT: "bg-blue-400/10 text-blue-400",
+    PENDING_REVIEW: "bg-amber-400/10 text-amber-400",
+    APPROVED: "bg-emerald-400/10 text-emerald-400",
+    REJECTED: "bg-red-400/10 text-red-400",
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[status] || "bg-muted text-muted-foreground"}`}>
+      {status.replace(/_/g, " ")}
+    </span>
   );
 }
