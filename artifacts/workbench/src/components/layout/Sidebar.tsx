@@ -14,6 +14,8 @@ import {
   ClipboardList,
   Sparkles,
   Target,
+  Settings2,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
@@ -27,6 +29,8 @@ const NAV_ITEMS = [
   { href: "/intelligence", icon: Brain, label: "Intelligence" },
   { href: "/predictive", icon: Sparkles, label: "Predictive" },
   { href: "/strategy", icon: Target, label: "Strategy" },
+  { href: "/policy-studio", icon: Settings2, label: "Policy Studio" },
+  { href: "/reports", icon: FileText, label: "Reports" },
   { href: "/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];

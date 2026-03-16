@@ -21,6 +21,8 @@ import EntityDossier from "./pages/EntityDossier";
 import WorkQueue from "./pages/WorkQueue";
 import PredictiveIntelligence from "./pages/PredictiveIntelligence";
 import StrategyIntelligence from "./pages/StrategyIntelligence";
+import PolicyStudio from "./pages/PolicyStudio";
+import ReportsPage from "./pages/Reports";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -50,6 +52,8 @@ function AuthenticatedRouter() {
       <Route path="/customers" component={CustomersPage} />
       <Route path="/predictive" component={PredictiveIntelligence} />
       <Route path="/strategy" component={StrategyIntelligence} />
+      <Route path="/policy-studio" component={PolicyStudio} />
+      <Route path="/reports" component={ReportsPage} />
       <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/lanes/:origin/:destination" component={LaneDossier} />
       <Route path="/ports/:portCode" component={PortDossier} />
