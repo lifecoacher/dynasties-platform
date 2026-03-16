@@ -10,18 +10,22 @@ import {
   recommendationsTable,
   eventsTable,
 } from "@workspace/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import {
   analyzeShipment,
   recommendationSchema,
+  computeFingerprint,
   type AnalysisInputs,
   type RecommendationInput,
 } from "./analyzer.js";
+import { computeExpiresAt } from "./config.js";
 import { buildGraphEdges } from "./graph-builder.js";
 
 export interface DecisionResult {
   recommendationsCreated: number;
+  recommendationsSuperseded: number;
+  recommendationsDeduplicated: number;
   graphEdgesCreated: number;
   success: boolean;
   error: string | null;
@@ -42,6 +46,8 @@ export async function runDecisionEngine(
   if (!shipment) {
     return {
       recommendationsCreated: 0,
+      recommendationsSuperseded: 0,
+      recommendationsDeduplicated: 0,
       graphEdgesCreated: 0,
       success: false,
       error: "Shipment not found or company mismatch",
@@ -166,25 +172,102 @@ export async function runDecisionEngine(
 
   const rawRecs = analyzeShipment(inputs);
 
-  const validRecs: RecommendationInput[] = [];
+  const validRecs: (RecommendationInput & { fingerprint: string })[] = [];
   for (const rec of rawRecs) {
     const result = recommendationSchema.safeParse(rec);
     if (result.success) {
-      validRecs.push(result.data);
+      const fp = computeFingerprint(
+        shipmentId,
+        result.data.type,
+        result.data.reasonCodes,
+        result.data.recommendedAction,
+      );
+      validRecs.push({ ...result.data, fingerprint: fp });
     } else {
       console.warn(`[decision-engine] recommendation validation failed:`, result.error.flatten());
     }
   }
 
+  const activeRecs = await db
+    .select()
+    .from(recommendationsTable)
+    .where(
+      and(
+        eq(recommendationsTable.shipmentId, shipmentId),
+        eq(recommendationsTable.companyId, companyId),
+        inArray(recommendationsTable.status, ["PENDING", "SHOWN"]),
+      ),
+    );
+
+  const activeByFingerprint = new Map<string, typeof activeRecs[0]>();
+  const legacyByType = new Map<string, typeof activeRecs[0][]>();
+  for (const r of activeRecs) {
+    if (r.fingerprint) {
+      activeByFingerprint.set(r.fingerprint, r);
+    } else {
+      const existing = legacyByType.get(r.type) || [];
+      existing.push(r);
+      legacyByType.set(r.type, existing);
+    }
+  }
+
   let recommendationsCreated = 0;
-  if (validRecs.length > 0) {
+  let recommendationsSuperseded = 0;
+  let recommendationsDeduplicated = 0;
+
+  const newFingerprints = new Set(validRecs.map((r) => r.fingerprint));
+  const newTypes = new Set(validRecs.map((r) => r.type));
+
+  if (validRecs.length > 0 || activeRecs.length > 0) {
     await db.transaction(async (tx) => {
+      const idsToSupersede: string[] = [];
+
+      for (const existing of activeRecs) {
+        if (existing.fingerprint && !newFingerprints.has(existing.fingerprint)) {
+          idsToSupersede.push(existing.id);
+          recommendationsSuperseded++;
+        } else if (!existing.fingerprint && newTypes.has(existing.type)) {
+          idsToSupersede.push(existing.id);
+          recommendationsSuperseded++;
+        }
+      }
+
+      const newRecIds: string[] = [];
+
       for (const rec of validRecs) {
+        const existing = activeByFingerprint.get(rec.fingerprint);
+        if (existing) {
+          await tx
+            .update(recommendationsTable)
+            .set({
+              title: rec.title,
+              explanation: rec.explanation,
+              confidence: rec.confidence,
+              urgency: rec.urgency,
+              expectedDelayImpactDays: rec.expectedDelayImpactDays ?? null,
+              expectedMarginImpactPct: rec.expectedMarginImpactPct ?? null,
+              expectedRiskReduction: rec.expectedRiskReduction ?? null,
+              expiresAt: computeExpiresAt(rec.urgency, rec.type),
+              sourceData: {
+                riskScore: riskScore?.compositeScore ?? null,
+                complianceStatus: compliance?.status ?? null,
+                insuranceCoverage: insurance?.coverageType ?? null,
+              },
+              updatedAt: new Date(),
+            })
+            .where(eq(recommendationsTable.id, existing.id));
+          recommendationsDeduplicated++;
+          newRecIds.push(existing.id);
+          continue;
+        }
+
         const recId = generateId();
+        newRecIds.push(recId);
         await tx.insert(recommendationsTable).values({
           id: recId,
           companyId,
           shipmentId,
+          fingerprint: rec.fingerprint,
           type: rec.type,
           title: rec.title,
           explanation: rec.explanation,
@@ -197,6 +280,7 @@ export async function runDecisionEngine(
           recommendedAction: rec.recommendedAction,
           status: "PENDING",
           sourceAgent: rec.sourceAgent,
+          expiresAt: computeExpiresAt(rec.urgency, rec.type),
           sourceData: {
             riskScore: riskScore?.compositeScore ?? null,
             complianceStatus: compliance?.status ?? null,
@@ -204,6 +288,16 @@ export async function runDecisionEngine(
           },
         });
         recommendationsCreated++;
+      }
+
+      if (idsToSupersede.length > 0 && newRecIds.length > 0) {
+        const supersededById = newRecIds[0];
+        for (const oldId of idsToSupersede) {
+          await tx
+            .update(recommendationsTable)
+            .set({ status: "SUPERSEDED", supersededById, updatedAt: new Date() })
+            .where(eq(recommendationsTable.id, oldId));
+        }
       }
 
       await tx.insert(eventsTable).values({
@@ -216,6 +310,8 @@ export async function runDecisionEngine(
         serviceId: "decision-engine",
         metadata: {
           recommendationsCreated,
+          recommendationsSuperseded,
+          recommendationsDeduplicated,
           types: validRecs.map((r) => r.type),
           urgencies: validRecs.map((r) => r.urgency),
         },
@@ -232,11 +328,13 @@ export async function runDecisionEngine(
   }
 
   console.log(
-    `[decision-engine] complete: shipment=${shipmentId} recommendations=${recommendationsCreated} edges=${graphEdgesCreated}`,
+    `[decision-engine] complete: shipment=${shipmentId} created=${recommendationsCreated} superseded=${recommendationsSuperseded} deduped=${recommendationsDeduplicated} edges=${graphEdgesCreated}`,
   );
 
   return {
     recommendationsCreated,
+    recommendationsSuperseded,
+    recommendationsDeduplicated,
     graphEdgesCreated,
     success: true,
     error: null,

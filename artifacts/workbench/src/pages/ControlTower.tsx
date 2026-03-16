@@ -49,7 +49,7 @@ export default function ControlTower() {
 
   const criticalRecs = recommendations.filter((r: any) => r.urgency === "CRITICAL");
   const highRecs = recommendations.filter((r: any) => r.urgency === "HIGH");
-  const mediumRecs = recommendations.filter((r: any) => r.urgency === "MEDIUM");
+  const otherRecs = recommendations.filter((r: any) => r.urgency === "MEDIUM" || r.urgency === "LOW");
 
   const complianceAlerts = recommendations.filter((r: any) => r.type === "COMPLIANCE_ESCALATION");
   const delayWarnings = recommendations.filter((r: any) => r.type === "DELAY_WARNING");
@@ -190,17 +190,17 @@ export default function ControlTower() {
           </section>
         </div>
 
-        {mediumRecs.length > 0 && (
+        {otherRecs.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-3 flex items-center gap-2">
               <FileWarning size={14} className="text-yellow-400" />
               Other Recommendations
               <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded-full">
-                {mediumRecs.length}
+                {otherRecs.length}
               </span>
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {mediumRecs.map((rec: any) => (
+              {otherRecs.map((rec: any) => (
                 <RecommendationCard
                   key={rec.id}
                   recommendation={rec}

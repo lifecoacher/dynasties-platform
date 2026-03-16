@@ -1,0 +1,125 @@
+You have completed the first implementation pass for recommendations, outcomes, trade graph edges, DLQ persistence, and the control tower.
+
+Now implement Phase 1.5: Recommendation Production Hardening.
+
+Do not add new major features yet. Do not work on branding, dashboards, or external integrations. Close the operational and product gaps in the recommendation system first.
+
+PRIORITIES
+
+1. Recommendation deduplication / idempotency
+2. Recommendation lifecycle / expiry
+3. Complete modify flow UI
+4. Complete outcome recording UI
+5. Unit and integration tests
+6. Recommendation quality cleanup
+
+1. RECOMMENDATION DEDUPLICATION / IDEMPOTENCY
+
+Problem:
+Repeated analysis currently creates duplicate PENDING recommendations for the same shipment.
+
+Implement:
+- a recommendation fingerprint/hash based on:
+  - shipment_id
+  - recommendation_type
+  - reason codes
+  - recommended action
+  - relevant source metrics
+- deduplication logic so repeated analyses do not create duplicate active recommendations
+- either:
+  a) unique index for active recommendations, or
+  b) active-window upsert/supersede strategy
+- if a materially different recommendation is generated later, mark the prior one as SUPERSEDED and create the new one
+- ensure M4-triggered runs and manual analyze runs are idempotent
+
+Add:
+- migration(s)
+- tests covering repeated analyze calls
+
+2. RECOMMENDATION LIFECYCLE / EXPIRY
+
+Implement full recommendation lifecycle states:
+- PENDING
+- SHOWN
+- ACCEPTED
+- MODIFIED
+- REJECTED
+- IMPLEMENTED
+- EXPIRED
+- SUPERSEDED
+
+Requirements:
+- use expires_at meaningfully
+- define expiry rules by recommendation type and urgency
+- hide expired/superseded recommendations from the default Control Tower view
+- preserve them in history views
+- add a background job or deterministic cleanup/update path to expire stale recommendations
+
+3. COMPLETE MODIFY FLOW UI
+
+Problem:
+The backend accepts MODIFIED, but the UI does not support modificationNotes properly.
+
+Implement:
+- inline modify modal/drawer/form
+- editable modification notes
+- optional edited recommended action text
+- proper submit flow to POST /api/recommendations/:id/respond with action=MODIFIED
+- display modified status and notes in the recommendation history
+
+4. COMPLETE OUTCOME RECORDING UI
+
+Problem:
+Outcome API exists, but no frontend form exposes it.
+
+Implement:
+- outcome recording UI on shipment detail and/or recommendation detail
+- fields for:
+  - actualDelayDays
+  - actualClaimOccurred
+  - actualCostDelta
+  - actualMarginDelta
+  - postDecisionNotes
+  - outcomeEvaluation
+- display recorded outcomes in recommendation history
+- show implemented recommendations separately from pending ones
+
+5. TESTS
+
+Add unit and integration tests without touching unrelated test structure.
+
+At minimum cover:
+- analyzer recommendation generation
+- deduplication logic
+- supersede behavior
+- expiry behavior
+- respond flow: accept / modify / reject
+- outcome recording
+- control tower filtering of active vs expired/superseded recs
+- graph edge creation for recommendation generation
+
+6. RECOMMENDATION QUALITY CLEANUP
+
+Clean up the current recommendation engine:
+- ensure all recommendation types are either fully implemented or removed
+- PRICING_ALERT must either become functional with explicit thresholds or be removed for now
+- centralize thresholds/constants into a config module
+- improve explanation formatting so each recommendation includes:
+  - title
+  - short explanation
+  - machine reason codes
+  - operational impact summary
+- keep recommendation generation deterministic-first
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. migrations added
+3. lifecycle model/state diagram
+4. deduplication approach
+5. UI screens/components updated
+6. tests added and passed
+7. remaining gaps before external intelligence ingestion
+
+Start immediately. Implement code, not a plan.

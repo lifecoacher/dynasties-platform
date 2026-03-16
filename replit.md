@@ -36,8 +36,8 @@ The system automates various freight forwarding stages:
 - **Compliance & Risk:** Automated compliance screening against sanctions lists and calculation of composite risk scores with AI explanations.
 - **Financial Operations:** Insurance quoting, pricing based on rate tables, and document generation (e.g., HBL, Arrival Notices).
 - **Exception Management:** Automated detection and AI classification of six exception types (e.g., extraction failures, compliance alerts).
-- **AI Decision Engine:** Provides deterministic recommendations (e.g., carrier switch, route adjustment) after compliance, risk, and insurance stages are complete, with user response and outcome recording.
-- **Control Tower:** An AI-powered dashboard for operators to manage urgent recommendations and alerts.
+- **AI Decision Engine:** Provides deterministic recommendations (8 types: CARRIER_SWITCH, ROUTE_ADJUSTMENT, INSURANCE_ADJUSTMENT, COMPLIANCE_ESCALATION, DELAY_WARNING, MARGIN_WARNING, DOCUMENT_CORRECTION, RISK_MITIGATION) after compliance, risk, and insurance stages are complete. Features: fingerprint-based deduplication (SHA-256 hash of shipment+type+reasonCodes+action), lifecycle management (PENDING→SHOWN→ACCEPTED/MODIFIED/REJECTED→IMPLEMENTED, plus EXPIRED/SUPERSEDED), urgency-based expiry (CRITICAL=24h, HIGH=72h, MEDIUM=7d, LOW=14d), stale rec auto-expiry on query. Thresholds centralized in `services/decision-engine/src/config.ts`. Full modify flow with notes modal and outcome recording UI (delay, cost, margin, claim, evaluation).
+- **Control Tower:** An AI-powered dashboard filtering active (non-expired, non-superseded) recommendations with stat cards, urgent recommendations, and shipment intervention views.
 - **Customer Management:** Customer import and directory functionalities.
 
 ## External Dependencies
