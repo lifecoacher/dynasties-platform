@@ -1,0 +1,147 @@
+You have completed Phase 5A for Dynasties:
+- predictive intelligence APIs
+- pre-shipment risk evaluation
+- predictive alerts
+- readiness scoring
+- pattern analysis
+- predictive UI
+- tests
+
+Now implement Phase 5B: Proactive Intervention and Booking-Time Decisioning.
+
+Goal:
+Move Dynasties from predictive visibility into proactive operational control by evaluating shipments before booking/release decisions are finalized and by turning predictive alerts into concrete intervention workflows.
+
+PRIORITIES
+
+1. Booking-time decision layer
+2. Release gate / hold logic
+3. Mitigation playbooks
+4. Predictive alert-to-action automation
+5. Scenario comparison
+6. Predictive performance analytics
+7. Tests
+
+1. BOOKING-TIME DECISION LAYER
+
+Create a deterministic booking decision service for pre-departure shipments.
+
+Inputs:
+- pre-shipment risk score
+- readiness score
+- lane stress
+- port congestion trend
+- disruption risk
+- weather exposure
+- carrier reliability
+- entity/compliance risk
+
+Outputs:
+- booking_decision_status
+- decision_reason_codes
+- confidence
+- required_actions
+- recommended alternatives if applicable
+
+Statuses should support:
+- APPROVED
+- APPROVED_WITH_CAUTION
+- REQUIRES_REVIEW
+- BLOCKED
+- RECOMMEND_ALTERNATIVE
+
+Expose this in APIs and ShipmentDetail for eligible shipments.
+
+2. RELEASE GATE / HOLD LOGIC
+
+Implement deterministic release gate policies.
+
+Allow policies such as:
+- critical compliance risk -> blocked
+- low readiness score -> requires review
+- high disruption/weather risk -> manager approval
+- missing documents + high-value cargo -> document hold
+- extreme lane stress -> recommend alternate departure window
+
+Persist gate decisions and audit them.
+
+3. MITIGATION PLAYBOOKS
+
+Create structured mitigation playbooks tied to risk conditions.
+
+A playbook may include:
+- carrier review
+- route review
+- delay ETD recommendation
+- insurance review
+- compliance case
+- document correction task
+- monitoring cadence
+
+Playbooks should be machine-readable and link to recommendations/tasks.
+
+4. PREDICTIVE ALERT-TO-ACTION AUTOMATION
+
+Extend predictive alerts so they can automatically:
+- create recommendations
+- create tasks when policy allows
+- trigger hold/review states
+- update priority queues
+- notify relevant operators
+
+Preserve idempotency and tenant safety.
+
+5. SCENARIO COMPARISON
+
+Add operator-facing scenario comparison for planned shipments.
+
+Compare at least:
+- current vs alternate carrier
+- current departure window vs delayed window
+- current lane vs alternate lane if data available
+- standard vs elevated insurance posture
+
+Show comparative risk/impact summaries.
+
+6. PREDICTIVE PERFORMANCE ANALYTICS
+
+Add analytics for:
+- predictive alert accuracy
+- pre-shipment recommendation acceptance
+- readiness score vs actual outcome correlation
+- booking decision distribution
+- intervention rate and completion rate
+- avoided delay / avoided risk estimates where possible
+
+7. TESTS
+
+Add tests for:
+- booking decision generation
+- gate/hold logic
+- playbook generation
+- predictive alert automation
+- scenario comparison outputs
+- predictive analytics aggregation
+- UI rendering
+
+IMPLEMENTATION RULES
+
+- production-grade code only
+- deterministic-first logic
+- reuse existing workflow/task/policy infrastructure
+- maintain tenant safety
+- avoid fake placeholders
+- if alternate-lane data is weak, still implement comparison framework with clear fallback behavior
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. migrations added
+3. booking decision logic
+4. gate/hold policies
+5. playbook structures
+6. scenario comparison UI/APIs
+7. predictive analytics added
+8. tests added and passed
+9. remaining gaps before Phase 6

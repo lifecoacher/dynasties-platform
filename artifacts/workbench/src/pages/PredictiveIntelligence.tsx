@@ -92,7 +92,9 @@ export default function PredictiveIntelligence() {
   const [loading, setLoading] = useState(true);
   const [runningAnalysis, setRunningAnalysis] = useState(false);
   const [computingPatterns, setComputingPatterns] = useState(false);
-  const [tab, setTab] = useState<"overview" | "alerts" | "patterns">("overview");
+  const [tab, setTab] = useState<"overview" | "alerts" | "patterns" | "performance">("overview");
+  const [performance, setPerformance] = useState<any>(null);
+  const [loadingPerformance, setLoadingPerformance] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -130,6 +132,22 @@ export default function PredictiveIntelligence() {
     }
     setRunningAnalysis(false);
   };
+
+  const fetchPerformance = async () => {
+    setLoadingPerformance(true);
+    try {
+      const res = await fetch(`${BASE}/predictive/performance`, { headers });
+      const json = await res.json();
+      setPerformance(json.data);
+    } catch (e) {
+      console.error("Failed to fetch performance", e);
+    }
+    setLoadingPerformance(false);
+  };
+
+  useEffect(() => {
+    if (tab === "performance" && !performance) fetchPerformance();
+  }, [tab]);
 
   const computePatterns = async () => {
     setComputingPatterns(true);
@@ -267,7 +285,7 @@ export default function PredictiveIntelligence() {
       </div>
 
       <div className="flex gap-1 border-b border-border">
-        {(["overview", "alerts", "patterns"] as const).map((t) => (
+        {(["overview", "alerts", "patterns", "performance"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -277,7 +295,7 @@ export default function PredictiveIntelligence() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "overview" ? "Overview" : t === "alerts" ? `Alerts (${alerts.length})` : `Patterns (${patterns.length})`}
+            {t === "overview" ? "Overview" : t === "alerts" ? `Alerts (${alerts.length})` : t === "patterns" ? `Patterns (${patterns.length})` : "Performance"}
           </button>
         ))}
       </div>
@@ -485,6 +503,159 @@ export default function PredictiveIntelligence() {
                 },
               )}
             </>
+          )}
+        </motion.div>
+      )}
+
+      {tab === "performance" && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          {loadingPerformance && !performance ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : performance ? (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                  icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
+                  label="Alerts (30d)"
+                  value={String(performance.alerts.totalAlerts)}
+                  sub={`${performance.alerts.resolvedAlerts} resolved, ${performance.alerts.expiredAlerts} expired`}
+                />
+                <MetricCard
+                  icon={<Shield className="w-4 h-4 text-cyan-400" />}
+                  label="Booking Decisions"
+                  value={String(performance.bookings.totalDecisions)}
+                  sub={`${Math.round(performance.bookings.approvalRate * 100)}% approval rate`}
+                />
+                <MetricCard
+                  icon={<Activity className="w-4 h-4 text-orange-400" />}
+                  label="Gate Holds"
+                  value={String(performance.gateHolds.totalHolds)}
+                  sub={`${performance.gateHolds.activeHolds} active, ${performance.gateHolds.overriddenHolds} overridden`}
+                />
+                <MetricCard
+                  icon={<BarChart3 className="w-4 h-4 text-teal-400" />}
+                  label="Playbooks"
+                  value={String(performance.playbooks.totalPlaybooks)}
+                  sub={`${Math.round(performance.playbooks.avgCompletionRate * 100)}% avg completion`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <h3 className="text-sm font-semibold text-foreground mb-4">Booking Distribution</h3>
+                  <div className="space-y-2">
+                    {Object.entries(performance.bookings.byStatus || {}).map(([status, cnt]: [string, any]) => (
+                      <div key={status} className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{status.replace(/_/g, " ")}</span>
+                        <span className="font-mono text-foreground">{cnt}</span>
+                      </div>
+                    ))}
+                    <div className="border-t border-border pt-2 mt-2 space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Avg Risk Score</span>
+                        <span className="font-mono text-foreground">{Math.round(performance.bookings.avgRiskScore * 100)}%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Avg Readiness</span>
+                        <span className="font-mono text-foreground">{Math.round(performance.bookings.avgReadinessScore * 100)}%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Blocked Rate</span>
+                        <span className="font-mono text-red-400">{Math.round(performance.bookings.blockedRate * 100)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <h3 className="text-sm font-semibold text-foreground mb-4">Gate Hold Analysis</h3>
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground mb-2">By Gate Type:</p>
+                    {Object.entries(performance.gateHolds.byGateType || {}).map(([type, cnt]: [string, any]) => (
+                      <div key={type} className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{type.replace(/_/g, " ")}</span>
+                        <span className="font-mono text-foreground">{cnt}</span>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground mb-2 mt-3">By Severity:</p>
+                    {Object.entries(performance.gateHolds.bySeverity || {}).map(([sev, cnt]: [string, any]) => (
+                      <div key={sev} className="flex items-center justify-between text-xs">
+                        <span className={`${
+                          sev === "CRITICAL" ? "text-red-400" :
+                          sev === "HIGH" ? "text-orange-400" : "text-amber-400"
+                        }`}>{sev}</span>
+                        <span className="font-mono text-foreground">{cnt}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <h3 className="text-sm font-semibold text-foreground mb-4">Alert Accuracy</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Average Confidence</span>
+                      <span className="font-mono text-foreground">{Math.round(performance.alerts.avgConfidence * 100)}%</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2 mt-3">By Severity:</p>
+                    {Object.entries(performance.alerts.bySeverity || {}).map(([sev, cnt]: [string, any]) => (
+                      <div key={sev} className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{sev}</span>
+                        <span className="font-mono text-foreground">{cnt}</span>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground mb-2 mt-3">By Type:</p>
+                    {Object.entries(performance.alerts.byType || {}).map(([type, cnt]: [string, any]) => (
+                      <div key={type} className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{type.replace(/_/g, " ")}</span>
+                        <span className="font-mono text-foreground">{cnt}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <h3 className="text-sm font-semibold text-foreground mb-4">Playbook Execution</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Completed</span>
+                      <span className="font-mono text-emerald-400">{performance.playbooks.completedPlaybooks}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">In Progress</span>
+                      <span className="font-mono text-amber-400">{performance.playbooks.inProgressPlaybooks}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2 mt-3">By Priority:</p>
+                    {Object.entries(performance.playbooks.byPriority || {}).map(([pri, cnt]: [string, any]) => (
+                      <div key={pri} className="flex items-center justify-between text-xs">
+                        <span className={`${
+                          pri === "CRITICAL" ? "text-red-400" :
+                          pri === "HIGH" ? "text-orange-400" : "text-amber-400"
+                        }`}>{pri}</span>
+                        <span className="font-mono text-foreground">{cnt}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={fetchPerformance}
+                  disabled={loadingPerformance}
+                  className="px-3 py-1.5 text-xs font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {loadingPerformance ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  Refresh
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-sm">No performance data available yet.</p>
+            </div>
           )}
         </motion.div>
       )}
