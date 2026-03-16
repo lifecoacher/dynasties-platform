@@ -1,0 +1,46 @@
+═══════════════════════════════════════════════════
+              ARRIVAL NOTICE
+═══════════════════════════════════════════════════
+
+Reference: DYN-2026-00201
+B/L Number: HLCU2847561
+Date: March 15, 2026
+
+── NOTIFY ──────────────────────────────────────────
+  Singapore Industrial Solutions Pte. Ltd.
+  31 Jurong Port Road, Singapore 619115
+
+── SHIPMENT INFORMATION ────────────────────────────
+  Vessel: HAPAG LONDON EXPRESS
+  Voyage: 112S
+  Port of Loading: DEHAM (Hamburg, Germany)
+  Port of Discharge: SGSIN (Singapore)
+  ETA: N/A
+
+── CARGO ───────────────────────────────────────────
+  Commodity: Industrial Machinery Parts: CNC Milling Machine Components, Precision Ball Bearings, Hydraulic Pump Assemblies
+  Packages: 122
+  Gross Weight: 14500 KG
+  Volume: 28.5 CBM
+
+── CHARGES ─────────────────────────────────────────
+  FRT: Ocean Freight — USD 1282.50
+  DOC: Documentation Fee — USD 75.00
+  AMS: AMS Filing Fee — USD 35.00
+  ISF: ISF Filing Fee — USD 50.00
+  THC-O: Terminal Handling - Origin — USD 174.00
+  THC-D: Terminal Handling - Destination — USD 217.50
+  INS: Cargo Insurance - ALL_RISK — USD 4060.00
+  BAF: Bunker Adjustment Factor — USD 89.78
+  CAF: Currency Adjustment Factor — USD 64.13
+  HZD: Hazardous Material Handling (Hydraulic Fluids) — USD 1525.00
+  EXS: Equipment Surcharge - Heavy Machinery — USD 150.00
+  CFS: Container Freight Station Charge - Origin — USD 275.00
+  SGP: Singapore Port Security/Surcharge — USD 85.00
+  OTH: Precision Packaging/Securing Surcharge — USD 406.00
+
+  TOTAL: USD 8488.91
+
+═══════════════════════════════════════════════════
+  Please arrange customs clearance and pickup.
+═══════════════════════════════════════════════════

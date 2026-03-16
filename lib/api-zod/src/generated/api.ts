@@ -1301,3 +1301,199 @@ export const CreateRateTableEntryBody = zod.object({
   validFrom: zod.date().optional(),
   validTo: zod.date().optional(),
 });
+
+/**
+ * @summary List recommendations for a shipment
+ */
+export const ListShipmentRecommendationsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ListShipmentRecommendationsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      shipmentId: zod.string(),
+      type: zod.enum([
+        "CARRIER_SWITCH",
+        "ROUTE_ADJUSTMENT",
+        "INSURANCE_ADJUSTMENT",
+        "COMPLIANCE_ESCALATION",
+        "DELAY_WARNING",
+        "MARGIN_WARNING",
+        "DOCUMENT_CORRECTION",
+        "PRICING_ALERT",
+        "RISK_MITIGATION",
+      ]),
+      title: zod.string(),
+      explanation: zod.string(),
+      reasonCodes: zod.array(zod.string()),
+      confidence: zod.number(),
+      urgency: zod.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+      expectedDelayImpactDays: zod.number().nullish(),
+      expectedMarginImpactPct: zod.number().nullish(),
+      expectedRiskReduction: zod.number().nullish(),
+      recommendedAction: zod.string(),
+      status: zod.enum([
+        "PENDING",
+        "SHOWN",
+        "ACCEPTED",
+        "MODIFIED",
+        "REJECTED",
+        "IMPLEMENTED",
+        "EXPIRED",
+      ]),
+      sourceAgent: zod.string(),
+      sourceData: zod.object({}).passthrough().nullish(),
+      respondedAt: zod.date().nullish(),
+      respondedBy: zod.string().nullish(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Trigger decision engine analysis for a shipment
+ */
+export const TriggerShipmentAnalysisParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const TriggerShipmentAnalysisResponse = zod.object({
+  data: zod.object({
+    message: zod.string().optional(),
+    shipmentId: zod.string().optional(),
+  }),
+});
+
+/**
+ * @summary List all pending recommendations
+ */
+export const ListPendingRecommendationsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      shipmentId: zod.string(),
+      type: zod.enum([
+        "CARRIER_SWITCH",
+        "ROUTE_ADJUSTMENT",
+        "INSURANCE_ADJUSTMENT",
+        "COMPLIANCE_ESCALATION",
+        "DELAY_WARNING",
+        "MARGIN_WARNING",
+        "DOCUMENT_CORRECTION",
+        "PRICING_ALERT",
+        "RISK_MITIGATION",
+      ]),
+      title: zod.string(),
+      explanation: zod.string(),
+      reasonCodes: zod.array(zod.string()),
+      confidence: zod.number(),
+      urgency: zod.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+      expectedDelayImpactDays: zod.number().nullish(),
+      expectedMarginImpactPct: zod.number().nullish(),
+      expectedRiskReduction: zod.number().nullish(),
+      recommendedAction: zod.string(),
+      status: zod.enum([
+        "PENDING",
+        "SHOWN",
+        "ACCEPTED",
+        "MODIFIED",
+        "REJECTED",
+        "IMPLEMENTED",
+        "EXPIRED",
+      ]),
+      sourceAgent: zod.string(),
+      sourceData: zod.object({}).passthrough().nullish(),
+      respondedAt: zod.date().nullish(),
+      respondedBy: zod.string().nullish(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Accept, modify, or reject a recommendation
+ */
+export const RespondToRecommendationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RespondToRecommendationBody = zod.object({
+  action: zod.enum(["ACCEPTED", "MODIFIED", "REJECTED"]),
+  modificationNotes: zod.string().optional(),
+});
+
+export const RespondToRecommendationResponse = zod.object({
+  data: zod.object({
+    id: zod.string().optional(),
+    status: zod.string().optional(),
+    action: zod.string().optional(),
+  }),
+});
+
+/**
+ * @summary Record the actual outcome of a recommendation
+ */
+export const RecordRecommendationOutcomeParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RecordRecommendationOutcomeBody = zod.object({
+  actualDelayDays: zod.number().optional(),
+  actualClaimOccurred: zod.enum(["YES", "NO", "PENDING"]).optional(),
+  actualCostDelta: zod.number().optional(),
+  actualMarginDelta: zod.number().optional(),
+  postDecisionNotes: zod.string().optional(),
+  outcomeEvaluation: zod.enum(["POSITIVE", "NEUTRAL", "NEGATIVE"]).optional(),
+});
+
+export const RecordRecommendationOutcomeResponse = zod.object({
+  data: zod.object({
+    id: zod.string().optional(),
+    status: zod.string().optional(),
+  }),
+});
+
+/**
+ * @summary List outcomes for a recommendation
+ */
+export const ListRecommendationOutcomesParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ListRecommendationOutcomesResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      companyId: zod.string(),
+      recommendationId: zod.string(),
+      shipmentId: zod.string(),
+      action: zod.enum([
+        "ACCEPTED",
+        "MODIFIED",
+        "REJECTED",
+        "IMPLEMENTED",
+        "IGNORED",
+      ]),
+      modificationNotes: zod.string().nullish(),
+      actorId: zod.string(),
+      actorType: zod.enum(["USER", "SYSTEM", "AGENT"]),
+      actualDelayDays: zod.number().nullish(),
+      actualClaimOccurred: zod.string().nullish(),
+      actualCostDelta: zod.number().nullish(),
+      actualMarginDelta: zod.number().nullish(),
+      postDecisionNotes: zod.string().nullish(),
+      outcomeEvaluation: zod
+        .enum(["POSITIVE", "NEUTRAL", "NEGATIVE", "PENDING"])
+        .nullish(),
+      decidedAt: zod.date(),
+      evaluatedAt: zod.date().nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+});

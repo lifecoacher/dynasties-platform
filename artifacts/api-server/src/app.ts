@@ -1,4 +1,4 @@
-import express, { type Express, type Request, type Response, type NextFunction } from "express";
+import express, { type Express } from "express";
 import cors from "cors";
 import router from "./routes";
 import authRouter from "./routes/auth.js";
@@ -7,6 +7,7 @@ import healthRouter from "./routes/health.js";
 import demoRouter from "./routes/demo.js";
 import { loginLimiter, apiLimiter } from "./middlewares/rate-limit.js";
 import { requestLogger } from "./middlewares/request-logger.js";
+import { globalErrorHandler } from "./middlewares/error-handler.js";
 
 const app: Express = express();
 app.set("trust proxy", 1);
@@ -45,17 +46,6 @@ app.use("/api", adminRouter);
 app.use("/api", demoRouter);
 app.use("/api", router);
 
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(`[error-handler] ${err.message}`, err.stack);
-
-  const status = "status" in err && typeof (err as Record<string, unknown>).status === "number"
-    ? (err as Record<string, unknown>).status as number
-    : 500;
-
-  res.status(status).json({
-    error: isProduction ? "Internal server error" : err.message,
-    ...(isProduction ? {} : { stack: err.stack }),
-  });
-});
+app.use(globalErrorHandler);
 
 export default app;

@@ -28,6 +28,8 @@ tags:
     description: Trade lane intelligence operations
   - name: claims
     description: Claims management operations
+  - name: recommendations
+    description: Decision engine recommendations
 
 security:
   - bearerAuth: []
@@ -1013,6 +1015,202 @@ paths:
                     $ref: "#/components/schemas/RateTableEntry"
                 required:
                   - data
+  /shipments/{id}/recommendations:
+    get:
+      operationId: listShipmentRecommendations
+      tags: [recommendations]
+      summary: List recommendations for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Recommendations list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Recommendation"
+                required:
+                  - data
+
+  /shipments/{id}/analyze:
+    post:
+      operationId: triggerShipmentAnalysis
+      tags: [recommendations]
+      summary: Trigger decision engine analysis for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Analysis queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      shipmentId:
+                        type: string
+                required:
+                  - data
+
+  /recommendations/pending:
+    get:
+      operationId: listPendingRecommendations
+      tags: [recommendations]
+      summary: List all pending recommendations
+      responses:
+        "200":
+          description: Pending recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Recommendation"
+                required:
+                  - data
+
+  /recommendations/{id}/respond:
+    post:
+      operationId: respondToRecommendation
+      tags: [recommendations]
+      summary: Accept, modify, or reject a recommendation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [ACCEPTED, MODIFIED, REJECTED]
+                modificationNotes:
+                  type: string
+              required:
+                - action
+      responses:
+        "200":
+          description: Response recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      status:
+                        type: string
+                      action:
+                        type: string
+                required:
+                  - data
+
+  /recommendations/{id}/outcome:
+    post:
+      operationId: recordRecommendationOutcome
+      tags: [recommendations]
+      summary: Record the actual outcome of a recommendation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actualDelayDays:
+                  type: number
+                actualClaimOccurred:
+                  type: string
+                  enum: [YES, NO, PENDING]
+                actualCostDelta:
+                  type: number
+                actualMarginDelta:
+                  type: number
+                postDecisionNotes:
+                  type: string
+                outcomeEvaluation:
+                  type: string
+                  enum: [POSITIVE, NEUTRAL, NEGATIVE]
+      responses:
+        "200":
+          description: Outcome recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      status:
+                        type: string
+                required:
+                  - data
+
+  /recommendations/{id}/outcomes:
+    get:
+      operationId: listRecommendationOutcomes
+      tags: [recommendations]
+      summary: List outcomes for a recommendation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Outcomes list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RecommendationOutcome"
+                required:
+                  - data
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2348,3 +2546,138 @@ components:
         - password
         - role
         - companyId
+
+    Recommendation:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        shipmentId:
+          type: string
+        type:
+          type: string
+          enum: [CARRIER_SWITCH, ROUTE_ADJUSTMENT, INSURANCE_ADJUSTMENT, COMPLIANCE_ESCALATION, DELAY_WARNING, MARGIN_WARNING, DOCUMENT_CORRECTION, PRICING_ALERT, RISK_MITIGATION]
+        title:
+          type: string
+        explanation:
+          type: string
+        reasonCodes:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+        urgency:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        expectedDelayImpactDays:
+          type: number
+          nullable: true
+        expectedMarginImpactPct:
+          type: number
+          nullable: true
+        expectedRiskReduction:
+          type: number
+          nullable: true
+        recommendedAction:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, SHOWN, ACCEPTED, MODIFIED, REJECTED, IMPLEMENTED, EXPIRED]
+        sourceAgent:
+          type: string
+        sourceData:
+          type: object
+          nullable: true
+        respondedAt:
+          type: string
+          format: date-time
+          nullable: true
+        respondedBy:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - shipmentId
+        - type
+        - title
+        - explanation
+        - reasonCodes
+        - confidence
+        - urgency
+        - recommendedAction
+        - status
+        - sourceAgent
+        - createdAt
+        - updatedAt
+
+    RecommendationOutcome:
+      type: object
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        recommendationId:
+          type: string
+        shipmentId:
+          type: string
+        action:
+          type: string
+          enum: [ACCEPTED, MODIFIED, REJECTED, IMPLEMENTED, IGNORED]
+        modificationNotes:
+          type: string
+          nullable: true
+        actorId:
+          type: string
+        actorType:
+          type: string
+          enum: [USER, SYSTEM, AGENT]
+        actualDelayDays:
+          type: number
+          nullable: true
+        actualClaimOccurred:
+          type: string
+          nullable: true
+        actualCostDelta:
+          type: number
+          nullable: true
+        actualMarginDelta:
+          type: number
+          nullable: true
+        postDecisionNotes:
+          type: string
+          nullable: true
+        outcomeEvaluation:
+          type: string
+          enum: [POSITIVE, NEUTRAL, NEGATIVE, PENDING]
+          nullable: true
+        decidedAt:
+          type: string
+          format: date-time
+        evaluatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - recommendationId
+        - shipmentId
+        - action
+        - actorId
+        - actorType
+        - decidedAt
+        - createdAt

@@ -1,6 +1,20 @@
 import { EventEmitter } from "node:events";
 import crypto from "node:crypto";
 
+export interface DeadLetterEntry {
+  queueName: string;
+  jobBody: Record<string, unknown>;
+  errorMessage: string;
+  errorStack?: string;
+  attemptCount: number;
+}
+
+let dlqPersistFn: ((entry: DeadLetterEntry) => Promise<void>) | null = null;
+
+export function setDlqPersistHandler(fn: (entry: DeadLetterEntry) => Promise<void>): void {
+  dlqPersistFn = fn;
+}
+
 export interface ExtractionJob {
   documentId: string;
   companyId: string;
@@ -73,6 +87,12 @@ export interface ClaimsJob {
   trigger: "manual";
 }
 
+export interface DecisionJob {
+  companyId: string;
+  shipmentId: string;
+  trigger: "m4_complete" | "exception_detected" | "manual";
+}
+
 type ExtractionHandler = (job: ExtractionJob) => Promise<void>;
 type PipelineHandler = (job: ShipmentPipelineJob) => Promise<void>;
 type ComplianceHandler = (job: ComplianceJob) => Promise<void>;
@@ -84,6 +104,7 @@ type BillingHandler = (job: BillingJob) => Promise<void>;
 type ExceptionHandler = (job: ExceptionJob) => Promise<void>;
 type TradeLaneHandler = (job: TradeLaneJob) => Promise<void>;
 type ClaimsHandler = (job: ClaimsJob) => Promise<void>;
+type DecisionHandler = (job: DecisionJob) => Promise<void>;
 
 interface QueueMessage<T> {
   id: string;
@@ -221,6 +242,7 @@ const BILLING_QUEUE = "billing-jobs";
 const EXCEPTION_QUEUE = "exception-jobs";
 const TRADE_LANE_QUEUE = "trade-lane-jobs";
 const CLAIMS_QUEUE = "claims-jobs";
+const DECISION_QUEUE = "decision-jobs";
 
 let extractionWrapper: ((job: ExtractionJob) => void) | null = null;
 let pipelineWrapper: ((job: ShipmentPipelineJob) => void) | null = null;
@@ -233,6 +255,7 @@ let billingWrapper: ((job: BillingJob) => void) | null = null;
 let exceptionWrapper: ((job: ExceptionJob) => void) | null = null;
 let tradeLaneWrapper: ((job: TradeLaneJob) => void) | null = null;
 let claimsWrapper: ((job: ClaimsJob) => void) | null = null;
+let decisionWrapper: ((job: DecisionJob) => void) | null = null;
 
 function wrapWithRetry<T>(
   queueName: string,
@@ -251,11 +274,23 @@ function wrapWithRetry<T>(
           );
           setTimeout(() => attempt(retryCount + 1), delay);
         } else {
+          const errObj = err instanceof Error ? err : new Error(String(err));
           console.error(
             `[queue:dlq] ${queueName} job exhausted retries, sending to DLQ:`,
-            err,
+            errObj.message,
             JSON.stringify(job),
           );
+          if (dlqPersistFn) {
+            dlqPersistFn({
+              queueName,
+              jobBody: job as unknown as Record<string, unknown>,
+              errorMessage: errObj.message,
+              errorStack: errObj.stack,
+              attemptCount: MAX_RETRIES,
+            }).catch((dlqErr) => {
+              console.error(`[queue:dlq] failed to persist DLQ entry:`, dlqErr);
+            });
+          }
         }
       }
     };
@@ -326,6 +361,10 @@ export function registerClaimsConsumer(fn: ClaimsHandler): void {
   claimsWrapper = registerConsumer(CLAIMS_QUEUE, fn, claimsWrapper);
 }
 
+export function registerDecisionConsumer(fn: DecisionHandler): void {
+  decisionWrapper = registerConsumer(DECISION_QUEUE, fn, decisionWrapper);
+}
+
 async function publish(queueName: string, job: Record<string, unknown>): Promise<void> {
   const client = await getSqs();
   if (client) {
@@ -385,6 +424,10 @@ export function publishClaimsJob(job: ClaimsJob): void {
   publish(CLAIMS_QUEUE, job as unknown as Record<string, unknown>);
 }
 
+export function publishDecisionJob(job: DecisionJob): void {
+  publish(DECISION_QUEUE, job as unknown as Record<string, unknown>);
+}
+
 export function publishM4Jobs(companyId: string, shipmentId: string): void {
   publishComplianceJob({ companyId, shipmentId, trigger: "shipment_created" });
   publishRiskJob({ companyId, shipmentId, trigger: "shipment_created" });
@@ -405,5 +448,6 @@ export function getQueueStats(): Record<string, number | string> {
     exceptionListeners: emitter.listenerCount(EXCEPTION_QUEUE),
     tradeLaneListeners: emitter.listenerCount(TRADE_LANE_QUEUE),
     claimsListeners: emitter.listenerCount(CLAIMS_QUEUE),
+    decisionListeners: emitter.listenerCount(DECISION_QUEUE),
   };
 }

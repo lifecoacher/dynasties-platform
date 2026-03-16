@@ -1,0 +1,43 @@
+═══════════════════════════════════════════════════
+              HOUSE BILL OF LADING
+═══════════════════════════════════════════════════
+
+B/L Number: HLCU2847561
+Booking Number: HAM-2026-0088
+Reference: DYN-2026-00201
+Date: March 15, 2026
+
+── SHIPPER ─────────────────────────────────────────
+  Precision Machinery GmbH
+  Industriestrasse 45, 20457 Hamburg, Germany
+  
+
+── CONSIGNEE ───────────────────────────────────────
+  Singapore Industrial Solutions Pte. Ltd.
+  31 Jurong Port Road, Singapore 619115
+  
+
+── NOTIFY PARTY ────────────────────────────────────
+  Singapore Industrial Solutions Pte. Ltd. (Same as Consignee)
+
+── VESSEL / VOYAGE ─────────────────────────────────
+  Vessel: HAPAG LONDON EXPRESS
+  Voyage: 112S
+  Port of Loading: DEHAM (Hamburg, Germany)
+  Port of Discharge: SGSIN (Singapore)
+
+── CARGO DETAILS ───────────────────────────────────
+  Commodity: Industrial Machinery Parts: CNC Milling Machine Components, Precision Ball Bearings, Hydraulic Pump Assemblies
+  HS Code: 8456.30
+  Packages: 122
+  Gross Weight: 14500 KG
+  Volume: 28.5 CBM
+  Incoterms: FOB Hamburg
+
+── FREIGHT TERMS ───────────────────────────────────
+  PREPAID
+
+═══════════════════════════════════════════════════
+  This is a non-negotiable House Bill of Lading
+  issued by the freight forwarder.
+═══════════════════════════════════════════════════
