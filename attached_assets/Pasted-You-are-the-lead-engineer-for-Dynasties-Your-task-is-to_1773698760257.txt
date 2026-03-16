@@ -1,0 +1,244 @@
+You are the lead engineer for Dynasties.
+
+Your task is to replace the current scattered fake/demo/sample data with one clean, fully isolated, fully demoable environment.
+
+IMPORTANT:
+Do not touch core application logic unless necessary for seed/reset/destroy safety.
+Do not break existing migrations or tenant isolation.
+Do not leave old fake data mixed into the new environment.
+
+GOAL
+
+Create one dedicated demo tenant and one dedicated primary demo company.
+
+Demo tenant name:
+Lorian Demo Tenant
+
+Primary demo company name:
+Lorian
+
+All demoable synthetic data must belong to this tenant and be cleanly resettable and destroyable.
+
+HIGH-LEVEL REQUIREMENTS
+
+1. Remove or archive all existing fake/sample/demo data that is not part of the new Lorian demo environment.
+2. Create one isolated demo tenant and one primary demo company.
+3. Seed a complete, realistic, polished demo dataset under that tenant.
+4. Ensure all demo data can be:
+   - seeded
+   - reset
+   - destroyed
+   with explicit scripts/commands.
+5. Do not pollute non-demo tenants or production-like records.
+6. Keep the dataset realistic and purpose-built for showing the full Dynasties workflow.
+
+DEMO DATA ARCHITECTURE
+
+Create:
+
+Tenant:
+- name: "Lorian Demo Tenant"
+
+Primary company:
+- name: "Lorian"
+
+Also seed supporting entities inside the same tenant so the graph feels real:
+- multiple shippers
+- multiple consignees
+- multiple carriers
+- multiple ports
+- multiple trade lanes
+- insurers
+- counterparties / entities
+- sanctions entities
+- disruptions
+- weather risks
+- congestion snapshots
+- vessel positions / vessel port calls if supported
+- lane market signals if supported
+
+SEED METADATA
+
+All seeded records must include metadata that makes them easy to identify and manage.
+
+Use fields/metadata patterns such as:
+- seed_source = "lorian_demo_dataset"
+- seed_version = "v1"
+- is_demo = true
+
+If a table does not currently support seed metadata, add the safest minimal mechanism needed or use a reliable tenant-based cleanup strategy.
+
+DATASET REQUIREMENTS
+
+The Lorian demo environment must be rich enough to demonstrate all major Dynasties capabilities.
+
+Seed enough data to demonstrate:
+
+1. Control Tower
+- urgent recommendations
+- medium recommendations
+- shipments needing intervention
+- intelligence-enriched recommendations
+- recommendation diffing where applicable
+
+2. Shipment Detail
+- AI recommendations
+- intelligence evidence
+- task creation from recommendation
+- task history
+- booking decision
+- readiness score
+- pre-shipment risk card
+
+3. Workflow Automation
+- tasks in multiple states:
+  - OPEN
+  - IN_PROGRESS
+  - BLOCKED
+  - COMPLETED
+  - CANCELLED
+- due dates
+- overdue tasks
+- escalated tasks
+- notifications
+- audit trail
+
+4. Predictive Intelligence
+- active predictive alerts
+- pre-shipment risk reports
+- readiness scores
+- booking decisions
+- release/hold examples
+- mitigation playbooks
+- scenario comparison examples
+
+5. Strategic Intelligence
+- lane strategies
+- carrier allocations
+- network recommendations
+- portfolio snapshots
+- intervention attributions
+- executive intelligence view with meaningful data
+
+6. Policy Studio / Reports
+- policy defaults
+- tenant overrides
+- at least one simulation result
+- generated reports for:
+  - executive summary
+  - portfolio risk
+  - lane strategy
+  - carrier allocation
+  - value attribution
+  - recommendation performance
+
+7. External Intelligence
+- realistic seeded congestion data
+- disruption events
+- weather events
+- sanctions / denied party examples
+- linked graph edges that drive recommendations
+
+SHIPMENT SCENARIO DESIGN
+
+Design the seeded dataset so it includes a variety of realistic demo scenarios, for example:
+
+- shipment impacted by congestion spike at destination port
+- shipment impacted by weather risk
+- shipment with sanctions-linked compliance escalation
+- shipment with route adjustment recommendation
+- shipment with carrier switch recommendation
+- shipment with pricing alert
+- shipment with insurance adjustment
+- shipment with document correction task
+- shipment under booking hold due to risk/readiness
+- shipment with reanalyzed recommendation after intelligence change
+
+Make sure there are enough examples to click through during demos without needing to manually trigger everything live.
+
+SCALE TARGET
+
+Seed approximately:
+- 1 demo tenant
+- 1 primary demo company (Lorian)
+- 150 to 250 shipments
+- 6 to 10 trade lanes
+- 6 to 10 ports
+- 4 to 8 carriers
+- 4 to 8 shippers/consignees
+- enough tasks/recommendations/alerts/reports to fully populate the UI
+
+CLEANUP / RESET REQUIREMENTS
+
+Implement three explicit scripts or commands:
+
+1. seed-demo
+- creates the full Lorian demo environment
+
+2. reset-demo
+- wipes and recreates only the Lorian demo environment
+
+3. destroy-demo
+- fully removes the Lorian demo tenant and all dependent tenant-scoped demo data
+
+If safe cascade deletion is not guaranteed, implement deterministic ordered deletion.
+
+Do not leave orphaned graph edges, tasks, reports, snapshots, recommendations, or notifications.
+
+HANDLING EXISTING FAKE DATA
+
+Audit the current fake/sample/demo/dev data in the system.
+
+Then:
+- remove it if it is clearly disposable fake/demo data
+OR
+- isolate/archive it so it does not appear in the UI or pollute analytics
+
+The final result should be:
+- one clean demo environment centered on Lorian
+- no confusing legacy fake records appearing in pages, queues, analytics, dossiers, reports, or simulations
+
+UI / DEMO READINESS
+
+After seeding, verify that the following pages all look populated and coherent for the Lorian tenant:
+
+- Control Tower
+- Shipment Detail
+- Work Queue
+- Predictive Intelligence
+- Strategic / Executive Intelligence
+- Policy Studio
+- Reports / Analytics
+- Dossier pages (lane, port, carrier, entity) if they still exist
+
+README / DOCUMENTATION
+
+Create a short demo README that explains:
+- how to seed
+- how to reset
+- how to destroy
+- demo login / tenant selection if relevant
+- recommended click path for the demo
+
+IMPLEMENTATION RULES
+
+- production-grade code
+- keep tenant isolation intact
+- do not create shortcuts that will contaminate future production data
+- do not leave old fake data mixed in
+- prefer deterministic seed generation over random junk
+- make the dataset realistic enough to tell a clear story
+
+DELIVERABLES
+
+At the end, provide:
+
+1. exact files changed
+2. scripts/commands added
+3. what old fake data was removed or isolated
+4. what the Lorian demo tenant contains
+5. how cleanup works
+6. how to verify the demo environment is ready
+7. any remaining gaps
+
+Do the work, not just the plan.

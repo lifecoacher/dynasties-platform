@@ -1,5 +1,5 @@
 import { seedReferenceData } from "./seed-reference-data.js";
-import { seedDemoData } from "./seed-demo-data.js";
+import { seedLorian } from "./lorian-demo/seed-lorian.js";
 
 async function main() {
   try {
@@ -8,7 +8,7 @@ async function main() {
     await seedReferenceData();
     console.log("");
 
-    await seedDemoData();
+    await seedLorian();
     console.log("");
 
     console.log("=== SEED COMPLETE ===");
