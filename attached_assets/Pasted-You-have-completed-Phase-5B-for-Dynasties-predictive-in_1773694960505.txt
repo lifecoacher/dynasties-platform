@@ -1,0 +1,163 @@
+You have completed Phase 5B for Dynasties:
+- predictive intelligence
+- booking-time decisioning
+- release gate / hold logic
+- mitigation playbooks
+- predictive alert-to-action automation
+- scenario comparison
+- predictive performance analytics
+- tests
+
+Now implement Phase 6A: Strategic Intelligence and Network Optimization.
+
+Goal:
+Extend Dynasties from shipment-level and workflow-level operational intelligence into portfolio-level strategic intelligence that helps users optimize lanes, ports, carriers, counterparties, and margin/risk exposure across the network.
+
+Do not redesign the existing intelligence and workflow architecture. Extend it cleanly into strategic views, scoring, recommendations, and analytics.
+
+PRIORITIES
+
+1. Lane strategy intelligence
+2. Carrier allocation intelligence
+3. Network optimization recommendations
+4. Portfolio risk and margin views
+5. Savings / intervention attribution
+6. Executive intelligence UI
+7. Tests
+
+1. LANE STRATEGY INTELLIGENCE
+
+Create strategic lane analytics and scoring that evaluate:
+- lane stress over time
+- delay exposure
+- disruption frequency
+- congestion trend
+- recommendation volume
+- task/case volume
+- claim/exceptions exposure where available
+- margin pressure where inferable
+
+Expose lane strategy outputs such as:
+- stable
+- monitor closely
+- reduce exposure
+- reroute under conditions
+- reprice lane
+- tighten booking gates
+
+Add APIs and UI views for lane strategy rankings and lane-level strategic recommendations.
+
+2. CARRIER ALLOCATION INTELLIGENCE
+
+Create carrier strategy analysis that evaluates:
+- reliability
+- recommendation-trigger frequency
+- switch-away frequency
+- disruption exposure
+- lane-specific carrier performance
+- risk-adjusted performance
+
+Expose outputs such as:
+- preferred carrier on lane
+- acceptable but monitor
+- avoid under current conditions
+- increase allocation
+- reduce allocation
+
+Add APIs and UI views for carrier comparison and allocation guidance.
+
+3. NETWORK OPTIMIZATION RECOMMENDATIONS
+
+Create a strategic recommendation service that works at:
+- lane level
+- carrier level
+- port level
+- entity / customer / counterparty level where appropriate
+
+Examples:
+- reduce traffic through a stressed port
+- shift volume to lower-risk carrier
+- apply tighter release gates on certain lanes/entities
+- increase insurance posture on certain shipment classes
+- pre-emptively create monitoring for certain disruptions
+
+These recommendations should be deterministic, evidence-backed, auditable, and tied to portfolio signals.
+
+4. PORTFOLIO RISK AND MARGIN VIEWS
+
+Build portfolio views showing:
+- active shipments by risk band
+- predicted delay exposure
+- predicted compliance exposure
+- predicted margin at risk
+- exposure by lane/port/carrier/entity
+- mitigated vs unmitigated exposure
+- trends over time
+
+Add APIs and UI suitable for operational managers and executives.
+
+5. SAVINGS / INTERVENTION ATTRIBUTION
+
+Implement attribution logic to estimate and/or track:
+- delays avoided
+- margin protected
+- risks mitigated
+- interventions triggered
+- interventions completed
+- tasks auto-created
+- booking holds that prevented issues
+- comparative impact of internal-only vs intelligence-enriched recommendations
+
+Make attribution assumptions explicit and deterministic.
+
+6. EXECUTIVE INTELLIGENCE UI
+
+Add an executive/manager intelligence layer or page.
+
+It should answer:
+- where is the network under stress
+- which lanes/carriers/ports are dragging performance
+- what value Dynasties created
+- which strategic actions are recommended now
+- where policy should change
+
+This must be concise, decision-oriented, and not a vanity dashboard.
+
+Suggested route:
+- /strategy
+or
+- /executive-intelligence
+
+7. TESTS
+
+Add tests for:
+- lane strategy scoring
+- carrier allocation scoring
+- strategic recommendation generation
+- portfolio exposure aggregation
+- attribution calculations
+- executive intelligence API/UI rendering
+
+IMPLEMENTATION RULES
+
+- production-grade code only
+- deterministic-first logic
+- reuse existing graph, scoring, analytics, workflow, and recommendation systems
+- maintain tenant safety and role guards
+- no fake placeholder analytics
+- if data is limited for some dimensions, still implement the framework with explicit fallback behavior
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. migrations added
+3. new strategic services/models
+4. APIs/endpoints added
+5. UI pages/components added
+6. strategic recommendation logic
+7. attribution logic
+8. tests added and passed
+9. remaining gaps before Phase 6B
+
+Start immediately and implement code, not just a plan.
