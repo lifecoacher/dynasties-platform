@@ -1,0 +1,161 @@
+You have completed Phase 2B:
+- external intelligence enrichment in the decision engine
+- intelligence-aware recommendation logic
+- UI badges/evidence for external signals
+- PRICING_ALERT activation
+- tests
+
+Now implement Phase 3A: Intelligence-Driven Reanalysis, Snapshot Auditability, and Scoring Layer.
+
+Goal:
+Make Dynasties responsive to changing external intelligence, historically auditable, and increasingly graph-native through persistent scoring systems.
+
+Do not redesign existing recommendation architecture. Extend it cleanly.
+
+PRIORITIES
+
+1. Automatic re-analysis when intelligence changes
+2. Intelligence snapshots for auditability
+3. Persistent scoring layer for lanes, ports, carriers, and entities
+4. Recommendation quality analytics foundation
+5. Tests
+
+1. AUTOMATIC RE-ANALYSIS WHEN INTELLIGENCE CHANGES
+
+Problem:
+External intelligence is ingested, but already-existing shipments are not automatically re-analyzed when relevant intelligence changes.
+
+Implement:
+- change detection after intelligence ingestion/linking
+- impacted shipment identification based on:
+  - trade lane
+  - origin/destination ports
+  - linked entities
+  - linked vessel/carrier where inferable
+- durable reanalysis queue job(s)
+- throttling / batching for large affected sets
+- idempotent recommendation refresh behavior
+- event logging for reanalysis triggers
+
+Requirements:
+- avoid duplicate re-analysis storms
+- preserve tenant safety
+- log why a shipment was selected for reanalysis
+
+2. INTELLIGENCE SNAPSHOTS FOR AUDITABILITY
+
+Create persistent snapshot models/tables for recommendation-time intelligence context.
+
+At minimum implement:
+- shipment_intelligence_snapshots
+Optional if useful:
+- lane_intelligence_snapshots
+
+Each shipment snapshot should include:
+- shipment_id
+- company_id
+- generated_at
+- congestion_score
+- disruption_score
+- weather_risk_score
+- sanctions_risk_score
+- vessel_risk_score
+- market_pressure_score
+- linked_signal_ids
+- external_reason_codes
+- evidence_summary
+- snapshot_hash/version
+
+Link recommendation generation to a specific snapshot where applicable.
+
+Goal:
+Any recommendation should be historically explainable from the intelligence context present at the time it was generated.
+
+3. PERSISTENT SCORING LAYER
+
+Create persistent scoring models/services for:
+- trade lanes
+- ports
+- carriers
+- entities/counterparties
+
+Implement deterministic score builders for each.
+
+Suggested scores:
+Trade lane:
+- congestion score
+- disruption score
+- delay stress score
+- market pressure score
+- composite stress score
+
+Port:
+- congestion severity
+- weather exposure
+- disruption exposure
+- operational volatility score
+
+Carrier:
+- performance score
+- anomaly score
+- reliability score
+- lane stress exposure score
+
+Entity:
+- sanctions risk score
+- denied-party match confidence
+- documentation irregularity score
+
+Persist scores with timestamps and update them on ingestion cycles or relevant reanalysis windows.
+
+4. RECOMMENDATION QUALITY ANALYTICS FOUNDATION
+
+Build the analytics layer needed to evaluate recommendation quality.
+
+At minimum create API/service support for:
+- recommendation acceptance rate by type
+- implementation rate by type
+- outcome-recorded rate
+- external-enriched vs internal-only comparison
+- recommendation counts by urgency/status
+- top lanes/ports/carriers generating recommendations
+
+UI:
+Add a lightweight internal analytics panel or admin view showing these metrics.
+
+Do not overdesign this. Make it operational and useful.
+
+5. TESTS
+
+Add tests for:
+- impacted shipment selection
+- intelligence-change-triggered reanalysis
+- snapshot creation and linkage
+- score calculation for lane/port/carrier/entity
+- analytics aggregation
+- idempotency / storm prevention behavior
+
+IMPLEMENTATION RULES
+
+- production-grade code only
+- use existing queues, graph, and recommendation patterns
+- preserve fingerprinting/idempotency behavior
+- preserve tenant/global intelligence scoping
+- do not create fake placeholder analytics
+- if some signal-to-shipment linkage is weak, use deterministic best-effort logic and record confidence
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. migrations added
+3. new tables/models
+4. queue jobs added
+5. reanalysis trigger logic
+6. snapshot linkage logic
+7. scoring models/services added
+8. analytics endpoints/UI added
+9. tests added and passed
+10. remaining gaps before Phase 3B
+
+Start immediately and implement code, not just a plan.

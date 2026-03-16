@@ -13,6 +13,7 @@ import SettingsPage from "./pages/SettingsPage";
 import LoginPage from "./pages/LoginPage";
 import ControlTower from "./pages/ControlTower";
 import DemoControls from "./pages/DemoControls";
+import AnalyticsPage from "./pages/Analytics";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -39,6 +40,7 @@ function AuthenticatedRouter() {
       <Route path="/intelligence" component={IntelligencePage} />
       <Route path="/control-tower" component={ControlTower} />
       <Route path="/customers" component={CustomersPage} />
+      <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/demo" component={DemoControls} />
       <Route component={NotFound} />

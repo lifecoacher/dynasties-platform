@@ -8,6 +8,7 @@ import {
   vesselPositionsTable,
   laneMarketSignalsTable,
   tradeGraphEdgesTable,
+  shipmentsTable,
 } from "@workspace/db/schema";
 import { eq, and, or, sql, desc, inArray } from "drizzle-orm";
 
@@ -170,23 +171,47 @@ export async function buildIntelligenceSummary(
     )
     .limit(200);
 
-  const shipmentEntityEdges = await db
+  const shipment = await db
+    .select({
+      shipper: shipmentsTable.shipper,
+      consignee: shipmentsTable.consignee,
+      carrier: shipmentsTable.carrier,
+      notifyParty: shipmentsTable.notifyParty,
+    })
+    .from(shipmentsTable)
+    .where(eq(shipmentsTable.id, shipmentId))
+    .limit(1);
+
+  const shipmentEntityIds = new Set<string>();
+  if (shipment.length > 0) {
+    const s = shipment[0];
+    if (s.shipper) shipmentEntityIds.add(s.shipper);
+    if (s.consignee) shipmentEntityIds.add(s.consignee);
+    if (s.carrier) shipmentEntityIds.add(s.carrier);
+    if (s.notifyParty) shipmentEntityIds.add(s.notifyParty);
+  }
+
+  const entityRelatedEdges = await db
     .select()
     .from(tradeGraphEdgesTable)
     .where(
       and(
         eq(tradeGraphEdgesTable.companyId, companyId),
         inArray(tradeGraphEdgesTable.edgeType, [
-          "SHIPMENT_SHIPPER",
-          "SHIPMENT_CONSIGNEE",
-          "SHIPMENT_CARRIER",
-          "SHIPMENT_NOTIFY_PARTY",
+          "SHIPPER_USES_CARRIER",
+          "SHIPPER_SHIPS_TO_CONSIGNEE",
         ]),
-        eq(tradeGraphEdgesTable.sourceId, shipmentId),
+        or(
+          inArray(tradeGraphEdgesTable.sourceId, [...shipmentEntityIds]),
+          inArray(tradeGraphEdgesTable.targetId, [...shipmentEntityIds]),
+        ),
       ),
     );
 
-  const shipmentEntityIds = new Set(shipmentEntityEdges.map((e) => e.targetId));
+  for (const edge of entityRelatedEdges) {
+    shipmentEntityIds.add(edge.sourceId);
+    shipmentEntityIds.add(edge.targetId);
+  }
 
   for (const se of sanctionsEdges) {
     if (shipmentEntityIds.has(se.targetId)) {

@@ -15,7 +15,7 @@ import {
 import { sql } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { eq, and } from "drizzle-orm";
-import { publishIntelligenceLinkingJob } from "@workspace/queue";
+import { publishIntelligenceLinkingJob, publishReanalysisJob } from "@workspace/queue";
 import { computeFingerprint } from "./fingerprint.js";
 import {
   VesselPositionAdapter,
@@ -126,6 +126,17 @@ export async function runIngestionPipeline(
         sourceType,
         recordIds: persistedIds,
         ingestionRunId: runId,
+      });
+
+      const affectedContext = collectAffectedContext(sourceType, valid);
+      publishReanalysisJob({
+        companyId,
+        sourceType,
+        ingestionRunId: runId,
+        affectedPorts: affectedContext.portCodes,
+        affectedLanes: affectedContext.laneKeys,
+        affectedEntities: affectedContext.entityIds,
+        affectedVessels: affectedContext.vesselNames,
       });
     }
 
@@ -442,6 +453,48 @@ async function persistWeatherRisk(
   }
 
   return { persisted, deduplicated };
+}
+
+function collectAffectedContext(
+  sourceType: string,
+  records: any[],
+): { portCodes: string[]; laneKeys: string[]; entityIds: string[]; vesselNames: string[] } {
+  const portCodes = new Set<string>();
+  const laneKeys = new Set<string>();
+  const entityIds = new Set<string>();
+  const vesselNames = new Set<string>();
+
+  for (const r of records) {
+    switch (sourceType) {
+      case "port_congestion":
+        if (r.portCode) portCodes.add(r.portCode);
+        break;
+      case "disruptions":
+      case "weather_risk":
+        if (r.affectedPorts) {
+          for (const p of r.affectedPorts) portCodes.add(p);
+        }
+        if (r.affectedLanes) {
+          for (const l of r.affectedLanes) laneKeys.add(l);
+        }
+        break;
+      case "sanctions":
+      case "denied_parties":
+        if (r.entityName) entityIds.add(r.entityName);
+        if (r.partyName) entityIds.add(r.partyName);
+        break;
+      case "vessel_positions":
+        if (r.vesselName) vesselNames.add(r.vesselName);
+        break;
+    }
+  }
+
+  return {
+    portCodes: [...portCodes],
+    laneKeys: [...laneKeys],
+    entityIds: [...entityIds],
+    vesselNames: [...vesselNames],
+  };
 }
 
 export { computeFingerprint } from "./fingerprint.js";

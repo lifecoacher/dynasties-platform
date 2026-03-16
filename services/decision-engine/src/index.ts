@@ -1,4 +1,5 @@
 import { db } from "@workspace/db";
+import crypto from "node:crypto";
 import {
   shipmentsTable,
   complianceScreeningsTable,
@@ -9,6 +10,7 @@ import {
   shipmentChargesTable,
   recommendationsTable,
   eventsTable,
+  shipmentIntelligenceSnapshotsTable,
 } from "@workspace/db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
@@ -118,6 +120,7 @@ export async function runDecisionEngine(
   }
 
   let intelligence = null;
+  let snapshotId: string | null = null;
   try {
     intelligence = await buildIntelligenceSummary(
       shipmentId,
@@ -129,6 +132,48 @@ export async function runDecisionEngine(
     console.log(
       `[decision-engine] intelligence summary: composite=${intelligence.compositeIntelScore} signals=${intelligence.signals.length} congestion=${intelligence.congestionScore} disruption=${intelligence.disruptionScore} weather=${intelligence.weatherRiskScore} sanctions=${intelligence.sanctionsRiskScore} market=${intelligence.marketPressureScore}`,
     );
+
+    const snapshotData = {
+      congestionScore: intelligence.congestionScore,
+      disruptionScore: intelligence.disruptionScore,
+      weatherRiskScore: intelligence.weatherRiskScore,
+      sanctionsRiskScore: intelligence.sanctionsRiskScore,
+      vesselRiskScore: intelligence.vesselRiskScore,
+      marketPressureScore: intelligence.marketPressureScore,
+      linkedSignalIds: intelligence.linkedSignalIds,
+    };
+    const snapshotHash = crypto
+      .createHash("sha256")
+      .update(JSON.stringify(snapshotData))
+      .digest("hex")
+      .slice(0, 40);
+
+    const externalReasonCodes = intelligence.signals.map((s) => s.externalReasonCode);
+
+    snapshotId = generateId();
+    await db.insert(shipmentIntelligenceSnapshotsTable).values({
+      id: snapshotId,
+      companyId,
+      shipmentId,
+      congestionScore: intelligence.congestionScore,
+      disruptionScore: intelligence.disruptionScore,
+      weatherRiskScore: intelligence.weatherRiskScore,
+      sanctionsRiskScore: intelligence.sanctionsRiskScore,
+      vesselRiskScore: intelligence.vesselRiskScore,
+      marketPressureScore: intelligence.marketPressureScore,
+      compositeIntelScore: intelligence.compositeIntelScore,
+      linkedSignalIds: intelligence.linkedSignalIds,
+      externalReasonCodes,
+      evidenceSummary: intelligence.signals.map((s) => ({
+        signalId: s.signalId,
+        signalType: s.signalType,
+        severity: s.severity,
+        summary: s.summary,
+      })),
+      snapshotHash,
+      generatedAt: intelligence.generatedAt,
+    });
+    console.log(`[decision-engine] snapshot persisted: ${snapshotId} hash=${snapshotHash}`);
   } catch (err) {
     console.warn(`[decision-engine] intelligence summary failed, proceeding without:`, err);
   }
@@ -270,6 +315,7 @@ export async function runDecisionEngine(
               externalReasonCodes: rec.externalReasonCodes ?? null,
               signalEvidence: rec.signalEvidence as Record<string, unknown>[] ?? null,
               intelligenceEnriched: rec.intelligenceEnriched ? "true" : "false",
+              snapshotId: snapshotId ?? undefined,
               expiresAt: computeExpiresAt(rec.urgency, rec.type),
               sourceData: {
                 riskScore: riskScore?.compositeScore ?? null,
@@ -300,6 +346,7 @@ export async function runDecisionEngine(
           externalReasonCodes: rec.externalReasonCodes ?? null,
           signalEvidence: rec.signalEvidence as Record<string, unknown>[] ?? null,
           intelligenceEnriched: rec.intelligenceEnriched ? "true" : "false",
+          snapshotId: snapshotId ?? null,
           confidence: rec.confidence,
           urgency: rec.urgency,
           expectedDelayImpactDays: rec.expectedDelayImpactDays ?? null,

@@ -90,7 +90,17 @@ export interface ClaimsJob {
 export interface DecisionJob {
   companyId: string;
   shipmentId: string;
-  trigger: "m4_complete" | "exception_detected" | "manual";
+  trigger: "m4_complete" | "exception_detected" | "manual" | "intelligence_change";
+}
+
+export interface ReanalysisJob {
+  companyId: string;
+  sourceType: string;
+  ingestionRunId: string;
+  affectedPorts: string[];
+  affectedLanes: string[];
+  affectedEntities: string[];
+  affectedVessels: string[];
 }
 
 export interface IngestionJob {
@@ -120,6 +130,7 @@ type TradeLaneHandler = (job: TradeLaneJob) => Promise<void>;
 type ClaimsHandler = (job: ClaimsJob) => Promise<void>;
 type DecisionHandler = (job: DecisionJob) => Promise<void>;
 type IngestionHandler = (job: IngestionJob) => Promise<void>;
+type ReanalysisHandler = (job: ReanalysisJob) => Promise<void>;
 type IntelligenceLinkingHandler = (job: IntelligenceLinkingJob) => Promise<void>;
 
 interface QueueMessage<T> {
@@ -260,6 +271,7 @@ const TRADE_LANE_QUEUE = "trade-lane-jobs";
 const CLAIMS_QUEUE = "claims-jobs";
 const DECISION_QUEUE = "decision-jobs";
 const INGESTION_QUEUE = "ingestion-jobs";
+const REANALYSIS_QUEUE = "reanalysis-jobs";
 const INTELLIGENCE_LINKING_QUEUE = "intelligence-linking-jobs";
 
 let extractionWrapper: ((job: ExtractionJob) => void) | null = null;
@@ -275,6 +287,7 @@ let tradeLaneWrapper: ((job: TradeLaneJob) => void) | null = null;
 let claimsWrapper: ((job: ClaimsJob) => void) | null = null;
 let decisionWrapper: ((job: DecisionJob) => void) | null = null;
 let ingestionWrapper: ((job: IngestionJob) => void) | null = null;
+let reanalysisWrapper: ((job: ReanalysisJob) => void) | null = null;
 let intelligenceLinkingWrapper: ((job: IntelligenceLinkingJob) => void) | null = null;
 
 function wrapWithRetry<T>(
@@ -389,6 +402,10 @@ export function registerIngestionConsumer(fn: IngestionHandler): void {
   ingestionWrapper = registerConsumer(INGESTION_QUEUE, fn, ingestionWrapper);
 }
 
+export function registerReanalysisConsumer(fn: ReanalysisHandler): void {
+  reanalysisWrapper = registerConsumer(REANALYSIS_QUEUE, fn, reanalysisWrapper);
+}
+
 export function registerIntelligenceLinkingConsumer(fn: IntelligenceLinkingHandler): void {
   intelligenceLinkingWrapper = registerConsumer(INTELLIGENCE_LINKING_QUEUE, fn, intelligenceLinkingWrapper);
 }
@@ -460,6 +477,10 @@ export function publishIngestionJob(job: IngestionJob): void {
   publish(INGESTION_QUEUE, job as unknown as Record<string, unknown>);
 }
 
+export function publishReanalysisJob(job: ReanalysisJob): void {
+  publish(REANALYSIS_QUEUE, job as unknown as Record<string, unknown>);
+}
+
 export function publishIntelligenceLinkingJob(job: IntelligenceLinkingJob): void {
   publish(INTELLIGENCE_LINKING_QUEUE, job as unknown as Record<string, unknown>);
 }
@@ -486,6 +507,7 @@ export function getQueueStats(): Record<string, number | string> {
     claimsListeners: emitter.listenerCount(CLAIMS_QUEUE),
     decisionListeners: emitter.listenerCount(DECISION_QUEUE),
     ingestionListeners: emitter.listenerCount(INGESTION_QUEUE),
+    reanalysisListeners: emitter.listenerCount(REANALYSIS_QUEUE),
     intelligenceLinkingListeners: emitter.listenerCount(INTELLIGENCE_LINKING_QUEUE),
   };
 }

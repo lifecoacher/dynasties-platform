@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./linker": "./src/linker.ts"
+    "./linker": "./src/linker.ts",
+    "./reanalysis": "./src/reanalysis.ts"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",

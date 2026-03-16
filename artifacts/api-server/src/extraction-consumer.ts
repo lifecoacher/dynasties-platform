@@ -12,6 +12,7 @@ import {
   registerClaimsConsumer,
   registerDecisionConsumer,
   registerIngestionConsumer,
+  registerReanalysisConsumer,
   registerIntelligenceLinkingConsumer,
   setDlqPersistHandler,
 } from "@workspace/queue";
@@ -29,6 +30,7 @@ import type {
   ClaimsJob,
   DecisionJob,
   IngestionJob,
+  ReanalysisJob,
   IntelligenceLinkingJob,
 } from "@workspace/queue";
 import { processExtractionJob } from "@workspace/svc-document-extraction";
@@ -45,6 +47,8 @@ import { runClaimPreparation } from "@workspace/svc-claims-management";
 import { runDecisionEngine } from "@workspace/svc-decision-engine";
 import { runIngestionPipeline } from "@workspace/svc-intelligence-ingestion";
 import { runIntelligenceLinking } from "@workspace/svc-intelligence-ingestion/linker";
+import { findImpactedShipments, triggerReanalysis } from "@workspace/svc-intelligence-ingestion/reanalysis";
+import { computeAndPersistScores } from "@workspace/svc-decision-engine/scoring";
 import { db } from "@workspace/db";
 import {
   deadLetterJobsTable,
@@ -254,4 +258,37 @@ export function startConsumers(): void {
     );
   });
   console.log("[consumer] intelligence-linking consumer registered");
+
+  registerReanalysisConsumer(async (job: ReanalysisJob) => {
+    const impacted = await findImpactedShipments(
+      job.companyId,
+      job.sourceType,
+      job.affectedPorts,
+      job.affectedLanes,
+      job.affectedEntities,
+      job.affectedVessels,
+    );
+
+    if (impacted.length > 0) {
+      const result = await triggerReanalysis(
+        job.companyId,
+        job.sourceType,
+        impacted,
+        job.ingestionRunId,
+      );
+      console.log(
+        `[consumer] reanalysis complete: source=${job.sourceType} identified=${result.shipmentsIdentified} queued=${result.shipmentsQueued} skipped=${result.skippedDuplicate}`,
+      );
+    } else {
+      console.log(`[consumer] reanalysis: no impacted shipments for ${job.sourceType}`);
+    }
+
+    try {
+      await computeAndPersistScores(job.companyId);
+      console.log(`[consumer] scoring refresh complete for company=${job.companyId}`);
+    } catch (err) {
+      console.error(`[consumer] scoring refresh failed:`, err);
+    }
+  });
+  console.log("[consumer] reanalysis consumer registered");
 }
