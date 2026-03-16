@@ -29,3 +29,5 @@ export * from "./sanctions-entities";
 export * from "./disruption-events";
 export * from "./lane-market-signals";
 export * from "./ingestion-runs";
+export * from "./intelligence-snapshots";
+export * from "./scoring";

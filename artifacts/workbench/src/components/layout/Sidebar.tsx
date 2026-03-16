@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronRight,
   Radar,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/control-tower", icon: Radar, label: "Control Tower" },
   { href: "/customers", icon: Users, label: "Customers" },
   { href: "/intelligence", icon: Brain, label: "Intelligence" },
+  { href: "/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
