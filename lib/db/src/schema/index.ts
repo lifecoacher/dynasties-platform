@@ -18,3 +18,7 @@ export * from "./trade-lane-stats";
 export * from "./claims";
 export * from "./claim-communications";
 export * from "./reference-data";
+export * from "./recommendations";
+export * from "./recommendation-outcomes";
+export * from "./trade-graph-edges";
+export * from "./dead-letter-jobs";

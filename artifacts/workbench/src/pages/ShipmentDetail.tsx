@@ -8,6 +8,9 @@ import {
   useGetShipmentEvents,
   useGetShipmentDocuments,
   useGetShipmentCorrections,
+  useListShipmentRecommendations,
+  useRespondToRecommendation,
+  useTriggerShipmentAnalysis,
 } from "@workspace/api-client-react";
 import { useShipmentActions } from "@/hooks/use-shipment-actions";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -32,6 +35,8 @@ import {
   Receipt,
   AlertCircle,
   BarChart3,
+  Radar,
+  RefreshCw,
 } from "lucide-react";
 import {
   normalizeRiskScore,
@@ -98,6 +103,9 @@ export default function ShipmentDetail() {
   const { data: eventsRes } = useGetShipmentEvents(id);
   const { data: docsRes } = useGetShipmentDocuments(id);
   const { data: correctionsRes } = useGetShipmentCorrections(id);
+  const { data: recsRes, refetch: refetchRecs } = useListShipmentRecommendations(id);
+  const respondMutation = useRespondToRecommendation();
+  const analyzeMutation = useTriggerShipmentAnalysis();
 
   const { approve, reject, updateFields } = useShipmentActions(id);
 
@@ -321,6 +329,88 @@ export default function ShipmentDetail() {
           </div>
 
           <div className="space-y-4">
+            {(() => {
+              const recs = (recsRes?.data || []) as any[];
+              if (recs.length === 0 && !analyzeMutation.isPending) return null;
+              return (
+                <div className="p-4 rounded-xl bg-card border border-card-border">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Radar className="w-4 h-4 text-primary" />
+                      <h3 className="text-[13px] font-semibold text-foreground">
+                        AI Recommendations
+                        {recs.length > 0 && (
+                          <span className="ml-1.5 text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                            {recs.filter((r: any) => r.status === "PENDING" || r.status === "SHOWN").length}
+                          </span>
+                        )}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => analyzeMutation.mutate({ id }, { onSuccess: () => { setTimeout(() => refetchRecs(), 2000); } })}
+                      disabled={analyzeMutation.isPending}
+                      className="flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <RefreshCw size={12} className={analyzeMutation.isPending ? "animate-spin" : ""} />
+                      {analyzeMutation.isPending ? "Analyzing..." : "Re-analyze"}
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {recs.map((rec: any) => {
+                      const isPending = rec.status === "PENDING" || rec.status === "SHOWN";
+                      const urgencyBorder = rec.urgency === "CRITICAL" ? "border-red-500/30 bg-red-500/5" :
+                        rec.urgency === "HIGH" ? "border-amber-500/30 bg-amber-500/5" :
+                        rec.urgency === "MEDIUM" ? "border-yellow-500/30 bg-yellow-500/5" : "border-white/10 bg-white/[0.02]";
+                      const urgencyBadge = rec.urgency === "CRITICAL" ? "bg-red-500/20 text-red-300" :
+                        rec.urgency === "HIGH" ? "bg-amber-500/20 text-amber-300" :
+                        rec.urgency === "MEDIUM" ? "bg-yellow-500/20 text-yellow-300" : "bg-blue-500/20 text-blue-300";
+                      return (
+                        <div key={rec.id} className={`border rounded-lg p-3 ${urgencyBorder}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[12px] font-medium text-foreground">{rec.title}</span>
+                                <span className={`px-1 py-0.5 text-[9px] font-bold uppercase rounded ${urgencyBadge}`}>
+                                  {rec.urgency}
+                                </span>
+                                {!isPending && (
+                                  <span className="px-1 py-0.5 text-[9px] uppercase rounded bg-white/10 text-white/50">
+                                    {rec.status}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{rec.explanation}</p>
+                              <div className="flex gap-2 mt-1 text-[10px] text-muted-foreground/60">
+                                <span>Confidence: {(rec.confidence * 100).toFixed(0)}%</span>
+                                {rec.expectedDelayImpactDays != null && <span>Delay: +{rec.expectedDelayImpactDays}d</span>}
+                                {rec.expectedRiskReduction != null && <span>Risk: -{rec.expectedRiskReduction}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          {isPending && (
+                            <div className="flex gap-1.5 mt-2">
+                              <button
+                                onClick={() => respondMutation.mutate({ id: rec.id, data: { action: "ACCEPTED" } }, { onSuccess: () => refetchRecs() })}
+                                className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/20 text-emerald-300 rounded hover:bg-emerald-500/30 border border-emerald-500/30"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                onClick={() => respondMutation.mutate({ id: rec.id, data: { action: "REJECTED" } }, { onSuccess: () => refetchRecs() })}
+                                className="px-2 py-0.5 text-[10px] font-medium bg-red-500/20 text-red-300 rounded hover:bg-red-500/30 border border-red-500/30"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             {compliance && (
               <div className="p-4 rounded-xl bg-card border border-card-border">
                 <div className="flex items-center gap-2 mb-3">

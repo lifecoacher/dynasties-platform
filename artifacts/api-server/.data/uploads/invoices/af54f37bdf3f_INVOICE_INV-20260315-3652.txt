@@ -1,0 +1,46 @@
+═══════════════════════════════════════════════════
+                    INVOICE
+═══════════════════════════════════════════════════
+
+Invoice Number: INV-20260315-3652
+Date: March 15, 2026
+Shipment Reference: DYN-2026-00201
+B/L Number: HLCU2847561
+
+── BILL TO ─────────────────────────────────────────
+  Singapore Industrial Solutions Pte. Ltd.
+  31 Jurong Port Road, Singapore 619115
+  
+
+── SHIPMENT DETAILS ────────────────────────────────
+  DEHAM (Hamburg, Germany) → SGSIN (Singapore)
+  Vessel: HAPAG LONDON EXPRESS / 112S
+  Commodity: Industrial Machinery Parts: CNC Milling Machine Components, Precision Ball Bearings, Hydraulic Pump Assemblies
+  Weight: 14500 KG
+
+── CHARGES ─────────────────────────────────────────
+
+  Code       Description                    Qty    Unit Price     Total         
+  ────────── ────────────────────────────── ────── ────────────── ──────────────
+  FRT        Ocean Freight                  1      USD 1282.50    USD 1282.50
+  DOC        Documentation Fee              1      USD 75.00      USD 75.00
+  AMS        AMS Filing Fee                 1      USD 35.00      USD 35.00
+  ISF        ISF Filing Fee                 1      USD 50.00      USD 50.00
+  THC-O      Terminal Handling - Origin     1      USD 174.00     USD 174.00
+  THC-D      Terminal Handling - Destination 1      USD 217.50     USD 217.50
+  INS        Cargo Insurance - ALL_RISK     1      USD 4060.00    USD 4060.00
+  BAF        Bunker Adjustment Factor       1      USD 89.78      USD 89.78
+  CAF        Currency Adjustment Factor     1      USD 64.13      USD 64.13
+  HZD        Hazardous Material Handling (Hydraulic Fluids) 122    USD 12.50      USD 1525.00
+  EXS        Equipment Surcharge - Heavy Machinery 1      USD 150.00     USD 150.00
+  CFS        Container Freight Station Charge - Origin 1      USD 275.00     USD 275.00
+  SGP        Singapore Port Security/Surcharge 1      USD 85.00      USD 85.00
+  OTH        Precision Packaging/Securing Surcharge 14.5   USD 28.00      USD 406.00
+
+                                                           Subtotal:      USD 8488.91
+                                                           TOTAL:         USD 8488.91
+
+── PAYMENT TERMS ───────────────────────────────────
+  Net 30 days from invoice date
+
+═══════════════════════════════════════════════════

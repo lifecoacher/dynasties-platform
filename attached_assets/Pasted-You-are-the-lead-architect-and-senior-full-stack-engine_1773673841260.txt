@@ -1,0 +1,224 @@
+You are the lead architect and senior full-stack engineer for Dynasties, a multi-tenant AI logistics and freight intelligence platform.
+
+Your task is to immediately upgrade the platform from a document-processing workflow app into the foundation of an AI logistics decision engine.
+
+Work directly in the existing codebase. Do not create a disconnected prototype. Implement production-grade code, migrations, APIs, backend services, and UI updates inside the current system.
+
+CONTEXT
+
+Dynasties already has modules/services for:
+- document extraction
+- email ingestion
+- entity resolution
+- shipment construction
+- compliance screening
+- risk intelligence
+- insurance
+- pricing
+- document generation
+- billing
+- exception management
+- trade-lane intelligence
+- claims management
+
+The current goal is to make Dynasties capable of:
+1. building a canonical trade intelligence graph
+2. generating operational recommendations, not just analysis
+3. learning from operator decisions and shipment outcomes
+4. becoming production-ready and durable
+
+PRIORITIES
+
+Execute in this exact order:
+
+PHASE 1 — PRODUCTION HARDENING
+PHASE 2 — CANONICAL TRADE GRAPH DATA MODEL
+PHASE 3 — DECISION ENGINE
+PHASE 4 — FEEDBACK / LEARNING LOOP
+PHASE 5 — OPERATOR CONTROL TOWER UI
+
+PHASE 1 — PRODUCTION HARDENING
+
+Replace any in-memory / EventEmitter queue implementation with a durable queue architecture suitable for production. Use the already-provisioned AWS-style queue architecture pattern.
+
+Implement:
+- durable async job publishing
+- worker consumers
+- retry logic
+- dead-letter queue support
+- idempotency protection for duplicate jobs
+
+Wrap all multi-step database write operations in transactions.
+
+Replace any local filesystem upload/storage behavior with cloud object storage abstraction suitable for containerized deployment.
+
+Harden multi-tenant boundaries:
+- fix all cross-tenant admin exposure risks
+- ensure tenant/company scoping is enforced everywhere
+- restrict admin actions to the tenant unless a true super-admin role is explicitly introduced
+
+Add:
+- runtime request validation
+- rate limiting on sensitive endpoints
+- structured logging
+- global error handling
+- test coverage for core pipeline flows
+
+PHASE 2 — CANONICAL TRADE GRAPH DATA MODEL
+
+Implement a normalized canonical data model and migrations for the following entities if they do not already exist in sufficient form:
+
+Core entities:
+- shipper
+- consignee
+- freight_forwarder
+- carrier
+- vessel
+- port
+- trade_lane
+- commodity_hs_code
+- insurer
+- shipment
+- claim
+- inspection_event
+- recommendation
+- recommendation_outcome
+
+Create relationship/edge tables or equivalent relational structures so Dynasties can represent a trade intelligence graph.
+
+Examples of relationships:
+- shipper uses carrier
+- shipment routed via port
+- shipment belongs to trade lane
+- commodity moved on lane
+- shipment insured by insurer
+- claim occurred on shipment
+- carrier performance observed on lane
+- exception occurred with carrier or port
+
+Requirements:
+- use a graph-friendly relational model
+- include timestamps and tenant/company scoping
+- include confidence/source metadata where useful
+- preserve compatibility with the current shipment pipeline
+
+PHASE 3 — DECISION ENGINE
+
+Create a new backend service/module called something like decision-engine.
+
+Its job is to consume outputs from:
+- shipment construction
+- compliance screening
+- risk intelligence
+- insurance
+- pricing
+- trade-lane intelligence
+- exceptions
+
+For each shipment, generate structured recommendations such as:
+- carrier switch
+- route adjustment
+- insurance adjustment
+- compliance escalation
+- delay warning
+- pricing/margin warning
+- document correction urgency
+
+Every recommendation must include:
+- recommendation id
+- shipment id
+- tenant/company id
+- recommendation type
+- title
+- explanation
+- machine-readable reason codes
+- confidence score
+- urgency
+- expected delay impact
+- expected margin impact
+- expected risk reduction
+- recommended action
+- created at
+- status
+
+Recommendation generation should be deterministic-first where possible, with AI-generated explanation layered on top only where needed.
+
+Expose recommendations through API endpoints and wire them into the current shipment lifecycle.
+
+PHASE 4 — FEEDBACK / LEARNING LOOP
+
+Implement full recommendation outcome tracking.
+
+Create a recommendation_outcomes model/table and logic to record:
+- recommendation shown to operator
+- accepted
+- modified
+- rejected
+- implemented
+- final shipment outcome
+- actual delay result
+- actual claim result
+- actual cost delta
+- actual margin delta
+- post-decision notes
+- timestamped actor history
+
+Add event logging so Dynasties can later evaluate:
+- which recommendations are trusted
+- which recommendations improve outcomes
+- which carriers/ports/lanes systematically underperform
+- which decision patterns create better results
+
+Important:
+Do not build model retraining yet unless it is already easy to support.
+Instead, build the data exhaust and analytics foundation required for future learning.
+
+PHASE 5 — OPERATOR CONTROL TOWER UI
+
+Upgrade the frontend/workbench UI so the operator experience becomes an action console rather than a passive record viewer.
+
+Add a control tower view with panels/widgets for:
+- shipments needing intervention
+- high-urgency recommendations
+- compliance escalations
+- delay-risk alerts
+- margin-risk alerts
+- claims/issues requiring action
+- lane/carrier risk summaries
+
+Each shipment detail screen should prominently display:
+- current status
+- recommendation feed
+- confidence/urgency
+- expected impact
+- approve / modify / reject actions
+- outcome history
+
+UX GOAL
+
+The product should feel like an AI logistics operations command center, not just a CRUD dashboard.
+
+IMPLEMENTATION RULES
+
+- Use the existing stack and patterns wherever sensible
+- Keep code production-grade and coherent with the current architecture
+- Add database migrations
+- Add or update API schemas/types
+- Add tests for core flows
+- Do not use fake placeholders unless absolutely necessary
+- If any current architecture blocks these goals, refactor it cleanly
+- Preserve backward compatibility where possible, but favor correctness over hacks
+
+DELIVERABLES
+
+At the end, provide:
+1. a summary of what was implemented
+2. a list of migrations added
+3. new services/modules created
+4. API endpoints added or changed
+5. UI screens/components added or changed
+6. remaining gaps / technical debt
+7. exact next recommended build phase after this
+
+Start immediately with PHASE 1 and continue sequentially.
+Do not stop after analysis. Make the code changes.

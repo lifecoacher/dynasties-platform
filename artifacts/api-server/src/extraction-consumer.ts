@@ -10,6 +10,8 @@ import {
   registerExceptionConsumer,
   registerTradeLaneConsumer,
   registerClaimsConsumer,
+  registerDecisionConsumer,
+  setDlqPersistHandler,
 } from "@workspace/queue";
 import type {
   ExtractionJob,
@@ -23,6 +25,7 @@ import type {
   ExceptionJob,
   TradeLaneJob,
   ClaimsJob,
+  DecisionJob,
 } from "@workspace/queue";
 import { processExtractionJob } from "@workspace/svc-document-extraction";
 import { runShipmentPipeline } from "@workspace/svc-shipment-construction";
@@ -35,8 +38,61 @@ import { runBilling } from "@workspace/svc-billing";
 import { runExceptionDetection } from "@workspace/svc-exception-management";
 import { runTradeLaneUpdate } from "@workspace/svc-trade-lane-intelligence";
 import { runClaimPreparation } from "@workspace/svc-claims-management";
+import { runDecisionEngine } from "@workspace/svc-decision-engine";
+import { db } from "@workspace/db";
+import {
+  deadLetterJobsTable,
+  complianceScreeningsTable,
+  riskScoresTable,
+  insuranceQuotesTable,
+} from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
+import { generateId } from "@workspace/shared-utils";
+import { publishDecisionJob } from "@workspace/queue";
+
+async function tryTriggerDecisionEngine(shipmentId: string, companyId: string): Promise<void> {
+  const [compliance] = await db
+    .select({ id: complianceScreeningsTable.id })
+    .from(complianceScreeningsTable)
+    .where(eq(complianceScreeningsTable.shipmentId, shipmentId))
+    .limit(1);
+
+  const [risk] = await db
+    .select({ id: riskScoresTable.id })
+    .from(riskScoresTable)
+    .where(eq(riskScoresTable.shipmentId, shipmentId))
+    .limit(1);
+
+  const [insurance] = await db
+    .select({ id: insuranceQuotesTable.id })
+    .from(insuranceQuotesTable)
+    .where(eq(insuranceQuotesTable.shipmentId, shipmentId))
+    .limit(1);
+
+  if (compliance && risk && insurance) {
+    console.log(`[consumer] M4 complete for shipment=${shipmentId}, triggering decision engine`);
+    publishDecisionJob({ companyId, shipmentId, trigger: "m4_complete" });
+  }
+}
 
 export function startConsumers(): void {
+  setDlqPersistHandler(async (entry) => {
+    try {
+      await db.insert(deadLetterJobsTable).values({
+        id: generateId(),
+        queueName: entry.queueName,
+        jobBody: entry.jobBody,
+        errorMessage: entry.errorMessage,
+        errorStack: entry.errorStack || null,
+        attemptCount: entry.attemptCount,
+        status: "FAILED",
+      });
+      console.log(`[dlq] persisted failed job from ${entry.queueName}`);
+    } catch (err) {
+      console.error(`[dlq] failed to persist:`, err);
+    }
+  });
+
   registerExtractionConsumer(async (job: ExtractionJob) => {
     await processExtractionJob(job);
   });
@@ -60,6 +116,7 @@ export function startConsumers(): void {
       console.log(
         `[consumer] compliance complete: shipment=${job.shipmentId} status=${result.status} matches=${result.matchCount}`,
       );
+      await tryTriggerDecisionEngine(job.shipmentId, job.companyId);
     } else {
       console.log(`[consumer] compliance failed: ${result.error}`);
     }
@@ -72,6 +129,7 @@ export function startConsumers(): void {
       console.log(
         `[consumer] risk complete: shipment=${job.shipmentId} score=${result.compositeScore} action=${result.recommendedAction}`,
       );
+      await tryTriggerDecisionEngine(job.shipmentId, job.companyId);
     } else {
       console.log(`[consumer] risk failed: ${result.error}`);
     }
@@ -84,6 +142,7 @@ export function startConsumers(): void {
       console.log(
         `[consumer] insurance complete: shipment=${job.shipmentId} coverage=${result.coverageType} premium=${result.estimatedPremium}`,
       );
+      await tryTriggerDecisionEngine(job.shipmentId, job.companyId);
     } else {
       console.log(`[consumer] insurance failed: ${result.error}`);
     }
@@ -161,4 +220,16 @@ export function startConsumers(): void {
     }
   });
   console.log("[consumer] claims job consumer registered");
+
+  registerDecisionConsumer(async (job: DecisionJob) => {
+    const result = await runDecisionEngine(job.shipmentId, job.companyId);
+    if (result.success) {
+      console.log(
+        `[consumer] decision-engine complete: shipment=${job.shipmentId} recommendations=${result.recommendationsCreated} edges=${result.graphEdgesCreated}`,
+      );
+    } else {
+      console.log(`[consumer] decision-engine failed: ${result.error}`);
+    }
+  });
+  console.log("[consumer] decision-engine consumer registered");
 }

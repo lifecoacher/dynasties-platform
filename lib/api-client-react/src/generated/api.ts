@@ -54,15 +54,23 @@ import type {
   ListEventsParams,
   ListExceptions200,
   ListInvoices200,
+  ListPendingRecommendations200,
   ListRateTables200,
+  ListRecommendationOutcomes200,
+  ListShipmentRecommendations200,
   ListShipments200,
   ListTradeLanes200,
   ListUsers200,
   Login200,
   LoginRequest,
   ReadinessCheck200,
+  RecordRecommendationOutcome200,
+  RecordRecommendationOutcomeBody,
   RejectShipment200,
   RejectShipmentBody,
+  RespondToRecommendation200,
+  RespondToRecommendationBody,
+  TriggerShipmentAnalysis200,
   UpdateClaim200,
   UpdateClaimBody,
   UpdateException,
@@ -3477,3 +3485,535 @@ export const useCreateRateTableEntry = <
 > => {
   return useMutation(getCreateRateTableEntryMutationOptions(options));
 };
+
+/**
+ * @summary List recommendations for a shipment
+ */
+export const getListShipmentRecommendationsUrl = (id: string) => {
+  return `/api/shipments/${id}/recommendations`;
+};
+
+export const listShipmentRecommendations = async (
+  id: string,
+  options?: RequestInit,
+): Promise<ListShipmentRecommendations200> => {
+  return customFetch<ListShipmentRecommendations200>(
+    getListShipmentRecommendationsUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListShipmentRecommendationsQueryKey = (id: string) => {
+  return [`/api/shipments/${id}/recommendations`] as const;
+};
+
+export const getListShipmentRecommendationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listShipmentRecommendations>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listShipmentRecommendations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListShipmentRecommendationsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listShipmentRecommendations>>
+  > = ({ signal }) =>
+    listShipmentRecommendations(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listShipmentRecommendations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListShipmentRecommendationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listShipmentRecommendations>>
+>;
+export type ListShipmentRecommendationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List recommendations for a shipment
+ */
+
+export function useListShipmentRecommendations<
+  TData = Awaited<ReturnType<typeof listShipmentRecommendations>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listShipmentRecommendations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListShipmentRecommendationsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Trigger decision engine analysis for a shipment
+ */
+export const getTriggerShipmentAnalysisUrl = (id: string) => {
+  return `/api/shipments/${id}/analyze`;
+};
+
+export const triggerShipmentAnalysis = async (
+  id: string,
+  options?: RequestInit,
+): Promise<TriggerShipmentAnalysis200> => {
+  return customFetch<TriggerShipmentAnalysis200>(
+    getTriggerShipmentAnalysisUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getTriggerShipmentAnalysisMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerShipmentAnalysis>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof triggerShipmentAnalysis>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["triggerShipmentAnalysis"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof triggerShipmentAnalysis>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return triggerShipmentAnalysis(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TriggerShipmentAnalysisMutationResult = NonNullable<
+  Awaited<ReturnType<typeof triggerShipmentAnalysis>>
+>;
+
+export type TriggerShipmentAnalysisMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Trigger decision engine analysis for a shipment
+ */
+export const useTriggerShipmentAnalysis = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerShipmentAnalysis>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof triggerShipmentAnalysis>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getTriggerShipmentAnalysisMutationOptions(options));
+};
+
+/**
+ * @summary List all pending recommendations
+ */
+export const getListPendingRecommendationsUrl = () => {
+  return `/api/recommendations/pending`;
+};
+
+export const listPendingRecommendations = async (
+  options?: RequestInit,
+): Promise<ListPendingRecommendations200> => {
+  return customFetch<ListPendingRecommendations200>(
+    getListPendingRecommendationsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListPendingRecommendationsQueryKey = () => {
+  return [`/api/recommendations/pending`] as const;
+};
+
+export const getListPendingRecommendationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPendingRecommendations>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPendingRecommendations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPendingRecommendationsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPendingRecommendations>>
+  > = ({ signal }) => listPendingRecommendations({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPendingRecommendations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPendingRecommendationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPendingRecommendations>>
+>;
+export type ListPendingRecommendationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all pending recommendations
+ */
+
+export function useListPendingRecommendations<
+  TData = Awaited<ReturnType<typeof listPendingRecommendations>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPendingRecommendations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPendingRecommendationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Accept, modify, or reject a recommendation
+ */
+export const getRespondToRecommendationUrl = (id: string) => {
+  return `/api/recommendations/${id}/respond`;
+};
+
+export const respondToRecommendation = async (
+  id: string,
+  respondToRecommendationBody: RespondToRecommendationBody,
+  options?: RequestInit,
+): Promise<RespondToRecommendation200> => {
+  return customFetch<RespondToRecommendation200>(
+    getRespondToRecommendationUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(respondToRecommendationBody),
+    },
+  );
+};
+
+export const getRespondToRecommendationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof respondToRecommendation>>,
+    TError,
+    { id: string; data: BodyType<RespondToRecommendationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof respondToRecommendation>>,
+  TError,
+  { id: string; data: BodyType<RespondToRecommendationBody> },
+  TContext
+> => {
+  const mutationKey = ["respondToRecommendation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof respondToRecommendation>>,
+    { id: string; data: BodyType<RespondToRecommendationBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return respondToRecommendation(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RespondToRecommendationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof respondToRecommendation>>
+>;
+export type RespondToRecommendationMutationBody =
+  BodyType<RespondToRecommendationBody>;
+export type RespondToRecommendationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Accept, modify, or reject a recommendation
+ */
+export const useRespondToRecommendation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof respondToRecommendation>>,
+    TError,
+    { id: string; data: BodyType<RespondToRecommendationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof respondToRecommendation>>,
+  TError,
+  { id: string; data: BodyType<RespondToRecommendationBody> },
+  TContext
+> => {
+  return useMutation(getRespondToRecommendationMutationOptions(options));
+};
+
+/**
+ * @summary Record the actual outcome of a recommendation
+ */
+export const getRecordRecommendationOutcomeUrl = (id: string) => {
+  return `/api/recommendations/${id}/outcome`;
+};
+
+export const recordRecommendationOutcome = async (
+  id: string,
+  recordRecommendationOutcomeBody: RecordRecommendationOutcomeBody,
+  options?: RequestInit,
+): Promise<RecordRecommendationOutcome200> => {
+  return customFetch<RecordRecommendationOutcome200>(
+    getRecordRecommendationOutcomeUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(recordRecommendationOutcomeBody),
+    },
+  );
+};
+
+export const getRecordRecommendationOutcomeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordRecommendationOutcome>>,
+    TError,
+    { id: string; data: BodyType<RecordRecommendationOutcomeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordRecommendationOutcome>>,
+  TError,
+  { id: string; data: BodyType<RecordRecommendationOutcomeBody> },
+  TContext
+> => {
+  const mutationKey = ["recordRecommendationOutcome"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordRecommendationOutcome>>,
+    { id: string; data: BodyType<RecordRecommendationOutcomeBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return recordRecommendationOutcome(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordRecommendationOutcomeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordRecommendationOutcome>>
+>;
+export type RecordRecommendationOutcomeMutationBody =
+  BodyType<RecordRecommendationOutcomeBody>;
+export type RecordRecommendationOutcomeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Record the actual outcome of a recommendation
+ */
+export const useRecordRecommendationOutcome = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordRecommendationOutcome>>,
+    TError,
+    { id: string; data: BodyType<RecordRecommendationOutcomeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordRecommendationOutcome>>,
+  TError,
+  { id: string; data: BodyType<RecordRecommendationOutcomeBody> },
+  TContext
+> => {
+  return useMutation(getRecordRecommendationOutcomeMutationOptions(options));
+};
+
+/**
+ * @summary List outcomes for a recommendation
+ */
+export const getListRecommendationOutcomesUrl = (id: string) => {
+  return `/api/recommendations/${id}/outcomes`;
+};
+
+export const listRecommendationOutcomes = async (
+  id: string,
+  options?: RequestInit,
+): Promise<ListRecommendationOutcomes200> => {
+  return customFetch<ListRecommendationOutcomes200>(
+    getListRecommendationOutcomesUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListRecommendationOutcomesQueryKey = (id: string) => {
+  return [`/api/recommendations/${id}/outcomes`] as const;
+};
+
+export const getListRecommendationOutcomesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRecommendationOutcomes>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRecommendationOutcomes>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListRecommendationOutcomesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listRecommendationOutcomes>>
+  > = ({ signal }) =>
+    listRecommendationOutcomes(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRecommendationOutcomes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRecommendationOutcomesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRecommendationOutcomes>>
+>;
+export type ListRecommendationOutcomesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List outcomes for a recommendation
+ */
+
+export function useListRecommendationOutcomes<
+  TData = Awaited<ReturnType<typeof listRecommendationOutcomes>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRecommendationOutcomes>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRecommendationOutcomesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

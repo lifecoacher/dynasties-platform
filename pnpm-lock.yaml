@@ -202,6 +202,9 @@ importers:
       '@workspace/svc-compliance-screening':
         specifier: workspace:*
         version: link:../../services/compliance-screening
+      '@workspace/svc-decision-engine':
+        specifier: workspace:*
+        version: link:../../services/decision-engine
       '@workspace/svc-document-extraction':
         specifier: workspace:*
         version: link:../../services/document-extraction
@@ -859,6 +862,28 @@ importers:
       '@workspace/integrations-anthropic-ai':
         specifier: workspace:*
         version: link:../../lib/integrations-anthropic-ai
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+
+  services/decision-engine:
+    dependencies:
+      '@workspace/config':
+        specifier: workspace:*
+        version: link:../../lib/config
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
       '@workspace/shared-utils':
         specifier: workspace:*
         version: link:../../lib/shared-utils

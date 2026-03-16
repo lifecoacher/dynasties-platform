@@ -9,6 +9,7 @@ import {
   Zap,
   LogOut,
   ChevronRight,
+  Radar,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
@@ -16,6 +17,7 @@ import { useListShipments } from "@workspace/api-client-react";
 const NAV_ITEMS = [
   { href: "/", icon: Command, label: "Command Center" },
   { href: "/shipments", icon: Ship, label: "Shipments" },
+  { href: "/control-tower", icon: Radar, label: "Control Tower" },
   { href: "/customers", icon: Users, label: "Customers" },
   { href: "/intelligence", icon: Brain, label: "Intelligence" },
   { href: "/settings", icon: Settings, label: "Settings" },

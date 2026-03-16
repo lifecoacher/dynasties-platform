@@ -898,6 +898,120 @@ export interface CreateUserRequest {
   companyId: string;
 }
 
+export type RecommendationType =
+  (typeof RecommendationType)[keyof typeof RecommendationType];
+
+export const RecommendationType = {
+  CARRIER_SWITCH: "CARRIER_SWITCH",
+  ROUTE_ADJUSTMENT: "ROUTE_ADJUSTMENT",
+  INSURANCE_ADJUSTMENT: "INSURANCE_ADJUSTMENT",
+  COMPLIANCE_ESCALATION: "COMPLIANCE_ESCALATION",
+  DELAY_WARNING: "DELAY_WARNING",
+  MARGIN_WARNING: "MARGIN_WARNING",
+  DOCUMENT_CORRECTION: "DOCUMENT_CORRECTION",
+  PRICING_ALERT: "PRICING_ALERT",
+  RISK_MITIGATION: "RISK_MITIGATION",
+} as const;
+
+export type RecommendationUrgency =
+  (typeof RecommendationUrgency)[keyof typeof RecommendationUrgency];
+
+export const RecommendationUrgency = {
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
+  CRITICAL: "CRITICAL",
+} as const;
+
+export type RecommendationStatus =
+  (typeof RecommendationStatus)[keyof typeof RecommendationStatus];
+
+export const RecommendationStatus = {
+  PENDING: "PENDING",
+  SHOWN: "SHOWN",
+  ACCEPTED: "ACCEPTED",
+  MODIFIED: "MODIFIED",
+  REJECTED: "REJECTED",
+  IMPLEMENTED: "IMPLEMENTED",
+  EXPIRED: "EXPIRED",
+} as const;
+
+export type RecommendationSourceData = { [key: string]: unknown } | null;
+
+export interface Recommendation {
+  id: string;
+  companyId: string;
+  shipmentId: string;
+  type: RecommendationType;
+  title: string;
+  explanation: string;
+  reasonCodes: string[];
+  confidence: number;
+  urgency: RecommendationUrgency;
+  expectedDelayImpactDays?: number | null;
+  expectedMarginImpactPct?: number | null;
+  expectedRiskReduction?: number | null;
+  recommendedAction: string;
+  status: RecommendationStatus;
+  sourceAgent: string;
+  sourceData?: RecommendationSourceData;
+  respondedAt?: string | null;
+  respondedBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type RecommendationOutcomeAction =
+  (typeof RecommendationOutcomeAction)[keyof typeof RecommendationOutcomeAction];
+
+export const RecommendationOutcomeAction = {
+  ACCEPTED: "ACCEPTED",
+  MODIFIED: "MODIFIED",
+  REJECTED: "REJECTED",
+  IMPLEMENTED: "IMPLEMENTED",
+  IGNORED: "IGNORED",
+} as const;
+
+export type RecommendationOutcomeActorType =
+  (typeof RecommendationOutcomeActorType)[keyof typeof RecommendationOutcomeActorType];
+
+export const RecommendationOutcomeActorType = {
+  USER: "USER",
+  SYSTEM: "SYSTEM",
+  AGENT: "AGENT",
+} as const;
+
+export type RecommendationOutcomeOutcomeEvaluation =
+  | (typeof RecommendationOutcomeOutcomeEvaluation)[keyof typeof RecommendationOutcomeOutcomeEvaluation]
+  | null;
+
+export const RecommendationOutcomeOutcomeEvaluation = {
+  POSITIVE: "POSITIVE",
+  NEUTRAL: "NEUTRAL",
+  NEGATIVE: "NEGATIVE",
+  PENDING: "PENDING",
+} as const;
+
+export interface RecommendationOutcome {
+  id: string;
+  companyId: string;
+  recommendationId: string;
+  shipmentId: string;
+  action: RecommendationOutcomeAction;
+  modificationNotes?: string | null;
+  actorId: string;
+  actorType: RecommendationOutcomeActorType;
+  actualDelayDays?: number | null;
+  actualClaimOccurred?: string | null;
+  actualCostDelta?: number | null;
+  actualMarginDelta?: number | null;
+  postDecisionNotes?: string | null;
+  outcomeEvaluation?: RecommendationOutcomeOutcomeEvaluation;
+  decidedAt: string;
+  evaluatedAt?: string | null;
+  createdAt: string;
+}
+
 export type ReadinessCheck200 = {
   status: string;
 };
@@ -1092,4 +1206,85 @@ export type ListRateTables200 = {
 
 export type CreateRateTableEntry201 = {
   data: RateTableEntry;
+};
+
+export type ListShipmentRecommendations200 = {
+  data: Recommendation[];
+};
+
+export type TriggerShipmentAnalysis200Data = {
+  message?: string;
+  shipmentId?: string;
+};
+
+export type TriggerShipmentAnalysis200 = {
+  data: TriggerShipmentAnalysis200Data;
+};
+
+export type ListPendingRecommendations200 = {
+  data: Recommendation[];
+};
+
+export type RespondToRecommendationBodyAction =
+  (typeof RespondToRecommendationBodyAction)[keyof typeof RespondToRecommendationBodyAction];
+
+export const RespondToRecommendationBodyAction = {
+  ACCEPTED: "ACCEPTED",
+  MODIFIED: "MODIFIED",
+  REJECTED: "REJECTED",
+} as const;
+
+export type RespondToRecommendationBody = {
+  action: RespondToRecommendationBodyAction;
+  modificationNotes?: string;
+};
+
+export type RespondToRecommendation200Data = {
+  id?: string;
+  status?: string;
+  action?: string;
+};
+
+export type RespondToRecommendation200 = {
+  data: RespondToRecommendation200Data;
+};
+
+export type RecordRecommendationOutcomeBodyActualClaimOccurred =
+  (typeof RecordRecommendationOutcomeBodyActualClaimOccurred)[keyof typeof RecordRecommendationOutcomeBodyActualClaimOccurred];
+
+export const RecordRecommendationOutcomeBodyActualClaimOccurred = {
+  YES: "YES",
+  NO: "NO",
+  PENDING: "PENDING",
+} as const;
+
+export type RecordRecommendationOutcomeBodyOutcomeEvaluation =
+  (typeof RecordRecommendationOutcomeBodyOutcomeEvaluation)[keyof typeof RecordRecommendationOutcomeBodyOutcomeEvaluation];
+
+export const RecordRecommendationOutcomeBodyOutcomeEvaluation = {
+  POSITIVE: "POSITIVE",
+  NEUTRAL: "NEUTRAL",
+  NEGATIVE: "NEGATIVE",
+} as const;
+
+export type RecordRecommendationOutcomeBody = {
+  actualDelayDays?: number;
+  actualClaimOccurred?: RecordRecommendationOutcomeBodyActualClaimOccurred;
+  actualCostDelta?: number;
+  actualMarginDelta?: number;
+  postDecisionNotes?: string;
+  outcomeEvaluation?: RecordRecommendationOutcomeBodyOutcomeEvaluation;
+};
+
+export type RecordRecommendationOutcome200Data = {
+  id?: string;
+  status?: string;
+};
+
+export type RecordRecommendationOutcome200 = {
+  data: RecordRecommendationOutcome200Data;
+};
+
+export type ListRecommendationOutcomes200 = {
+  data: RecommendationOutcome[];
 };

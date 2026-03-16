@@ -23,7 +23,7 @@ router.get("/healthz", async (_req, res) => {
   }
 
   const queueStats = getQueueStats();
-  const expectedConsumers = 11;
+  const expectedConsumers = 12;
   const activeConsumers = Object.entries(queueStats)
     .filter(([k, v]) => k.endsWith("Listeners") && v === 1)
     .length;

@@ -5,6 +5,7 @@ import documentsRouter from "./documents";
 import eventsRouter from "./events";
 import customersRouter from "./customers";
 import referenceRouter from "./reference";
+import recommendationsRouter from "./recommendations";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant } from "../middlewares/tenant.js";
 
@@ -21,5 +22,6 @@ router.use(entitiesRouter);
 router.use(documentsRouter);
 router.use(eventsRouter);
 router.use(customersRouter);
+router.use(recommendationsRouter);
 
 export default router;
