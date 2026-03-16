@@ -137,6 +137,9 @@ export default function ShipmentDetail() {
   const [modifyNotes, setModifyNotes] = useState("");
   const [outcomeRecId, setOutcomeRecId] = useState<string | null>(null);
   const [showDiff, setShowDiff] = useState(false);
+  const [predictiveRisk, setPredictiveRisk] = useState<any>(null);
+  const [readiness, setReadiness] = useState<any>(null);
+  const [evaluatingRisk, setEvaluatingRisk] = useState(false);
   const qc = useQueryClient();
 
   const BASE = `${import.meta.env.BASE_URL}api`;
@@ -182,6 +185,40 @@ export default function ShipmentDetail() {
       setHasChanges(false);
     }
   }, [shipment]);
+
+  useEffect(() => {
+    if (!id) return;
+    const token = getAuthToken();
+    const h = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    Promise.all([
+      fetch(`${BASE}/predictive/risk-report/${id}`, { headers: h }).then((r) => r.json()),
+      fetch(`${BASE}/predictive/readiness/${id}`, { headers: h }).then((r) => r.json()),
+    ]).then(([riskJson, readinessJson]) => {
+      setPredictiveRisk(riskJson.data);
+      setReadiness(readinessJson.data);
+    }).catch(() => {});
+  }, [id]);
+
+  const evaluatePreShipmentRisk = async () => {
+    setEvaluatingRisk(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${BASE}/predictive/risk-evaluation/${id}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const json = await res.json();
+      setPredictiveRisk(json.data);
+      const readinessRes = await fetch(`${BASE}/predictive/readiness/${id}`, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const readinessJson = await readinessRes.json();
+      setReadiness(readinessJson.data);
+    } catch (e) {
+      console.error("Risk evaluation failed", e);
+    }
+    setEvaluatingRisk(false);
+  };
 
   const handleFieldChange = (key: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -633,6 +670,108 @@ export default function ShipmentDetail() {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="p-4 rounded-xl bg-card border border-card-border">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-violet-400" />
+                  <h3 className="text-[13px] font-semibold text-foreground">Pre-Shipment Risk</h3>
+                </div>
+                <button
+                  onClick={evaluatePreShipmentRisk}
+                  disabled={evaluatingRisk}
+                  className="px-2 py-1 text-[10px] font-medium rounded bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 disabled:opacity-50 flex items-center gap-1 border border-violet-500/20"
+                >
+                  {evaluatingRisk ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  {predictiveRisk ? "Re-evaluate" : "Evaluate"}
+                </button>
+              </div>
+              {predictiveRisk ? (
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className={`text-2xl font-bold tabular-nums ${
+                      predictiveRisk.riskLevel === "CRITICAL" ? "text-red-400" :
+                      predictiveRisk.riskLevel === "HIGH" ? "text-orange-400" :
+                      predictiveRisk.riskLevel === "MODERATE" ? "text-yellow-400" : "text-emerald-400"
+                    }`}>
+                      {Math.round(predictiveRisk.overallRiskScore * 100)}
+                    </span>
+                    <div>
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                        predictiveRisk.riskLevel === "CRITICAL" ? "bg-red-500/10 text-red-400" :
+                        predictiveRisk.riskLevel === "HIGH" ? "bg-orange-500/10 text-orange-400" :
+                        predictiveRisk.riskLevel === "MODERATE" ? "bg-yellow-500/10 text-yellow-400" : "bg-emerald-500/10 text-emerald-400"
+                      }`}>{predictiveRisk.riskLevel}</span>
+                      {predictiveRisk.daysUntilDeparture != null && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{predictiveRisk.daysUntilDeparture}d to departure</p>
+                      )}
+                    </div>
+                  </div>
+                  {predictiveRisk.components && (
+                    <div className="space-y-1.5">
+                      {Object.entries(predictiveRisk.components).map(([key, comp]: [string, any]) => (
+                        <div key={key} className="flex items-center justify-between text-[10px]">
+                          <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${comp.score < 0.3 ? "bg-emerald-400" : comp.score < 0.6 ? "bg-amber-400" : "bg-red-400"}`}
+                                style={{ width: `${Math.min(comp.score * 100, 100)}%` }}
+                              />
+                            </div>
+                            <span className="font-mono w-5 text-right">{Math.round(comp.score * 100)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {predictiveRisk.mitigations && predictiveRisk.mitigations.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border">
+                      <p className="text-[10px] text-muted-foreground mb-1">Mitigations:</p>
+                      {predictiveRisk.mitigations.slice(0, 3).map((m: string, i: number) => (
+                        <p key={i} className="text-[10px] text-foreground leading-relaxed">• {m}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Click evaluate to assess pre-shipment risk</p>
+              )}
+            </div>
+
+            {readiness && readiness.shipmentId && (
+              <div className="p-4 rounded-xl bg-card border border-card-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <ClipboardCheck className="w-4 h-4 text-blue-400" />
+                  <h3 className="text-[13px] font-semibold text-foreground">Readiness</h3>
+                </div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className={`text-2xl font-bold tabular-nums ${
+                    readiness.readinessLevel === "READY" ? "text-emerald-400" :
+                    readiness.readinessLevel === "NEEDS_ATTENTION" ? "text-amber-400" : "text-red-400"
+                  }`}>
+                    {Math.round(readiness.overallScore * 100)}%
+                  </span>
+                  <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                    readiness.readinessLevel === "READY" ? "bg-emerald-500/10 text-emerald-400" :
+                    readiness.readinessLevel === "NEEDS_ATTENTION" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
+                  }`}>{readiness.readinessLevel?.replace(/_/g, " ")}</span>
+                </div>
+                {readiness.components && (
+                  <div className="space-y-1.5">
+                    {Object.entries(readiness.components).map(([key, comp]: [string, any]) => (
+                      <div key={key} className="flex items-center justify-between text-[10px]">
+                        <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
+                        <span className={`font-medium ${
+                          comp.status === "READY" ? "text-emerald-400" :
+                          comp.status === "NEEDS_ATTENTION" ? "text-amber-400" : "text-red-400"
+                        }`}>{Math.round(comp.score * 100)}%</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

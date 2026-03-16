@@ -12,6 +12,7 @@ import dossiersRouter from "./dossiers";
 import tasksRouter from "./tasks";
 import notificationsRouter from "./notifications";
 import orchestrationRouter from "./orchestration";
+import predictiveRouter from "./predictive";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant } from "../middlewares/tenant.js";
 
@@ -35,5 +36,6 @@ router.use(dossiersRouter);
 router.use(tasksRouter);
 router.use(notificationsRouter);
 router.use(orchestrationRouter);
+router.use(predictiveRouter);
 
 export default router;

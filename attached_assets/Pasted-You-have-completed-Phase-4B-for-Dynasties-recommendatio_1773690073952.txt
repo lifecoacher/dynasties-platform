@@ -1,0 +1,128 @@
+You have completed Phase 4B for Dynasties:
+- recommendation policy engine
+- auto task creation
+- SLA escalation
+- notification feed
+- auto prioritization
+- workflow analytics
+- orchestration UI
+- tests
+
+Now implement Phase 5A: Predictive Intelligence and Pre-Shipment Risk Detection.
+
+Goal:
+Extend Dynasties from reactive shipment management to predictive operational intelligence by evaluating planned shipments and forecasting disruption risk before shipments depart.
+
+PRIORITIES
+
+1. Pre-shipment risk evaluation
+2. Predictive disruption warnings
+3. Shipment readiness scoring
+4. Early recommendation generation
+5. Predictive analytics view
+6. Historical pattern analysis
+7. Tests
+
+1. PRE-SHIPMENT RISK EVALUATION
+
+Add support for evaluating shipments in pre-departure states.
+
+Create a deterministic evaluation that combines:
+- lane stress score
+- port congestion score
+- disruption risk
+- weather exposure window
+- carrier reliability score
+- entity compliance risk
+
+Produce a structured pre-shipment risk report including:
+- overall risk score
+- component scores
+- mitigation suggestions
+
+2. PREDICTIVE DISRUPTION WARNINGS
+
+Implement trend detection using intelligence history.
+
+Examples:
+- congestion trend increasing over N intervals
+- repeated disruptions in a lane within time window
+- weather forecast intersecting ports within upcoming days
+
+Generate predictive alerts when thresholds are exceeded.
+
+3. SHIPMENT READINESS SCORING
+
+Introduce a shipment readiness score.
+
+Components may include:
+- documentation completeness
+- compliance risk
+- lane stress
+- carrier risk
+- weather/disruption exposure
+
+Expose readiness score in ShipmentDetail and Control Tower.
+
+4. EARLY RECOMMENDATION GENERATION
+
+Allow the decision engine to generate recommendations before ETD.
+
+Examples:
+- delay departure
+- change carrier
+- reroute shipment
+- escalate compliance review
+- adjust insurance coverage
+
+Ensure these recommendations integrate with the existing policy engine and task orchestration layer.
+
+5. PREDICTIVE ANALYTICS VIEW
+
+Extend analytics to show:
+- upcoming shipment risk distribution
+- congestion trend indicators
+- disruption probability by lane
+- carrier reliability trend
+
+Add a Predictive tab or panel.
+
+6. HISTORICAL PATTERN ANALYSIS
+
+Use existing intelligence snapshots and outcomes to compute:
+- average delays by lane
+- disruption frequency by port
+- carrier performance trends
+- entity compliance incident rates
+
+Persist these metrics and expose them through APIs.
+
+7. TESTS
+
+Add tests for:
+- pre-shipment risk scoring
+- predictive alert generation
+- readiness scoring
+- early recommendation generation
+- predictive analytics aggregations
+- UI rendering for predictive panels
+
+IMPLEMENTATION RULES
+
+- production-grade code only
+- deterministic trend detection
+- reuse existing scoring and intelligence data
+- maintain tenant safety
+- avoid heavy ML models at this stage
+
+DELIVERABLES
+
+Provide:
+1. files changed
+2. migrations added
+3. predictive scoring models
+4. predictive alert rules
+5. UI additions
+6. APIs added
+7. tests added and passing
+8. remaining gaps before Phase 5B
