@@ -93,6 +93,20 @@ export interface DecisionJob {
   trigger: "m4_complete" | "exception_detected" | "manual";
 }
 
+export interface IngestionJob {
+  sourceId: string;
+  sourceType: string;
+  companyId: string | null;
+  trigger: "scheduled" | "manual" | "webhook";
+}
+
+export interface IntelligenceLinkingJob {
+  companyId: string;
+  sourceType: string;
+  recordIds: string[];
+  ingestionRunId: string;
+}
+
 type ExtractionHandler = (job: ExtractionJob) => Promise<void>;
 type PipelineHandler = (job: ShipmentPipelineJob) => Promise<void>;
 type ComplianceHandler = (job: ComplianceJob) => Promise<void>;
@@ -105,6 +119,8 @@ type ExceptionHandler = (job: ExceptionJob) => Promise<void>;
 type TradeLaneHandler = (job: TradeLaneJob) => Promise<void>;
 type ClaimsHandler = (job: ClaimsJob) => Promise<void>;
 type DecisionHandler = (job: DecisionJob) => Promise<void>;
+type IngestionHandler = (job: IngestionJob) => Promise<void>;
+type IntelligenceLinkingHandler = (job: IntelligenceLinkingJob) => Promise<void>;
 
 interface QueueMessage<T> {
   id: string;
@@ -243,6 +259,8 @@ const EXCEPTION_QUEUE = "exception-jobs";
 const TRADE_LANE_QUEUE = "trade-lane-jobs";
 const CLAIMS_QUEUE = "claims-jobs";
 const DECISION_QUEUE = "decision-jobs";
+const INGESTION_QUEUE = "ingestion-jobs";
+const INTELLIGENCE_LINKING_QUEUE = "intelligence-linking-jobs";
 
 let extractionWrapper: ((job: ExtractionJob) => void) | null = null;
 let pipelineWrapper: ((job: ShipmentPipelineJob) => void) | null = null;
@@ -256,6 +274,8 @@ let exceptionWrapper: ((job: ExceptionJob) => void) | null = null;
 let tradeLaneWrapper: ((job: TradeLaneJob) => void) | null = null;
 let claimsWrapper: ((job: ClaimsJob) => void) | null = null;
 let decisionWrapper: ((job: DecisionJob) => void) | null = null;
+let ingestionWrapper: ((job: IngestionJob) => void) | null = null;
+let intelligenceLinkingWrapper: ((job: IntelligenceLinkingJob) => void) | null = null;
 
 function wrapWithRetry<T>(
   queueName: string,
@@ -365,6 +385,14 @@ export function registerDecisionConsumer(fn: DecisionHandler): void {
   decisionWrapper = registerConsumer(DECISION_QUEUE, fn, decisionWrapper);
 }
 
+export function registerIngestionConsumer(fn: IngestionHandler): void {
+  ingestionWrapper = registerConsumer(INGESTION_QUEUE, fn, ingestionWrapper);
+}
+
+export function registerIntelligenceLinkingConsumer(fn: IntelligenceLinkingHandler): void {
+  intelligenceLinkingWrapper = registerConsumer(INTELLIGENCE_LINKING_QUEUE, fn, intelligenceLinkingWrapper);
+}
+
 async function publish(queueName: string, job: Record<string, unknown>): Promise<void> {
   const client = await getSqs();
   if (client) {
@@ -428,6 +456,14 @@ export function publishDecisionJob(job: DecisionJob): void {
   publish(DECISION_QUEUE, job as unknown as Record<string, unknown>);
 }
 
+export function publishIngestionJob(job: IngestionJob): void {
+  publish(INGESTION_QUEUE, job as unknown as Record<string, unknown>);
+}
+
+export function publishIntelligenceLinkingJob(job: IntelligenceLinkingJob): void {
+  publish(INTELLIGENCE_LINKING_QUEUE, job as unknown as Record<string, unknown>);
+}
+
 export function publishM4Jobs(companyId: string, shipmentId: string): void {
   publishComplianceJob({ companyId, shipmentId, trigger: "shipment_created" });
   publishRiskJob({ companyId, shipmentId, trigger: "shipment_created" });
@@ -449,5 +485,7 @@ export function getQueueStats(): Record<string, number | string> {
     tradeLaneListeners: emitter.listenerCount(TRADE_LANE_QUEUE),
     claimsListeners: emitter.listenerCount(CLAIMS_QUEUE),
     decisionListeners: emitter.listenerCount(DECISION_QUEUE),
+    ingestionListeners: emitter.listenerCount(INGESTION_QUEUE),
+    intelligenceLinkingListeners: emitter.listenerCount(INTELLIGENCE_LINKING_QUEUE),
   };
 }
