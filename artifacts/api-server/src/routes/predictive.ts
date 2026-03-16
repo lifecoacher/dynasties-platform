@@ -20,6 +20,22 @@ import {
   getPatterns,
   generateEarlyRecommendations,
   batchGenerateEarlyRecommendations,
+  evaluateBookingDecision,
+  getLatestBookingDecision,
+  overrideBookingDecision,
+  evaluateReleaseGates,
+  releaseHold,
+  overrideHold,
+  getActiveHolds,
+  getHoldHistory,
+  generatePlaybook,
+  updatePlaybookStep,
+  getPlaybooks,
+  automateAlertActions,
+  batchAutomateAlerts,
+  compareScenarios,
+  getLatestScenarioComparison,
+  getPredictivePerformance,
 } from "@workspace/svc-predictive-intelligence";
 
 const router: IRouter = Router();
@@ -208,6 +224,147 @@ router.get("/predictive/analytics", async (req, res) => {
           : "0",
     },
   });
+});
+
+// --- Phase 5B: Booking Decisions ---
+router.post("/predictive/booking-decision/:shipmentId", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const { shipmentId } = req.params;
+  try {
+    const result = await evaluateBookingDecision(shipmentId, companyId);
+    res.json({ data: result });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.get("/predictive/booking-decision/:shipmentId", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const decision = await getLatestBookingDecision(req.params.shipmentId, companyId);
+  res.json({ data: decision });
+});
+
+router.patch("/predictive/booking-decision/:id/override", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const { overriddenBy, reason } = req.body;
+  if (!overriddenBy || !reason) {
+    res.status(400).json({ error: "overriddenBy and reason are required" });
+    return;
+  }
+  await overrideBookingDecision(req.params.id, companyId, overriddenBy, reason);
+  res.json({ data: { success: true } });
+});
+
+// --- Phase 5B: Release Gates ---
+router.post("/predictive/release-gates/:shipmentId", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const result = await evaluateReleaseGates(req.params.shipmentId, companyId);
+  res.json({ data: result });
+});
+
+router.get("/predictive/holds/:shipmentId", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const holds = await getActiveHolds(req.params.shipmentId, companyId);
+  res.json({ data: holds });
+});
+
+router.get("/predictive/holds-history/:shipmentId", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const holds = await getHoldHistory(req.params.shipmentId, companyId);
+  res.json({ data: holds });
+});
+
+router.patch("/predictive/holds/:id/release", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const { resolvedBy, notes } = req.body;
+  if (!resolvedBy || !notes) {
+    res.status(400).json({ error: "resolvedBy and notes are required" });
+    return;
+  }
+  await releaseHold(req.params.id, companyId, resolvedBy, notes);
+  res.json({ data: { success: true } });
+});
+
+router.patch("/predictive/holds/:id/override", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const { resolvedBy, notes } = req.body;
+  if (!resolvedBy || !notes) {
+    res.status(400).json({ error: "resolvedBy and notes are required" });
+    return;
+  }
+  await overrideHold(req.params.id, companyId, resolvedBy, notes);
+  res.json({ data: { success: true } });
+});
+
+// --- Phase 5B: Mitigation Playbooks ---
+router.post("/predictive/playbooks/:shipmentId", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const triggerSource = req.body.triggerSource || "MANUAL";
+  const playbooks = await generatePlaybook(req.params.shipmentId, companyId, triggerSource);
+  res.json({ data: playbooks });
+});
+
+router.get("/predictive/playbooks/:shipmentId", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const playbooks = await getPlaybooks(req.params.shipmentId, companyId);
+  res.json({ data: playbooks });
+});
+
+router.patch("/predictive/playbooks/:playbookId/steps/:stepId", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const { playbookId, stepId } = req.params;
+  const { status, linkedRecommendationId, linkedTaskId } = req.body;
+  if (!status) {
+    res.status(400).json({ error: "status is required" });
+    return;
+  }
+  await updatePlaybookStep(playbookId, companyId, stepId, status, linkedRecommendationId, linkedTaskId);
+  res.json({ data: { success: true } });
+});
+
+// --- Phase 5B: Alert Automation ---
+router.post("/predictive/alerts/:id/automate", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const result = await automateAlertActions(req.params.id, companyId);
+  res.json({ data: result });
+});
+
+router.post("/predictive/alerts/automate-batch", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const results = await batchAutomateAlerts(companyId);
+  res.json({ data: results });
+});
+
+// --- Phase 5B: Scenario Comparison ---
+router.post("/predictive/scenarios/:shipmentId", async (req, res) => {
+  const companyId = getCompanyId(req);
+  try {
+    const result = await compareScenarios({
+      shipmentId: req.params.shipmentId,
+      companyId,
+      includeAlternateCarriers: req.body.includeAlternateCarriers,
+      includeAlternatePorts: req.body.includeAlternatePorts,
+      includeDelayedDeparture: req.body.includeDelayedDeparture,
+      includeInsuranceUpgrade: req.body.includeInsuranceUpgrade,
+    });
+    res.json({ data: result });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.get("/predictive/scenarios/:shipmentId", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const comparison = await getLatestScenarioComparison(req.params.shipmentId, companyId);
+  res.json({ data: comparison });
+});
+
+// --- Phase 5B: Predictive Performance Analytics ---
+router.get("/predictive/performance", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const periodDays = parseInt(req.query.days as string) || 30;
+  const performance = await getPredictivePerformance(companyId, periodDays);
+  res.json({ data: performance });
 });
 
 export default router;
