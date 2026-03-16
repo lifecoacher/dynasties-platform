@@ -18,6 +18,7 @@ import LaneDossier from "./pages/LaneDossier";
 import PortDossier from "./pages/PortDossier";
 import CarrierDossier from "./pages/CarrierDossier";
 import EntityDossier from "./pages/EntityDossier";
+import WorkQueue from "./pages/WorkQueue";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -43,6 +44,7 @@ function AuthenticatedRouter() {
       <Route path="/shipments/:id" component={ShipmentDetail} />
       <Route path="/intelligence" component={IntelligencePage} />
       <Route path="/control-tower" component={ControlTower} />
+      <Route path="/work-queue" component={WorkQueue} />
       <Route path="/customers" component={CustomersPage} />
       <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/lanes/:origin/:destination" component={LaneDossier} />

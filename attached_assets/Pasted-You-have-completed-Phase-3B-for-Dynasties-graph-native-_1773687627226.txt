@@ -1,0 +1,149 @@
+You have completed Phase 3B for Dynasties:
+- graph-native dossier views
+- impact prioritization
+- diagnostics analytics
+- graph exploration
+- recommendation diffing
+- tests
+
+Now implement Phase 4A: Recommendation Action Execution and Workflow Automation.
+
+Goal:
+Turn Dynasties from an intelligence and recommendation system into an operational execution system where approved recommendations create and drive real workflow objects, assignments, and shipment state changes.
+
+Do not redesign the intelligence architecture. Extend it into action execution cleanly.
+
+PRIORITIES
+
+1. Recommendation-to-action mapping
+2. Task and case management layer
+3. Action execution API + UI
+4. Assignment/work queue views
+5. Audit trail and workflow outcome capture
+6. Tests
+
+1. RECOMMENDATION-TO-ACTION MAPPING
+
+Create deterministic mappings from recommendation types to executable workflow actions.
+
+At minimum support:
+- ROUTE_ADJUSTMENT
+- CARRIER_SWITCH
+- COMPLIANCE_ESCALATION
+- INSURANCE_ADJUSTMENT
+- PRICING_ALERT
+- DOCUMENT_CORRECTION
+- RISK_MITIGATION
+- DELAY_WARNING where applicable
+
+Each action should include:
+- action_type
+- recommendation_id
+- shipment_id
+- company_id
+- status
+- assigned_to optional
+- due_at optional
+- execution_notes
+- created_at / updated_at
+
+2. TASK AND CASE MANAGEMENT LAYER
+
+Add first-class workflow objects and schemas for:
+- tasks
+- cases
+- task events / workflow events
+
+Suggested types:
+- compliance_case
+- pricing_review
+- carrier_review
+- route_review
+- insurance_review
+- document_correction_task
+- disruption_response_task
+
+Suggested statuses:
+- OPEN
+- IN_PROGRESS
+- BLOCKED
+- COMPLETED
+- CANCELLED
+
+Link tasks/cases back to:
+- shipment
+- recommendation
+- intelligence snapshot if relevant
+
+3. ACTION EXECUTION API + UI
+
+Implement APIs and UI so operators can:
+- approve and convert a recommendation into a task/case
+- assign owner
+- set due date
+- update status
+- add notes
+- mark completed/cancelled
+
+Update Control Tower and Shipment Detail so recommendations can move into executable workflows instead of only accept/reject/modify.
+
+4. ASSIGNMENT / WORK QUEUES
+
+Add UI views for:
+- My Tasks
+- Open Cases
+- Overdue Items
+- Compliance Queue
+- Pricing Queue
+- Carrier/Route Review Queue
+
+Keep this operational, not decorative.
+
+5. AUDIT TRAIL + WORKFLOW OUTCOME CAPTURE
+
+Record:
+- who created the task/case
+- who changed status
+- why it was created
+- linked recommendation
+- linked intelligence snapshot
+- execution outcome
+- completion notes
+
+Add enough structure so later analytics can measure:
+- recommendation accepted but never executed
+- recommendation executed and completed
+- average time to action
+- action completion rate by type
+
+6. TESTS
+
+Add tests for:
+- recommendation -> task/case conversion
+- assignment and status transitions
+- due date handling
+- work queue filtering
+- audit trail events
+- UI rendering and workflow actions
+
+IMPLEMENTATION RULES
+
+- production-grade code only
+- preserve tenant safety and role guards
+- reuse recommendation, shipment, analytics, and event patterns
+- do not add fake placeholders
+- prefer deterministic workflow logic over loose abstractions
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. migrations added
+3. new tables/models
+4. APIs/endpoints added
+5. UI screens/components changed
+6. workflow mapping logic
+7. tests added and passed
+8. remaining gaps before Phase 4B
+
+Start immediately and implement code, not just a plan.
