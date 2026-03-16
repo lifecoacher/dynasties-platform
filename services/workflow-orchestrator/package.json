@@ -3,5 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "scripts": {}
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {},
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/shared-utils": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:"
+  }
 }

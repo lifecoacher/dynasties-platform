@@ -238,6 +238,9 @@ importers:
       '@workspace/svc-trade-lane-intelligence':
         specifier: workspace:*
         version: link:../../services/trade-lane-intelligence
+      '@workspace/svc-workflow-orchestrator':
+        specifier: workspace:*
+        version: link:../../services/workflow-orchestrator
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
@@ -890,6 +893,9 @@ importers:
       '@workspace/shared-utils':
         specifier: workspace:*
         version: link:../../lib/shared-utils
+      '@workspace/svc-workflow-orchestrator':
+        specifier: workspace:*
+        version: link:../workflow-orchestrator
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
@@ -1209,7 +1215,20 @@ importers:
         specifier: 'catalog:'
         version: 25.3.5
 
-  services/workflow-orchestrator: {}
+  services/workflow-orchestrator:
+    dependencies:
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
 
 packages:
 
