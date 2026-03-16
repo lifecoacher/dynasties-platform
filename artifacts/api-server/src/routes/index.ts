@@ -10,6 +10,8 @@ import intelligenceRouter from "./intelligence";
 import analyticsRouter from "./analytics";
 import dossiersRouter from "./dossiers";
 import tasksRouter from "./tasks";
+import notificationsRouter from "./notifications";
+import orchestrationRouter from "./orchestration";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant } from "../middlewares/tenant.js";
 
@@ -31,5 +33,7 @@ router.use(intelligenceRouter);
 router.use(analyticsRouter);
 router.use(dossiersRouter);
 router.use(tasksRouter);
+router.use(notificationsRouter);
+router.use(orchestrationRouter);
 
 export default router;

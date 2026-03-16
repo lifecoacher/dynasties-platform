@@ -1,0 +1,174 @@
+You have completed Phase 4A for Dynasties:
+- workflow_tasks table
+- task_events audit trail
+- task creation from recommendations
+- manual task creation
+- work queue UI
+- task detail panel
+- assignment, status changes, completion flow
+- tests
+
+Now implement Phase 4B: Semi-Autonomous Workflow Orchestration.
+
+Goal:
+Turn Dynasties from a system that can create workflow tasks into a system that can automatically orchestrate, prioritize, escalate, and route work based on recommendation quality, intelligence changes, SLAs, and task state.
+
+Do not redesign the existing workflow/task architecture. Extend it cleanly.
+
+PRIORITIES
+
+1. Recommendation-to-task policy engine
+2. Automatic task creation for eligible recommendations
+3. SLA timers and escalation logic
+4. Notification/event feed layer
+5. Auto-prioritization and routing
+6. Workflow analytics
+7. Tests
+
+1. RECOMMENDATION-TO-TASK POLICY ENGINE
+
+Create a deterministic policy layer that decides what to do with each recommendation type based on:
+- recommendation type
+- urgency
+- confidence
+- expected impact
+- external intelligence enrichment
+- shipment state
+- existing active task/case presence
+
+Policy outcomes should support:
+- advisory_only
+- requires_manual_approval
+- auto_create_task
+- auto_escalate_existing_task
+- refresh_existing_task_priority
+
+At minimum cover:
+- COMPLIANCE_ESCALATION
+- DOCUMENT_CORRECTION
+- DELAY_WARNING
+- PRICING_ALERT
+- ROUTE_ADJUSTMENT
+- CARRIER_SWITCH
+- RISK_MITIGATION
+- INSURANCE_ADJUSTMENT
+
+Persist policy decisions and log them.
+
+2. AUTOMATIC TASK CREATION
+
+Implement safe automatic task creation when policy says auto_create_task.
+
+Requirements:
+- idempotent task creation
+- no duplicate active tasks for the same recommendation/purpose
+- proper queue/type mapping
+- priority inference
+- due date inference
+- assignment optional if routing is not yet decided
+- audit events showing task was auto-created and why
+
+3. SLA TIMERS AND ESCALATION LOGIC
+
+Implement SLA rules by task type and priority.
+
+Support:
+- due-at inference from policy/SLA config
+- overdue detection
+- escalation levels
+- escalation timestamps
+- escalation event logging
+- blocked/overdue highlighting in queues and control tower
+
+Add deterministic rules for:
+- critical compliance work
+- high-priority route/carrier/pricing reviews
+- document correction deadlines
+- disruption response urgency
+
+4. NOTIFICATION / EVENT FEED LAYER
+
+Add an in-app notification or operational event feed layer.
+
+At minimum support events for:
+- task assigned
+- task auto-created
+- task overdue
+- task escalated
+- recommendation materially changed after reanalysis
+- task completed
+- task blocked
+
+Expose:
+- API endpoints to list notifications/events
+- lightweight UI panel or page
+
+Do not implement email or SMS yet unless trivial.
+
+5. AUTO-PRIORITIZATION AND ROUTING
+
+Add deterministic task prioritization/routing logic using:
+- task priority
+- shipment impact
+- intelligence severity
+- recommendation confidence
+- overdue/escalation status
+- queue type
+- optional operator load if available
+
+Implement:
+- priority score
+- queue ordering
+- “needs attention now” grouping
+- optional owner suggestion logic
+
+6. WORKFLOW ANALYTICS
+
+Extend analytics to include:
+- task creation rate by recommendation type
+- auto-created vs manual-created tasks
+- average time to assignment
+- average time to completion
+- overdue rate
+- escalation rate
+- completion rate by task type
+- recommendation accepted but not executed
+- recommendation -> task -> completion funnel
+
+Add useful UI, not decorative charts.
+
+7. TESTS
+
+Add tests for:
+- policy outcomes
+- auto-task creation idempotency
+- SLA due date assignment
+- overdue/escalation behavior
+- notification/event feed generation
+- priority scoring and routing
+- analytics aggregation
+- UI rendering for overdue/escalated/auto-created tasks
+
+IMPLEMENTATION RULES
+
+- production-grade code only
+- preserve tenant safety and role guards
+- reuse existing workflow, recommendation, analytics, and event patterns
+- no fake placeholders
+- deterministic-first logic only
+- if ownership routing is incomplete, still build owner suggestion logic and clear unassigned queue behavior
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. migrations added
+3. policy engine logic
+4. auto-task rules by recommendation type
+5. escalation/SLA logic
+6. notification/event feed APIs and UI
+7. workflow analytics added
+8. tests added and passed
+9. remaining gaps before Phase 5
+
+Start immediately and implement code, not just a plan.

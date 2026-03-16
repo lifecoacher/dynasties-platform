@@ -4,6 +4,9 @@ import {
   timestamp,
   jsonb,
   index,
+  integer,
+  boolean,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { companiesTable } from "./companies";
 import { shipmentsTable } from "./shipments";
@@ -50,8 +53,16 @@ export const workflowTasksTable = pgTable(
     createdBy: text("created_by")
       .notNull()
       .references(() => usersTable.id),
+    creationSource: text("creation_source", {
+      enum: ["MANUAL", "AUTO_POLICY", "RECOMMENDATION"],
+    }).default("MANUAL"),
+    policyDecisionId: text("policy_decision_id"),
     dueAt: timestamp("due_at"),
     completedAt: timestamp("completed_at"),
+    escalationLevel: integer("escalation_level").default(0),
+    escalatedAt: timestamp("escalated_at"),
+    lastEscalationCheck: timestamp("last_escalation_check"),
+    priorityScore: numeric("priority_score"),
     executionNotes: text("execution_notes"),
     completionNotes: text("completion_notes"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
@@ -70,6 +81,8 @@ export const workflowTasksTable = pgTable(
     index("workflow_tasks_assigned_to_idx").on(table.assignedTo),
     index("workflow_tasks_due_at_idx").on(table.dueAt),
     index("workflow_tasks_created_at_idx").on(table.createdAt),
+    index("workflow_tasks_priority_score_idx").on(table.priorityScore),
+    index("workflow_tasks_escalation_level_idx").on(table.escalationLevel),
   ],
 );
 
@@ -94,6 +107,9 @@ export const taskEventsTable = pgTable(
         "COMPLETED",
         "CANCELLED",
         "REOPENED",
+        "ESCALATED",
+        "AUTO_CREATED",
+        "PRIORITY_REFRESHED",
       ],
     }).notNull(),
     actorId: text("actor_id")
@@ -113,7 +129,93 @@ export const taskEventsTable = pgTable(
   ],
 );
 
+export const policyDecisionsTable = pgTable(
+  "policy_decisions",
+  {
+    id: text("id").primaryKey(),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companiesTable.id),
+    recommendationId: text("recommendation_id").notNull(),
+    shipmentId: text("shipment_id"),
+    recommendationType: text("recommendation_type").notNull(),
+    urgency: text("urgency").notNull(),
+    confidence: numeric("confidence").notNull(),
+    intelligenceEnriched: boolean("intelligence_enriched").default(false),
+    outcome: text("outcome", {
+      enum: [
+        "ADVISORY_ONLY",
+        "REQUIRES_MANUAL_APPROVAL",
+        "AUTO_CREATE_TASK",
+        "AUTO_ESCALATE_EXISTING_TASK",
+        "REFRESH_EXISTING_TASK_PRIORITY",
+      ],
+    }).notNull(),
+    taskTypeResolved: text("task_type_resolved"),
+    priorityResolved: text("priority_resolved"),
+    dueHoursResolved: integer("due_hours_resolved"),
+    reason: text("reason").notNull(),
+    taskId: text("task_id"),
+    applied: boolean("applied").default(false),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("policy_decisions_company_id_idx").on(table.companyId),
+    index("policy_decisions_recommendation_id_idx").on(table.recommendationId),
+    index("policy_decisions_outcome_idx").on(table.outcome),
+    index("policy_decisions_created_at_idx").on(table.createdAt),
+  ],
+);
+
+export const operationalNotificationsTable = pgTable(
+  "operational_notifications",
+  {
+    id: text("id").primaryKey(),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companiesTable.id),
+    userId: text("user_id")
+      .references(() => usersTable.id),
+    eventType: text("event_type", {
+      enum: [
+        "TASK_ASSIGNED",
+        "TASK_AUTO_CREATED",
+        "TASK_OVERDUE",
+        "TASK_ESCALATED",
+        "RECOMMENDATION_CHANGED",
+        "TASK_COMPLETED",
+        "TASK_BLOCKED",
+      ],
+    }).notNull(),
+    title: text("title").notNull(),
+    message: text("message"),
+    severity: text("severity", {
+      enum: ["INFO", "WARNING", "CRITICAL"],
+    })
+      .notNull()
+      .default("INFO"),
+    relatedTaskId: text("related_task_id"),
+    relatedShipmentId: text("related_shipment_id"),
+    relatedRecommendationId: text("related_recommendation_id"),
+    read: boolean("read").default(false),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("op_notifications_company_id_idx").on(table.companyId),
+    index("op_notifications_user_id_idx").on(table.userId),
+    index("op_notifications_event_type_idx").on(table.eventType),
+    index("op_notifications_read_idx").on(table.read),
+    index("op_notifications_created_at_idx").on(table.createdAt),
+  ],
+);
+
 export type WorkflowTask = typeof workflowTasksTable.$inferSelect;
 export type InsertWorkflowTask = typeof workflowTasksTable.$inferInsert;
 export type TaskEvent = typeof taskEventsTable.$inferSelect;
 export type InsertTaskEvent = typeof taskEventsTable.$inferInsert;
+export type PolicyDecision = typeof policyDecisionsTable.$inferSelect;
+export type InsertPolicyDecision = typeof policyDecisionsTable.$inferInsert;
+export type OperationalNotification = typeof operationalNotificationsTable.$inferSelect;
+export type InsertOperationalNotification = typeof operationalNotificationsTable.$inferInsert;
