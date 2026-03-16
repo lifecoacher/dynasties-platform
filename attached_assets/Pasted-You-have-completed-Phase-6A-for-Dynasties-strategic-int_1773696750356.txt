@@ -1,0 +1,144 @@
+You have completed Phase 6A for Dynasties:
+- strategic intelligence
+- lane strategy
+- carrier allocation
+- network recommendations
+- portfolio snapshots
+- intervention attribution
+- executive intelligence UI
+- tests
+
+Now implement Phase 6B: Policy Optimization and Productization.
+
+Goal:
+Make Dynasties configurable, tunable, role-aware, and easier to package as a real product by moving core rules and operating modes into tenant-specific policy controls and by exposing customer-facing reporting and exports.
+
+Do not redesign the core intelligence architecture. Extend it into configurable product behavior and presentable outputs.
+
+PRIORITIES
+
+1. Tenant-specific policy engine
+2. Policy simulation / what-if tuning
+3. Customer-facing reporting and exports
+4. Configurable operating modes
+5. Role-based view/permission refinement
+6. Product packaging structure in UI/API
+7. Tests
+
+1. TENANT-SPECIFIC POLICY ENGINE
+
+Create persistent tenant policy models/tables for configurable logic, including:
+- recommendation thresholds
+- booking gate thresholds
+- SLA rules
+- auto-task creation rules
+- escalation timings
+- intelligence weighting
+- lane/carrier/entity risk tolerances
+- strategic recommendation sensitivity
+
+Requirements:
+- safe defaults
+- versioning/audit trail for policy changes
+- role guards for who can edit policies
+- clear separation between global defaults and tenant overrides
+
+2. POLICY SIMULATION / WHAT-IF TUNING
+
+Build a deterministic simulation layer so a user can test policy changes before applying them.
+
+Support scenarios like:
+- raising/lowering compliance thresholds
+- changing booking hold rules
+- changing auto-task creation sensitivity
+- adjusting carrier/lane strategy thresholds
+
+Outputs should estimate:
+- affected shipments/recommendations/tasks
+- changed booking decisions
+- changed escalation/task volumes
+- changed strategic recommendations
+
+3. CUSTOMER-FACING REPORTING / EXPORTS
+
+Add report generation and export support for:
+- executive summary
+- portfolio risk
+- lane strategy
+- carrier allocation
+- value attribution
+- recommendation performance
+
+Start with:
+- API endpoints
+- UI report pages/cards
+- CSV / JSON export
+- structured report objects suitable for future PDF export
+
+4. CONFIGURABLE OPERATING MODES
+
+Create named operating modes such as:
+- advisory
+- approval_heavy
+- semi_autonomous
+- high_compliance
+- margin_protection
+- disruption_sensitive
+
+Each mode should map to policy bundles and be visible/editable in the UI.
+
+5. ROLE-BASED VIEW / PERMISSION REFINEMENT
+
+Refine permissions and UI surfacing for roles such as:
+- operator
+- manager
+- executive
+- compliance lead
+- pricing lead
+
+Ensure policy editing, strategic pages, and reporting/export access are appropriately scoped.
+
+6. PRODUCT PACKAGING STRUCTURE
+
+Organize UI and APIs so the product can be understood as modules:
+- Control Tower
+- Predictive Intelligence
+- Workflow Automation
+- Strategic Intelligence
+- Value Attribution
+- Policy Studio
+
+Do not just rename things. Make navigation and organization coherent.
+
+7. TESTS
+
+Add tests for:
+- tenant policy override behavior
+- simulation outputs
+- report/export generation
+- operating mode application
+- permission enforcement
+- UI rendering for policy/reporting pages
+
+IMPLEMENTATION RULES
+
+- production-grade code only
+- deterministic-first logic
+- preserve tenant safety and auditability
+- no fake placeholders
+- use explicit fallback behavior where data is limited
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. migrations added
+3. new policy/reporting models
+4. APIs/endpoints added
+5. UI pages/components added
+6. simulation logic
+7. role/permission changes
+8. tests added and passed
+9. remaining gaps before final commercialization phase
+
+Start immediately and implement code, not just a plan.

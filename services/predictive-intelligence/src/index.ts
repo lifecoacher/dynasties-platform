@@ -115,3 +115,43 @@ export {
   getAttributionHistory,
   type InterventionAttribution,
 } from "./attribution.js";
+
+export {
+  getTenantPolicies,
+  getEffectivePolicy,
+  getAllEffectivePolicies,
+  upsertPolicy,
+  togglePolicy,
+  getPolicyHistory,
+  resetPolicyToDefault,
+  getGlobalDefaults,
+  getDefaultValue,
+  type PolicyCategory,
+  type PolicyEntry,
+} from "./policy-engine.js";
+
+export {
+  runPolicySimulation,
+  getSimulationHistory,
+  type SimulationInput,
+  type SimulationResult,
+} from "./policy-simulation.js";
+
+export {
+  getActiveMode,
+  getAvailableModes,
+  activateMode,
+  deactivateMode,
+  getModePresets,
+  type ModeName,
+  type OperatingModeResult,
+} from "./operating-modes.js";
+
+export {
+  generateReport,
+  getReportHistory,
+  convertToCSV,
+  formatReportForExport,
+  type ReportType,
+  type ReportResult,
+} from "./reporting.js";
