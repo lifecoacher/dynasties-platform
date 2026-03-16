@@ -34,3 +34,4 @@ export * from "./scoring";
 export * from "./workflow-tasks";
 export * from "./predictive";
 export * from "./proactive";
+export * from "./strategic";

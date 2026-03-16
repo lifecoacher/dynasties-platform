@@ -81,3 +81,37 @@ export {
   type GateHoldMetrics,
   type PlaybookMetrics,
 } from "./predictive-analytics.js";
+
+export {
+  computeLaneStrategies,
+  getLaneStrategies,
+  type LaneStrategyResult,
+} from "./lane-strategy.js";
+
+export {
+  computeCarrierAllocations,
+  getCarrierAllocations,
+  type CarrierAllocationResult,
+} from "./carrier-allocation.js";
+
+export {
+  generateNetworkRecommendations,
+  getNetworkRecommendations,
+  acknowledgeNetworkRecommendation,
+  updateNetworkRecommendationStatus,
+  type NetworkRecommendationResult,
+} from "./network-optimization.js";
+
+export {
+  computePortfolioSnapshot,
+  getLatestPortfolioSnapshot,
+  getPortfolioHistory,
+  type PortfolioSnapshot,
+} from "./portfolio-views.js";
+
+export {
+  computeAttribution,
+  getLatestAttribution,
+  getAttributionHistory,
+  type InterventionAttribution,
+} from "./attribution.js";

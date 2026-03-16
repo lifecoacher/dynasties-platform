@@ -20,6 +20,7 @@ import CarrierDossier from "./pages/CarrierDossier";
 import EntityDossier from "./pages/EntityDossier";
 import WorkQueue from "./pages/WorkQueue";
 import PredictiveIntelligence from "./pages/PredictiveIntelligence";
+import StrategyIntelligence from "./pages/StrategyIntelligence";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -48,6 +49,7 @@ function AuthenticatedRouter() {
       <Route path="/work-queue" component={WorkQueue} />
       <Route path="/customers" component={CustomersPage} />
       <Route path="/predictive" component={PredictiveIntelligence} />
+      <Route path="/strategy" component={StrategyIntelligence} />
       <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/lanes/:origin/:destination" component={LaneDossier} />
       <Route path="/ports/:portCode" component={PortDossier} />
