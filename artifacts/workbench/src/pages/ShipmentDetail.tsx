@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import {
   useGetShipment,
@@ -12,6 +13,7 @@ import {
   useRespondToRecommendation,
   useTriggerShipmentAnalysis,
   useRecordRecommendationOutcome,
+  getAuthToken,
 } from "@workspace/api-client-react";
 import { useShipmentActions } from "@/hooks/use-shipment-actions";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -39,6 +41,11 @@ import {
   Radar,
   RefreshCw,
   ClipboardCheck,
+  GitCompareArrows,
+  ChevronDown,
+  ChevronUp,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react";
 import { OutcomeForm, type OutcomeData } from "@/components/recommendations/OutcomeForm";
 import {
@@ -128,6 +135,23 @@ export default function ShipmentDetail() {
   const [showModifyModal, setShowModifyModal] = useState<string | null>(null);
   const [modifyNotes, setModifyNotes] = useState("");
   const [outcomeRecId, setOutcomeRecId] = useState<string | null>(null);
+  const [showDiff, setShowDiff] = useState(false);
+
+  const BASE = `${import.meta.env.BASE_URL}api`;
+  const { data: diffData } = useQuery({
+    queryKey: ["recommendations", "diff", id],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const res = await fetch(`${BASE}/shipments/${id}/recommendations/diff`, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const json = await res.json();
+      return json.data;
+    },
+    enabled: !!id && showDiff,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     if (shipment) {
@@ -472,6 +496,64 @@ export default function ShipmentDetail() {
                 </div>
               );
             })()}
+
+            <div className="p-4 rounded-xl bg-card border border-card-border">
+              <button
+                onClick={() => setShowDiff(!showDiff)}
+                className="flex items-center gap-2 w-full text-left"
+              >
+                <GitCompareArrows className="w-4 h-4 text-violet-400" />
+                <h3 className="text-[13px] font-semibold text-foreground">Recommendation Changes</h3>
+                {showDiff ? <ChevronUp className="w-3 h-3 text-muted-foreground ml-auto" /> : <ChevronDown className="w-3 h-3 text-muted-foreground ml-auto" />}
+              </button>
+              {showDiff && (
+                <div className="mt-3 space-y-3">
+                  {diffData?.diffs?.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground">No recommendation changes detected for this shipment.</p>
+                  )}
+                  {(diffData?.diffs || []).map((diff: any) => {
+                    const hasChanges = Object.values(diff.changes || {}).some(Boolean);
+                    return (
+                      <div key={diff.type} className={`border rounded-lg p-3 ${hasChanges ? "border-violet-500/30 bg-violet-500/5" : "border-white/10 bg-white/[0.02]"}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-mono font-medium text-foreground">{diff.type}</span>
+                          {hasChanges && <span className="text-[9px] bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded-full">CHANGED</span>}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-2">{diff.triggerSummary}</p>
+                        {diff.scoreDelta && (
+                          <div className="flex flex-wrap gap-2 text-[10px]">
+                            {diff.scoreDelta.confidence !== 0 && (
+                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.confidence > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                {diff.scoreDelta.confidence > 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                                Conf: {diff.scoreDelta.confidence > 0 ? "+" : ""}{diff.scoreDelta.confidence}
+                              </span>
+                            )}
+                            {diff.scoreDelta.delayImpact !== 0 && (
+                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.delayImpact < 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                {diff.scoreDelta.delayImpact < 0 ? <ArrowDownRight size={10} /> : <ArrowUpRight size={10} />}
+                                Delay: {diff.scoreDelta.delayImpact > 0 ? "+" : ""}{diff.scoreDelta.delayImpact}d
+                              </span>
+                            )}
+                            {diff.scoreDelta.marginImpact !== 0 && (
+                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.marginImpact > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                {diff.scoreDelta.marginImpact > 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                                Margin: {diff.scoreDelta.marginImpact > 0 ? "+" : ""}{diff.scoreDelta.marginImpact}%
+                              </span>
+                            )}
+                            {diff.scoreDelta.riskReduction !== 0 && (
+                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.riskReduction > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                {diff.scoreDelta.riskReduction > 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                                Risk: {diff.scoreDelta.riskReduction > 0 ? "+" : ""}{diff.scoreDelta.riskReduction}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {compliance && (
               <div className="p-4 rounded-xl bg-card border border-card-border">

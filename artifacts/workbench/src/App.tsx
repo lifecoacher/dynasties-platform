@@ -14,6 +14,10 @@ import LoginPage from "./pages/LoginPage";
 import ControlTower from "./pages/ControlTower";
 import DemoControls from "./pages/DemoControls";
 import AnalyticsPage from "./pages/Analytics";
+import LaneDossier from "./pages/LaneDossier";
+import PortDossier from "./pages/PortDossier";
+import CarrierDossier from "./pages/CarrierDossier";
+import EntityDossier from "./pages/EntityDossier";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -41,6 +45,10 @@ function AuthenticatedRouter() {
       <Route path="/control-tower" component={ControlTower} />
       <Route path="/customers" component={CustomersPage} />
       <Route path="/analytics" component={AnalyticsPage} />
+      <Route path="/lanes/:origin/:destination" component={LaneDossier} />
+      <Route path="/ports/:portCode" component={PortDossier} />
+      <Route path="/carriers/:carrierId" component={CarrierDossier} />
+      <Route path="/entities/:entityId" component={EntityDossier} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/demo" component={DemoControls} />
       <Route component={NotFound} />

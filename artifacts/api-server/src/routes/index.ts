@@ -8,6 +8,7 @@ import referenceRouter from "./reference";
 import recommendationsRouter from "./recommendations";
 import intelligenceRouter from "./intelligence";
 import analyticsRouter from "./analytics";
+import dossiersRouter from "./dossiers";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant } from "../middlewares/tenant.js";
 
@@ -27,5 +28,6 @@ router.use(customersRouter);
 router.use(recommendationsRouter);
 router.use(intelligenceRouter);
 router.use(analyticsRouter);
+router.use(dossiersRouter);
 
 export default router;

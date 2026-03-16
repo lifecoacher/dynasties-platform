@@ -1,0 +1,135 @@
+You have completed Phase 3A for Dynasties:
+- intelligence-driven reanalysis
+- intelligence snapshots
+- persistent scoring layer
+- analytics page
+- reanalysis throttling and batching
+- tests
+
+Now implement Phase 3B: Graph-Native Operator Intelligence.
+
+Goal:
+Turn Dynasties from an intelligence backend with recommendation cards into a graph-native operator and analyst system that exposes lane, port, carrier, and entity intelligence in a way that improves decision quality and trust.
+
+Do not redesign the core architecture. Extend it cleanly.
+
+PRIORITIES
+
+1. Graph-native dossier views
+2. Control Tower prioritization by impact
+3. Recommendation diagnostics / tuning views
+4. Graph exploration + drill-down
+5. Recommendation change diffing
+6. Tests
+
+1. GRAPH-NATIVE DOSSIER VIEWS
+
+Create dedicated dossier/detail views for:
+- trade lane
+- port
+- carrier
+- entity / counterparty
+
+Each dossier should show:
+- current scores
+- score trend where possible
+- related shipments
+- active recommendations
+- recent disruptions/congestion/sanctions signals where relevant
+- historical recommendation/outcome patterns
+- linked graph relationships
+
+At minimum add routes/pages for:
+- /lanes/:id
+- /ports/:id
+- /carriers/:id
+- /entities/:id
+
+2. CONTROL TOWER PRIORITIZATION BY IMPACT
+
+Upgrade recommendation ranking in the Control Tower.
+
+Add deterministic prioritization using:
+- expected margin impact
+- expected delay reduction
+- expected risk reduction
+- recommendation confidence
+- intelligence change recency
+- number of affected shipments if applicable
+
+Implement:
+- impact score / priority score
+- sort/filter controls
+- top-impact queue
+- “newly changed due to intelligence” highlighting
+
+3. RECOMMENDATION DIAGNOSTICS / TUNING VIEWS
+
+Extend analytics with recommendation diagnostics.
+
+Add:
+- acceptance vs rejection by recommendation type
+- implemented vs not implemented by type
+- outcome quality by type
+- external-enriched vs internal-only performance
+- top false-positive lanes/ports/carriers
+- recommendation volume by score band / urgency band
+
+Make this useful for tuning thresholds later.
+
+4. GRAPH EXPLORATION + DRILL-DOWN
+
+Add a graph exploration capability or structured relationship explorer.
+
+Users should be able to navigate:
+shipment → lane → port → carrier → entity → recommendations → outcomes
+
+This can start as a structured relationship panel/list view if a full visual graph is too heavy.
+Do not build a gimmicky visualization if it reduces usability.
+
+5. RECOMMENDATION CHANGE DIFFING
+
+Add “why this changed” support for reanalyzed shipments.
+
+For shipments with multiple recommendation generations, show:
+- prior recommendation
+- current recommendation
+- changed internal scores
+- changed external scores
+- changed reason codes
+- changed linked signals
+- summary of what triggered the refresh
+
+Persist/link enough metadata to make this deterministic and auditable.
+
+6. TESTS
+
+Add tests for:
+- dossier data loading
+- impact prioritization scoring
+- diagnostics aggregations
+- recommendation diff generation
+- graph relationship drill-down behavior
+- routing/UI rendering
+
+IMPLEMENTATION RULES
+
+- production-grade code only
+- reuse existing graph, scoring, analytics, and recommendation patterns
+- preserve tenant safety and global-vs-tenant scoping
+- do not add ornamental UI with no operational value
+- if trend history is limited, show current state and most recent changes clearly
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. routes/pages/components added
+3. APIs/endpoints added
+4. prioritization logic
+5. diagnostics metrics added
+6. diffing logic
+7. tests added and passed
+8. remaining gaps before Phase 4
+
+Start immediately and implement code, not just a plan.
