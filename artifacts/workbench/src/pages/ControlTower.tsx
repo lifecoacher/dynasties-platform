@@ -10,6 +10,8 @@ import {
   TrendingUp,
   RefreshCw,
   ArrowRight,
+  Globe,
+  Download,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { RecommendationCard } from "@/components/recommendations/RecommendationCard";
@@ -18,6 +20,14 @@ import {
   useListShipments,
   useRespondToRecommendation,
 } from "@workspace/api-client-react";
+import {
+  HighRiskPortsWidget,
+  ActiveDisruptionsWidget,
+  SanctionsAlertsWidget,
+  CongestionHotspotsWidget,
+  WeatherRisksWidget,
+} from "@/components/intelligence/IntelligenceWidgets";
+import { useTriggerIngestion } from "@/hooks/use-intelligence";
 
 interface StatCardProps {
   icon: typeof AlertTriangle;
@@ -43,6 +53,17 @@ export default function ControlTower() {
   const { data: recsData, refetch: refetchRecs } = useListPendingRecommendations();
   const { data: shipmentsData } = useListShipments();
   const respondMutation = useRespondToRecommendation();
+  const triggerIngestion = useTriggerIngestion();
+  const [ingesting, setIngesting] = useState(false);
+
+  const handleIngestAll = useCallback(async () => {
+    setIngesting(true);
+    const sources = ["vessel_positions", "port_congestion", "sanctions", "denied_parties", "disruptions", "weather_risk"];
+    for (const sourceType of sources) {
+      triggerIngestion.mutate(sourceType);
+    }
+    setTimeout(() => setIngesting(false), 4000);
+  }, [triggerIngestion]);
 
   const recommendations = (recsData?.data || []) as any[];
   const shipments = (shipmentsData?.data || []) as any[];
@@ -76,12 +97,22 @@ export default function ControlTower() {
             <h1 className="text-2xl font-bold text-white">Control Tower</h1>
             <p className="text-sm text-white/50 mt-1">AI-powered operational intelligence and intervention center</p>
           </div>
-          <button
-            onClick={() => refetchRecs()}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white/5 text-white/60 rounded-lg border border-white/10 hover:bg-white/10 transition-colors"
-          >
-            <RefreshCw size={14} /> Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleIngestAll}
+              disabled={ingesting}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-violet-500/10 text-violet-300 rounded-lg border border-violet-500/20 hover:bg-violet-500/20 transition-colors disabled:opacity-50"
+            >
+              <Download size={14} className={ingesting ? "animate-pulse" : ""} />
+              {ingesting ? "Ingesting..." : "Ingest Intel"}
+            </button>
+            <button
+              onClick={() => refetchRecs()}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white/5 text-white/60 rounded-lg border border-white/10 hover:bg-white/10 transition-colors"
+            >
+              <RefreshCw size={14} /> Refresh
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -211,6 +242,21 @@ export default function ControlTower() {
             </div>
           </section>
         )}
+
+        <div className="border-t border-white/10 pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Globe size={16} className="text-violet-400" />
+            <h2 className="text-lg font-bold text-white">External Intelligence</h2>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <HighRiskPortsWidget />
+            <ActiveDisruptionsWidget />
+            <SanctionsAlertsWidget />
+            <CongestionHotspotsWidget />
+            <WeatherRisksWidget />
+          </div>
+        </div>
       </div>
     </AppLayout>
   );

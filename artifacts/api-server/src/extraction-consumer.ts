@@ -11,6 +11,8 @@ import {
   registerTradeLaneConsumer,
   registerClaimsConsumer,
   registerDecisionConsumer,
+  registerIngestionConsumer,
+  registerIntelligenceLinkingConsumer,
   setDlqPersistHandler,
 } from "@workspace/queue";
 import type {
@@ -26,6 +28,8 @@ import type {
   TradeLaneJob,
   ClaimsJob,
   DecisionJob,
+  IngestionJob,
+  IntelligenceLinkingJob,
 } from "@workspace/queue";
 import { processExtractionJob } from "@workspace/svc-document-extraction";
 import { runShipmentPipeline } from "@workspace/svc-shipment-construction";
@@ -39,6 +43,8 @@ import { runExceptionDetection } from "@workspace/svc-exception-management";
 import { runTradeLaneUpdate } from "@workspace/svc-trade-lane-intelligence";
 import { runClaimPreparation } from "@workspace/svc-claims-management";
 import { runDecisionEngine } from "@workspace/svc-decision-engine";
+import { runIngestionPipeline } from "@workspace/svc-intelligence-ingestion";
+import { runIntelligenceLinking } from "@workspace/svc-intelligence-ingestion/linker";
 import { db } from "@workspace/db";
 import {
   deadLetterJobsTable,
@@ -232,4 +238,20 @@ export function startConsumers(): void {
     }
   });
   console.log("[consumer] decision-engine consumer registered");
+
+  registerIngestionConsumer(async (job: IngestionJob) => {
+    const result = await runIngestionPipeline(job.sourceId, job.sourceType, job.companyId);
+    console.log(
+      `[consumer] ingestion complete: source=${job.sourceType} persisted=${result.persisted} deduped=${result.deduplicated} failed=${result.failed}`,
+    );
+  });
+  console.log("[consumer] ingestion consumer registered");
+
+  registerIntelligenceLinkingConsumer(async (job: IntelligenceLinkingJob) => {
+    const edgesCreated = await runIntelligenceLinking(job.companyId, job.sourceType, job.ingestionRunId);
+    console.log(
+      `[consumer] intelligence-linking complete: source=${job.sourceType} edges=${edgesCreated}`,
+    );
+  });
+  console.log("[consumer] intelligence-linking consumer registered");
 }

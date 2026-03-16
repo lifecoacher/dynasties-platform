@@ -1,0 +1,181 @@
+You have completed Phase 1 and Phase 1.5 for Dynasties:
+- production hardening
+- recommendation engine
+- trade graph tables
+- recommendation lifecycle
+- deduplication
+- modify/outcome UI
+- unit tests
+
+Now implement Phase 2A: External Intelligence Ingestion Framework.
+
+Goal:
+Upgrade Dynasties from an internal shipment recommendation system into a broader logistics intelligence platform by ingesting external signals and linking them into the existing trade graph and recommendation engine.
+
+Do not redesign existing recommendation architecture. Extend it cleanly.
+
+PRIORITIES
+
+1. Source registry
+2. External intelligence schemas
+3. Durable ingestion pipeline
+4. Entity linking into trade graph
+5. API read layer
+6. Control Tower intelligence widgets
+7. Tests
+
+1. SOURCE REGISTRY
+
+Create a source registry model/table for external feeds.
+
+Fields:
+- id
+- company_id nullable if global source
+- source_name
+- source_type
+- provider_name
+- ingestion_method
+- schedule_expression or frequency
+- auth_config jsonb
+- source_status
+- last_synced_at
+- last_success_at
+- last_failure_at
+- failure_count
+- created_at
+- updated_at
+
+Source types should support:
+- vessel_positions
+- port_congestion
+- sanctions
+- denied_parties
+- disruptions
+- weather_risk
+- lane_market_signals
+
+2. EXTERNAL INTELLIGENCE SCHEMAS
+
+Add normalized tables/models for:
+- vessel_positions
+- vessel_port_calls
+- port_congestion_snapshots
+- sanctions_entities
+- denied_parties
+- disruption_events
+- weather_risk_events
+- lane_market_signals
+- ingestion_runs
+
+Requirements:
+- include source metadata
+- include timestamps
+- include confidence/source quality when applicable
+- include deduplication keys/fingerprints where needed
+- preserve tenant/global scoping model cleanly
+
+3. DURABLE INGESTION PIPELINE
+
+Implement a durable ingestion workflow using the existing queue architecture.
+
+Pipeline stages:
+- fetch
+- validate
+- normalize
+- deduplicate
+- persist
+- log ingestion run
+- publish graph linking job
+- optionally publish recommendation refresh job if relevant
+
+Create adapter interfaces for providers.
+If live paid feeds are unavailable, implement fixture-backed adapters that mirror realistic provider payload shapes.
+
+At minimum implement sample adapters for:
+- AIS/vessel position feed
+- port congestion feed
+- sanctions/denied party list
+- disruption/weather event feed
+
+4. ENTITY LINKING INTO TRADE GRAPH
+
+Link external data into the current canonical graph and trade_graph_edges structure.
+
+Examples:
+- vessel -> carrier
+- vessel -> port
+- port -> congestion snapshot
+- shipment -> trade lane
+- shipment -> vessel when inferable
+- entity -> sanctions entity
+- lane -> disruption event
+- lane -> market signal
+
+Requirements:
+- use deterministic matching first
+- record match confidence
+- avoid unsafe cross-tenant linking
+- log linking events
+
+5. API READ LAYER
+
+Add read APIs for:
+- high-risk ports
+- active disruption events
+- sanctions alerts
+- lane congestion summaries
+- vessel movement snapshots
+- external intelligence summary for a shipment or lane
+
+Use request validation and tenant-safe access patterns.
+
+6. CONTROL TOWER INTELLIGENCE WIDGETS
+
+Extend the existing Control Tower with external intelligence panels for:
+- high-risk ports
+- active disruptions
+- sanctions alerts
+- congestion hotspots
+- lanes under stress
+
+Each widget should:
+- show counts/status
+- link to relevant shipments or lanes when available
+- fit current UI patterns
+- avoid placeholder-only UI
+
+7. TESTS
+
+Add unit/integration tests for:
+- adapter validation
+- normalization
+- deduplication
+- ingestion run tracking
+- graph linking
+- API responses
+- control tower widget rendering
+
+IMPLEMENTATION RULES
+
+- production-grade code only
+- reuse existing architecture and patterns
+- add migrations
+- add API schemas/types
+- keep deterministic-first logic
+- no fake summaries in place of implementation
+- if live integrations are unavailable, use realistic fixture-based adapters with clean interfaces for future provider swaps
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. migrations added
+3. new tables/models
+4. adapters created
+5. queue jobs added
+6. API endpoints added
+7. UI widgets/screens changed
+8. tests added and passed
+9. remaining gaps before Phase 2B
+
+Start immediately and implement code, not just a plan.
