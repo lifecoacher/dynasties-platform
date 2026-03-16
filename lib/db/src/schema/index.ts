@@ -32,3 +32,4 @@ export * from "./ingestion-runs";
 export * from "./intelligence-snapshots";
 export * from "./scoring";
 export * from "./workflow-tasks";
+export * from "./predictive";
