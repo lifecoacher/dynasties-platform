@@ -23,6 +23,7 @@ export const recommendationsTable = pgTable(
         "MARGIN_WARNING",
         "DOCUMENT_CORRECTION",
         "RISK_MITIGATION",
+        "PRICING_ALERT",
       ],
     }).notNull(),
     title: text("title").notNull(),
@@ -42,6 +43,9 @@ export const recommendationsTable = pgTable(
       .notNull()
       .default("PENDING"),
     sourceAgent: text("source_agent").notNull(),
+    externalReasonCodes: jsonb("external_reason_codes").$type<string[]>(),
+    signalEvidence: jsonb("signal_evidence").$type<Record<string, unknown>[]>(),
+    intelligenceEnriched: text("intelligence_enriched").default("false"),
     sourceData: jsonb("source_data").$type<Record<string, unknown>>(),
     supersededById: text("superseded_by_id"),
     expiresAt: timestamp("expires_at"),

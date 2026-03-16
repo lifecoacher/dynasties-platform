@@ -1,0 +1,157 @@
+You have completed Phase 2A for Dynasties:
+- external intelligence schemas
+- ingestion service and adapters
+- graph linking
+- intelligence APIs
+- control tower widgets
+- tests and tenant-safety fixes
+
+Now implement Phase 2B: Recommendation Enrichment Using External Intelligence.
+
+Goal:
+Upgrade the decision engine so shipment recommendations are materially influenced by external intelligence signals, not just internal deterministic thresholds.
+
+Do not redesign the whole architecture. Extend the current recommendation engine cleanly and deterministically.
+
+PRIORITIES
+
+1. External-intelligence-aware recommendation inputs
+2. Recommendation enrichment rules by recommendation type
+3. Shipment/lane intelligence summary model
+4. Recommendation explanation upgrade
+5. UI surfacing of intelligence-driven reasons
+6. Tests
+
+1. EXTERNAL-INTELLIGENCE-AWARE RECOMMENDATION INPUTS
+
+Extend the decision engine input assembly so that for each shipment it can gather relevant external intelligence, including where available:
+- trade lane congestion
+- active disruptions affecting origin/destination ports or lane
+- active weather risks affecting ports/lane
+- sanctions/denied-party links related to shipment entities
+- vessel movement / port call context when inferable
+- lane market signal trends
+
+Create a deterministic intelligence summary object for the shipment.
+
+Suggested shape:
+- shipment_id
+- lane_id
+- origin_port_id
+- destination_port_id
+- congestion_score
+- disruption_score
+- weather_risk_score
+- sanctions_risk_score
+- vessel_risk_score
+- market_pressure_score
+- linked_signal_ids
+- generated_at
+
+2. RECOMMENDATION ENRICHMENT RULES
+
+Update recommendation generation rules so the following types become intelligence-aware:
+
+ROUTE_ADJUSTMENT
+- trigger or strengthen when destination/origin congestion is elevated
+- trigger or strengthen when lane disruption or weather risk is elevated
+
+DELAY_WARNING
+- incorporate congestion, disruptions, weather, and vessel/port call anomalies
+
+COMPLIANCE_ESCALATION
+- incorporate sanctions/denied-party linking confidence and severity
+
+CARRIER_SWITCH
+- strengthen when lane stress or vessel-related issues suggest a carrier change
+
+RISK_MITIGATION
+- raise severity when multiple external signals stack together
+
+PRICING_ALERT
+- fully implement this type using lane market signals, congestion pressure, and disruption premiums
+- do not leave this as a placeholder
+
+INSURANCE_ADJUSTMENT
+- strengthen if weather/disruption risk materially increases exposure
+
+Requirements:
+- keep deterministic-first logic
+- centralize enrichment thresholds/config
+- preserve recommendation fingerprinting/idempotency behavior
+- only create materially different recommendations when signal changes justify it
+
+3. SHIPMENT / LANE INTELLIGENCE SUMMARY
+
+Create a reusable summary builder/service that can compute intelligence context for:
+- a shipment
+- a trade lane
+- a port pair
+
+Persist summary snapshots if helpful, or compute on demand if more appropriate.
+Expose enough structure so APIs/UI can show why a recommendation changed.
+
+4. RECOMMENDATION EXPLANATION UPGRADE
+
+Upgrade recommendation explanations so they include external signal references in structured form.
+
+Each recommendation should have:
+- title
+- short explanation
+- internal reason codes
+- external reason codes
+- impact summary
+- signal evidence summary
+
+Examples of external reason codes:
+- PORT_CONGESTION_HIGH
+- LANE_DISRUPTION_ACTIVE
+- WEATHER_RISK_ELEVATED
+- SANCTIONS_MATCH_POSSIBLE
+- MARKET_RATE_PRESSURE
+- VESSEL_ANOMALY_DETECTED
+
+5. UI SURFACING
+
+Update Control Tower and Shipment Detail recommendation cards/panels to visibly show when a recommendation is intelligence-driven.
+
+Add:
+- external signal badges
+- evidence chips or sections
+- ability to see the linked external factors behind a recommendation
+- clear distinction between internal-only vs external-enriched recommendations
+
+Do not clutter the UI. Keep it operator-friendly.
+
+6. TESTS
+
+Add unit/integration tests for:
+- intelligence summary generation
+- enrichment rule triggering
+- PRICING_ALERT logic
+- multi-signal severity escalation
+- sanctions-aware compliance escalation
+- UI rendering of external reason codes/badges
+- deduplication behavior when enriched signals change vs do not materially change
+
+IMPLEMENTATION RULES
+
+- production-grade code only
+- use existing patterns and schema architecture
+- preserve tenant safety and global-vs-tenant intelligence scoping
+- do not fake external consumption; wire the real ingested intelligence tables into the decision engine
+- if a shipment lacks enough linked external intelligence, gracefully fall back to internal-only recommendations
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. services/modules updated
+3. recommendation types upgraded and how
+4. thresholds/config added
+5. APIs/UI changes
+6. tests added and passed
+7. which recommendation types now consume external intelligence
+8. remaining gaps before Phase 3
+
+Start immediately and implement code, not just a plan.

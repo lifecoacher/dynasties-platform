@@ -21,12 +21,14 @@ import {
 } from "./analyzer.js";
 import { computeExpiresAt } from "./config.js";
 import { buildGraphEdges } from "./graph-builder.js";
+import { buildIntelligenceSummary } from "./intelligence-summary.js";
 
 export interface DecisionResult {
   recommendationsCreated: number;
   recommendationsSuperseded: number;
   recommendationsDeduplicated: number;
   graphEdgesCreated: number;
+  intelligenceSignalsUsed: number;
   success: boolean;
   error: string | null;
 }
@@ -49,6 +51,7 @@ export async function runDecisionEngine(
       recommendationsSuperseded: 0,
       recommendationsDeduplicated: 0,
       graphEdgesCreated: 0,
+      intelligenceSignalsUsed: 0,
       success: false,
       error: "Shipment not found or company mismatch",
     };
@@ -114,6 +117,22 @@ export async function runDecisionEngine(
     };
   }
 
+  let intelligence = null;
+  try {
+    intelligence = await buildIntelligenceSummary(
+      shipmentId,
+      companyId,
+      shipment.portOfLoading,
+      shipment.portOfDischarge,
+      shipment.vessel,
+    );
+    console.log(
+      `[decision-engine] intelligence summary: composite=${intelligence.compositeIntelScore} signals=${intelligence.signals.length} congestion=${intelligence.congestionScore} disruption=${intelligence.disruptionScore} weather=${intelligence.weatherRiskScore} sanctions=${intelligence.sanctionsRiskScore} market=${intelligence.marketPressureScore}`,
+    );
+  } catch (err) {
+    console.warn(`[decision-engine] intelligence summary failed, proceeding without:`, err);
+  }
+
   const inputs: AnalysisInputs = {
     shipment: {
       shipmentId,
@@ -168,6 +187,7 @@ export async function runDecisionEngine(
         }
       : null,
     pricing,
+    intelligence,
   };
 
   const rawRecs = analyzeShipment(inputs);
@@ -247,11 +267,16 @@ export async function runDecisionEngine(
               expectedDelayImpactDays: rec.expectedDelayImpactDays ?? null,
               expectedMarginImpactPct: rec.expectedMarginImpactPct ?? null,
               expectedRiskReduction: rec.expectedRiskReduction ?? null,
+              externalReasonCodes: rec.externalReasonCodes ?? null,
+              signalEvidence: rec.signalEvidence as Record<string, unknown>[] ?? null,
+              intelligenceEnriched: rec.intelligenceEnriched ? "true" : "false",
               expiresAt: computeExpiresAt(rec.urgency, rec.type),
               sourceData: {
                 riskScore: riskScore?.compositeScore ?? null,
                 complianceStatus: compliance?.status ?? null,
                 insuranceCoverage: insurance?.coverageType ?? null,
+                intelligenceComposite: intelligence?.compositeIntelScore ?? null,
+                signalCount: intelligence?.signals.length ?? 0,
               },
               updatedAt: new Date(),
             })
@@ -272,6 +297,9 @@ export async function runDecisionEngine(
           title: rec.title,
           explanation: rec.explanation,
           reasonCodes: rec.reasonCodes,
+          externalReasonCodes: rec.externalReasonCodes ?? null,
+          signalEvidence: rec.signalEvidence as Record<string, unknown>[] ?? null,
+          intelligenceEnriched: rec.intelligenceEnriched ? "true" : "false",
           confidence: rec.confidence,
           urgency: rec.urgency,
           expectedDelayImpactDays: rec.expectedDelayImpactDays ?? null,
@@ -285,6 +313,8 @@ export async function runDecisionEngine(
             riskScore: riskScore?.compositeScore ?? null,
             complianceStatus: compliance?.status ?? null,
             insuranceCoverage: insurance?.coverageType ?? null,
+            intelligenceComposite: intelligence?.compositeIntelScore ?? null,
+            signalCount: intelligence?.signals.length ?? 0,
           },
         });
         recommendationsCreated++;
@@ -314,6 +344,8 @@ export async function runDecisionEngine(
           recommendationsDeduplicated,
           types: validRecs.map((r) => r.type),
           urgencies: validRecs.map((r) => r.urgency),
+          intelligenceEnrichedCount: validRecs.filter((r) => r.intelligenceEnriched).length,
+          intelligenceSignals: intelligence?.signals.length ?? 0,
         },
       });
     });
@@ -327,8 +359,10 @@ export async function runDecisionEngine(
     console.error(`[decision-engine] graph building failed:`, err);
   }
 
+  const intelligenceSignalsUsed = intelligence?.signals.length ?? 0;
+
   console.log(
-    `[decision-engine] complete: shipment=${shipmentId} created=${recommendationsCreated} superseded=${recommendationsSuperseded} deduped=${recommendationsDeduplicated} edges=${graphEdgesCreated}`,
+    `[decision-engine] complete: shipment=${shipmentId} created=${recommendationsCreated} superseded=${recommendationsSuperseded} deduped=${recommendationsDeduplicated} edges=${graphEdgesCreated} intelSignals=${intelligenceSignalsUsed}`,
   );
 
   return {
@@ -336,6 +370,7 @@ export async function runDecisionEngine(
     recommendationsSuperseded,
     recommendationsDeduplicated,
     graphEdgesCreated,
+    intelligenceSignalsUsed,
     success: true,
     error: null,
   };

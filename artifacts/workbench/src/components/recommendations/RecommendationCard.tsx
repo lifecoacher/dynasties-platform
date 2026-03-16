@@ -15,7 +15,22 @@ import {
   X,
   Pencil,
   Zap,
+  Globe,
+  Radio,
+  Anchor,
+  CloudLightning,
+  Ban,
+  TrendingUp,
+  Activity,
 } from "lucide-react";
+
+interface SignalEvidence {
+  signalId: string;
+  signalType: string;
+  severity: string;
+  summary: string;
+  externalReasonCode: string;
+}
 
 interface Recommendation {
   id: string;
@@ -24,6 +39,9 @@ interface Recommendation {
   title: string;
   explanation: string;
   reasonCodes: string[];
+  externalReasonCodes?: string[] | null;
+  signalEvidence?: SignalEvidence[] | null;
+  intelligenceEnriched?: string | null;
   confidence: number;
   urgency: string;
   expectedDelayImpactDays: number | null;
@@ -46,6 +64,7 @@ const typeIcons: Record<string, typeof AlertTriangle> = {
   ROUTE_ADJUSTMENT: Route,
   CARRIER_SWITCH: Truck,
   INSURANCE_ADJUSTMENT: Shield,
+  PRICING_ALERT: TrendingUp,
 };
 
 const urgencyColors: Record<string, string> = {
@@ -71,6 +90,51 @@ const statusBadgeColors: Record<string, string> = {
   SUPERSEDED: "bg-white/10 text-white/40 border-white/20",
 };
 
+const externalReasonCodeIcons: Record<string, typeof Globe> = {
+  PORT_CONGESTION_HIGH: Anchor,
+  PORT_CONGESTION_CRITICAL: Anchor,
+  LANE_DISRUPTION_ACTIVE: Radio,
+  LANE_DISRUPTION_CRITICAL: Radio,
+  WEATHER_RISK_ELEVATED: CloudLightning,
+  WEATHER_RISK_CRITICAL: CloudLightning,
+  SANCTIONS_MATCH_POSSIBLE: Ban,
+  SANCTIONS_MATCH_HIGH_CONFIDENCE: Ban,
+  MARKET_RATE_PRESSURE: TrendingUp,
+  MARKET_RATE_SURGE: TrendingUp,
+  VESSEL_ANOMALY_DETECTED: Activity,
+  MULTI_SIGNAL_ESCALATION: Globe,
+};
+
+const externalReasonCodeColors: Record<string, string> = {
+  PORT_CONGESTION_HIGH: "bg-orange-500/15 text-orange-300 border-orange-500/30",
+  PORT_CONGESTION_CRITICAL: "bg-red-500/15 text-red-300 border-red-500/30",
+  LANE_DISRUPTION_ACTIVE: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  LANE_DISRUPTION_CRITICAL: "bg-red-500/15 text-red-300 border-red-500/30",
+  WEATHER_RISK_ELEVATED: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
+  WEATHER_RISK_CRITICAL: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
+  SANCTIONS_MATCH_POSSIBLE: "bg-rose-500/15 text-rose-300 border-rose-500/30",
+  SANCTIONS_MATCH_HIGH_CONFIDENCE: "bg-red-500/15 text-red-300 border-red-500/30",
+  MARKET_RATE_PRESSURE: "bg-violet-500/15 text-violet-300 border-violet-500/30",
+  MARKET_RATE_SURGE: "bg-violet-500/15 text-violet-300 border-violet-500/30",
+  VESSEL_ANOMALY_DETECTED: "bg-teal-500/15 text-teal-300 border-teal-500/30",
+  MULTI_SIGNAL_ESCALATION: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+};
+
+const externalReasonCodeLabels: Record<string, string> = {
+  PORT_CONGESTION_HIGH: "Port Congestion",
+  PORT_CONGESTION_CRITICAL: "Critical Congestion",
+  LANE_DISRUPTION_ACTIVE: "Lane Disruption",
+  LANE_DISRUPTION_CRITICAL: "Critical Disruption",
+  WEATHER_RISK_ELEVATED: "Weather Risk",
+  WEATHER_RISK_CRITICAL: "Severe Weather",
+  SANCTIONS_MATCH_POSSIBLE: "Sanctions Alert",
+  SANCTIONS_MATCH_HIGH_CONFIDENCE: "Sanctions Match",
+  MARKET_RATE_PRESSURE: "Rate Pressure",
+  MARKET_RATE_SURGE: "Rate Surge",
+  VESSEL_ANOMALY_DETECTED: "Vessel Anomaly",
+  MULTI_SIGNAL_ESCALATION: "Multi-Signal",
+};
+
 interface Props {
   recommendation: Recommendation;
   onRespond?: (id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED", notes?: string) => void;
@@ -88,6 +152,9 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
   const colorClass = urgencyColors[rec.urgency] || urgencyColors.LOW;
   const badgeColor = urgencyBadgeColors[rec.urgency] || urgencyBadgeColors.LOW;
   const isPending = rec.status === "PENDING" || rec.status === "SHOWN";
+  const isEnriched = rec.intelligenceEnriched === "true";
+  const extCodes = rec.externalReasonCodes || [];
+  const evidence = rec.signalEvidence || [];
 
   const handleRespond = (action: "ACCEPTED" | "MODIFIED" | "REJECTED", notes?: string) => {
     if (onRespond) {
@@ -120,6 +187,11 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
               <span className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded border ${badgeColor}`}>
                 {rec.urgency}
               </span>
+              {isEnriched && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded border bg-violet-500/20 text-violet-300 border-violet-500/40">
+                  <Globe size={9} /> Intel
+                </span>
+              )}
               {!isPending && (
                 <span className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded border ${statusBadgeColors[rec.status] || "bg-white/10 text-white/60 border-white/20"}`}>
                   {rec.status}
@@ -129,6 +201,22 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
 
             {showShipmentRef && (
               <p className="text-[11px] text-white/40 mt-0.5">Shipment: {rec.shipmentId.substring(0, 16)}...</p>
+            )}
+
+            {extCodes.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {extCodes.map((code) => {
+                  const ExtIcon = externalReasonCodeIcons[code] || Globe;
+                  const colorCls = externalReasonCodeColors[code] || "bg-white/10 text-white/50 border-white/20";
+                  const label = externalReasonCodeLabels[code] || code.replace(/_/g, " ");
+                  return (
+                    <span key={code} className={`flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded border ${colorCls}`}>
+                      <ExtIcon size={9} />
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
             )}
 
             {!compact && (
@@ -171,13 +259,34 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
                       <span className="text-white/70 font-medium">Recommended: </span>
                       {rec.recommendedAction}
                     </p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mb-2">
                       {rec.reasonCodes.map((code) => (
                         <span key={code} className="px-1.5 py-0.5 text-[10px] bg-white/5 rounded text-white/40">
                           {code}
                         </span>
                       ))}
                     </div>
+
+                    {evidence.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-white/5">
+                        <p className="text-[10px] font-medium text-violet-300/80 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                          <Globe size={10} /> Signal Evidence ({evidence.length})
+                        </p>
+                        <div className="space-y-1">
+                          {evidence.map((sig, i) => (
+                            <div key={sig.signalId || i} className="flex items-start gap-1.5 text-[10px] text-white/50">
+                              <span className={`mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                sig.severity === "CRITICAL" ? "bg-red-400" :
+                                sig.severity === "HIGH" ? "bg-amber-400" :
+                                sig.severity === "MEDIUM" ? "bg-yellow-400" : "bg-blue-400"
+                              }`} />
+                              <span className="leading-tight">{sig.summary}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {rec.expiresAt && (
                       <p className="text-[10px] text-white/30 mt-2">
                         Expires: {new Date(rec.expiresAt).toLocaleDateString()} {new Date(rec.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
