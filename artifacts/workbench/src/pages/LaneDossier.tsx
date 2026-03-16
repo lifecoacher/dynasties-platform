@@ -30,8 +30,8 @@ async function apiFetch<T>(path: string): Promise<T> {
 
 function ScoreGauge({ label, value, max = 100 }: { label: string; value: number; max?: number }) {
   const pct = Math.min(100, (value / max) * 100);
-  const color = pct >= 70 ? "bg-red-500" : pct >= 40 ? "bg-amber-500" : "bg-emerald-500";
-  const textColor = pct >= 70 ? "text-red-600" : pct >= 40 ? "text-amber-600" : "text-emerald-600";
+  const color = pct >= 70 ? "bg-[#E05252]" : pct >= 40 ? "bg-[#D4A24C]" : "bg-primary";
+  const textColor = pct >= 70 ? "text-[#E05252]" : pct >= 40 ? "text-[#D4A24C]" : "text-primary";
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
       <div className="text-xs text-slate-500 mb-1">{label}</div>
@@ -64,8 +64,8 @@ export default function LaneDossier() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
-            <Ship className="w-5 h-5 text-violet-600" />
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Ship className="w-5 h-5 text-primary" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -131,8 +131,8 @@ export default function LaneDossier() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            s.status === "IN_TRANSIT" ? "bg-blue-100 text-blue-700" :
-                            s.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700" :
+                            s.status === "IN_TRANSIT" ? "bg-primary/15 text-primary" :
+                            s.status === "COMPLETED" ? "bg-primary/15 text-primary" :
                             "bg-slate-100 text-slate-600"
                           }`}>{s.status}</span>
                           <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -157,7 +157,7 @@ export default function LaneDossier() {
                         <span className="font-medium text-slate-700">{r.type}</span>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           r.urgency === "CRITICAL" ? "bg-red-100 text-red-700" :
-                          r.urgency === "HIGH" ? "bg-orange-100 text-orange-700" :
+                          r.urgency === "HIGH" ? "bg-[#D4A24C]/15 text-[#D4A24C]" :
                           "bg-slate-100 text-slate-600"
                         }`}>{r.urgency}</span>
                       </div>
@@ -178,10 +178,10 @@ export default function LaneDossier() {
                 </h3>
                 <div className="space-y-2">
                   {(data.signals?.disruptions || []).map((d: any, i: number) => (
-                    <div key={i} className="p-2 rounded-lg bg-amber-50 border border-amber-100 text-sm">
-                      <div className="font-medium text-amber-800">{d.eventType}</div>
-                      <div className="text-xs text-amber-600">{d.description || "No description"}</div>
-                      <div className="text-xs text-amber-500 mt-1">Severity: {d.severity}</div>
+                    <div key={i} className="p-2 rounded-lg bg-[#D4A24C]/5 border border-[#D4A24C]/15 text-sm">
+                      <div className="font-medium text-[#D4A24C]">{d.eventType}</div>
+                      <div className="text-xs text-[#D4A24C]">{d.description || "No description"}</div>
+                      <div className="text-xs text-[#D4A24C]/80 mt-1">Severity: {d.severity}</div>
                     </div>
                   ))}
                   {(!data.signals?.disruptions || data.signals.disruptions.length === 0) && (
@@ -200,9 +200,9 @@ export default function LaneDossier() {
                       <span className="text-slate-600">{c.portName || c.portCode}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
                         c.congestionLevel === "critical" ? "bg-red-100 text-red-700" :
-                        c.congestionLevel === "high" ? "bg-orange-100 text-orange-700" :
-                        c.congestionLevel === "moderate" ? "bg-amber-100 text-amber-700" :
-                        "bg-emerald-100 text-emerald-700"
+                        c.congestionLevel === "high" ? "bg-[#D4A24C]/15 text-[#D4A24C]" :
+                        c.congestionLevel === "moderate" ? "bg-[#D4A24C]/15 text-[#D4A24C]" :
+                        "bg-primary/15 text-primary"
                       }`}>{c.congestionLevel}</span>
                     </div>
                   ))}

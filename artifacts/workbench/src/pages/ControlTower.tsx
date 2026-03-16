@@ -48,9 +48,9 @@ function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
     <div className={`border rounded-lg p-4 ${color}`}>
       <div className="flex items-center gap-2 mb-1">
         <Icon size={14} />
-        <span className="text-xs uppercase tracking-wider text-white/50">{label}</span>
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
       </div>
-      <p className="text-2xl font-bold text-white">{value}</p>
+      <p className="text-2xl font-bold text-foreground">{value}</p>
     </div>
   );
 }
@@ -129,15 +129,15 @@ export default function ControlTower() {
       <div className="p-6 space-y-6 max-w-[1200px]">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Control Tower</h1>
-            <p className="text-sm text-white/50 mt-1">AI-powered operational intelligence and intervention center</p>
+            <h1 className="text-2xl font-bold text-foreground">Control Tower</h1>
+            <p className="text-sm text-muted-foreground mt-1">AI-powered operational intelligence and intervention center</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+            <div className="flex items-center bg-secondary rounded-lg border border-border overflow-hidden">
               <button
                 onClick={() => setViewMode("urgency")}
                 className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                  viewMode === "urgency" ? "bg-white/10 text-white" : "text-white/50 hover:text-white/70"
+                  viewMode === "urgency" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 By Urgency
@@ -145,7 +145,7 @@ export default function ControlTower() {
               <button
                 onClick={() => setViewMode("impact")}
                 className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                  viewMode === "impact" ? "bg-violet-500/20 text-violet-300" : "text-white/50 hover:text-white/70"
+                  viewMode === "impact" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 By Impact
@@ -154,14 +154,14 @@ export default function ControlTower() {
             <button
               onClick={handleIngestAll}
               disabled={ingesting}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-violet-500/10 text-violet-300 rounded-lg border border-violet-500/20 hover:bg-violet-500/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary rounded-lg border border-primary/20 hover:bg-primary/20 transition-colors disabled:opacity-50"
             >
               <Download size={14} className={ingesting ? "animate-pulse" : ""} />
               {ingesting ? "Ingesting..." : "Ingest Intel"}
             </button>
             <button
               onClick={handleRefresh}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white/5 text-white/60 rounded-lg border border-white/10 hover:bg-white/10 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-secondary text-muted-foreground rounded-lg border border-border hover:bg-muted transition-colors"
             >
               <RefreshCw size={14} /> Refresh
             </button>
@@ -169,10 +169,10 @@ export default function ControlTower() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={AlertTriangle} label="Critical" value={criticalRecs.length} color="bg-red-500/5 border-red-500/20" />
-          <StatCard icon={Shield} label="Compliance" value={complianceAlerts.length} color="bg-amber-500/5 border-amber-500/20" />
-          <StatCard icon={Clock} label="Delay Risk" value={delayWarnings.length} color="bg-yellow-500/5 border-yellow-500/20" />
-          <StatCard icon={DollarSign} label="Margin Risk" value={marginWarnings.length} color="bg-blue-500/5 border-blue-500/20" />
+          <StatCard icon={AlertTriangle} label="Critical" value={criticalRecs.length} color="bg-[#E05252]/5 border-[#E05252]/20" />
+          <StatCard icon={Shield} label="Compliance" value={complianceAlerts.length} color="bg-[#D4A24C]/5 border-[#D4A24C]/20" />
+          <StatCard icon={Clock} label="Delay Risk" value={delayWarnings.length} color="bg-[#D4A24C]/5 border-[#D4A24C]/20" />
+          <StatCard icon={DollarSign} label="Margin Risk" value={marginWarnings.length} color="bg-primary/5 border-primary/20" />
         </div>
 
         {viewMode === "impact" ? (
@@ -195,10 +195,10 @@ export default function ControlTower() {
           />
         )}
 
-        <div className="border-t border-white/10 pt-6">
+        <div className="border-t border-border pt-6">
           <div className="flex items-center gap-2 mb-4">
-            <Globe size={16} className="text-violet-400" />
-            <h2 className="text-lg font-bold text-white">External Intelligence</h2>
+            <Globe size={16} className="text-primary" />
+            <h2 className="text-lg font-bold text-foreground">External Intelligence</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <HighRiskPortsWidget />
@@ -237,15 +237,15 @@ function ImpactPriorityView({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider flex items-center gap-2">
-          <SortDesc size={14} className="text-violet-400" />
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+          <SortDesc size={14} className="text-primary" />
           Priority Queue
-          <span className="text-[10px] bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded-full">
+          <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
             {data.length}
           </span>
         </h2>
         <div className="flex items-center gap-2">
-          <Filter size={12} className="text-white/40" />
+          <Filter size={12} className="text-muted-foreground" />
           <div className="flex gap-1">
             {sortOptions.map((opt) => (
               <button
@@ -253,8 +253,8 @@ function ImpactPriorityView({
                 onClick={() => onSortChange(opt.value)}
                 className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
                   sortBy === opt.value
-                    ? "bg-violet-500/20 text-violet-300"
-                    : "text-white/40 hover:text-white/60"
+                    ? "bg-primary/20 text-primary"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {opt.label}
@@ -266,16 +266,16 @@ function ImpactPriorityView({
 
       <div className="space-y-3">
         {data.length === 0 && (
-          <p className="text-sm text-white/30 py-8 text-center">No active recommendations</p>
+          <p className="text-sm text-muted-foreground py-8 text-center">No active recommendations</p>
         )}
         {data.map((rec: any) => (
           <div key={rec.id} className="relative">
             {rec.isRecentlyChanged && (
-              <div className="absolute -left-1 top-0 bottom-0 w-1 bg-violet-500 rounded-full" />
+              <div className="absolute -left-1 top-0 bottom-0 w-1 bg-primary rounded-full" />
             )}
             {rec.isIntelligenceTriggered && (
               <div className="absolute -right-1 top-2">
-                <div className="flex items-center gap-1 bg-violet-500/20 text-violet-300 text-[9px] px-1.5 py-0.5 rounded-full">
+                <div className="flex items-center gap-1 bg-primary/20 text-primary text-[9px] px-1.5 py-0.5 rounded-full">
                   <Zap size={8} />
                   Intel
                 </div>
@@ -283,7 +283,7 @@ function ImpactPriorityView({
             )}
             <div className={`${rec.isRecentlyChanged ? "pl-2" : ""}`}>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-mono text-white/30 bg-white/5 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
                   Score: {rec.impactScore}
                 </span>
               </div>
@@ -321,16 +321,16 @@ function UrgencyView({
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section>
-          <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-red-400" />
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+            <AlertTriangle size={14} className="text-[#E05252]" />
             Urgent Recommendations
-            <span className="text-[10px] bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded-full">
+            <span className="text-[10px] bg-[#E05252]/20 text-[#E05252] px-1.5 py-0.5 rounded-full">
               {criticalRecs.length + highRecs.length}
             </span>
           </h2>
           <div className="space-y-3">
             {[...criticalRecs, ...highRecs].length === 0 && (
-              <p className="text-sm text-white/30 py-8 text-center">No urgent recommendations</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">No urgent recommendations</p>
             )}
             {[...criticalRecs, ...highRecs].map((rec: any) => (
               <RecommendationCard
@@ -344,16 +344,16 @@ function UrgencyView({
         </section>
 
         <section>
-          <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <TrendingUp size={14} className="text-blue-400" />
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+            <TrendingUp size={14} className="text-[#D4A24C]" />
             Shipments Needing Intervention
-            <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full">
+            <span className="text-[10px] bg-[#D4A24C]/20 text-[#D4A24C] px-1.5 py-0.5 rounded-full">
               {needsIntervention.length}
             </span>
           </h2>
           <div className="space-y-2">
             {needsIntervention.length === 0 && (
-              <p className="text-sm text-white/30 py-8 text-center">All shipments on track</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">All shipments on track</p>
             )}
             {needsIntervention.map((s: any) => {
               const shipRecs = recommendations.filter((r: any) => r.shipmentId === s.id);
@@ -365,31 +365,31 @@ function UrgencyView({
                 "LOW",
               );
               const urgencyColor = highestUrgency === "CRITICAL"
-                ? "border-red-500/30 bg-red-500/5"
+                ? "border-[#E05252]/30 bg-[#E05252]/5"
                 : highestUrgency === "HIGH"
-                  ? "border-amber-500/30 bg-amber-500/5"
-                  : "border-white/10 bg-white/[0.02]";
+                  ? "border-[#D4A24C]/30 bg-[#D4A24C]/5"
+                  : "border-border bg-secondary/30";
 
               return (
                 <motion.button
                   key={s.id}
                   onClick={() => navigate(`/shipments/${s.id}`)}
-                  className={`w-full text-left border rounded-lg p-3 hover:bg-white/5 transition-colors ${urgencyColor}`}
+                  className={`w-full text-left border rounded-lg p-3 hover:bg-muted/30 transition-colors ${urgencyColor}`}
                   whileHover={{ x: 4 }}
                 >
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">{s.reference}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 bg-white/10 rounded text-white/60 uppercase">
+                        <span className="text-sm font-medium text-foreground">{s.reference}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-secondary rounded text-muted-foreground uppercase">
                           {s.status}
                         </span>
                       </div>
-                      <p className="text-xs text-white/40 mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {shipRecs.length} recommendation{shipRecs.length !== 1 ? "s" : ""}
                       </p>
                     </div>
-                    <ArrowRight size={14} className="text-white/30" />
+                    <ArrowRight size={14} className="text-muted-foreground" />
                   </div>
                 </motion.button>
               );
@@ -400,10 +400,10 @@ function UrgencyView({
 
       {otherRecs.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <FileWarning size={14} className="text-yellow-400" />
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+            <FileWarning size={14} className="text-muted-foreground" />
             Other Recommendations
-            <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded-full">
+            <span className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full">
               {otherRecs.length}
             </span>
           </h2>

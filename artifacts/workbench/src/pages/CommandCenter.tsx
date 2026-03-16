@@ -19,10 +19,16 @@ import { normalizeRiskScore, riskColor, riskLabel, formatCurrency } from "@/lib/
 
 function StatusDot({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    DRAFT: "bg-blue-400",
-    PENDING_REVIEW: "bg-amber-400",
-    APPROVED: "bg-emerald-400",
-    REJECTED: "bg-red-400",
+    DRAFT: "bg-muted-foreground",
+    PENDING_REVIEW: "bg-[#D4A24C]",
+    APPROVED: "bg-primary",
+    REJECTED: "bg-[#E05252]",
+    IN_TRANSIT: "bg-primary",
+    AT_PORT: "bg-[#D4A24C]",
+    CUSTOMS: "bg-[#D4A24C]",
+    BOOKED: "bg-primary/60",
+    DELIVERED: "bg-muted-foreground",
+    CLOSED: "bg-muted-foreground",
   };
   return <span className={`w-2 h-2 rounded-full ${colors[status] || "bg-muted-foreground"}`} />;
 }
@@ -69,9 +75,9 @@ export default function CommandCenter() {
           className="grid grid-cols-4 gap-3 mb-8"
         >
           <MetricCard label="Shipments" value={totalShipments} icon={<Ship className="w-4 h-4" />} color="text-primary" />
-          <MetricCard label="Compliant" value={complianceClear} icon={<Shield className="w-4 h-4" />} color="text-emerald-400" />
-          <MetricCard label="High Risk" value={highRisk} icon={<TrendingUp className="w-4 h-4" />} color="text-red-400" />
-          <MetricCard label="Insured" value={insured} icon={<Umbrella className="w-4 h-4" />} color="text-violet-400" />
+          <MetricCard label="Compliant" value={complianceClear} icon={<Shield className="w-4 h-4" />} color="text-primary" />
+          <MetricCard label="High Risk" value={highRisk} icon={<TrendingUp className="w-4 h-4" />} color="text-[#D4A24C]" />
+          <MetricCard label="Insured" value={insured} icon={<Umbrella className="w-4 h-4" />} color="text-muted-foreground" />
         </motion.div>
 
         <motion.div
@@ -123,9 +129,9 @@ export default function CommandCenter() {
                         <div className="flex items-center gap-4 shrink-0">
                           <div className="flex items-center gap-1.5">
                             {s.compliance?.status === "CLEAR" ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                             ) : s.compliance?.status ? (
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                              <AlertTriangle className="w-3.5 h-3.5 text-[#D4A24C]" />
                             ) : (
                               <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                             )}

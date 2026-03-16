@@ -50,14 +50,12 @@ export function Sidebar() {
     <aside className="w-[240px] h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0 sticky top-0">
       <div className="px-5 py-5 border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Ship className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-[15px] font-semibold text-foreground tracking-tight">Dynasties</h1>
-            <p className="text-[11px] text-muted-foreground leading-none mt-0.5">Trade Intelligence OS</p>
+          <div className="relative">
+            <span className="font-heading text-[16px] font-medium text-foreground" style={{ letterSpacing: '0.22em' }}>DYNASTIES</span>
+            <div className="absolute -bottom-1 left-0 w-[1.3em] h-[2.5px] rounded-full bg-primary" />
           </div>
         </div>
+        <p className="text-[11px] text-muted-foreground leading-none mt-2.5">Trade Intelligence OS</p>
       </div>
 
       <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">

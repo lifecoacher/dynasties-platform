@@ -174,26 +174,26 @@ export default function PredictiveIntelligence() {
 
   const riskLevelColor = (level: string) => {
     switch (level) {
-      case "CRITICAL": return "text-red-400 bg-red-500/10 border-red-500/20";
-      case "HIGH": return "text-orange-400 bg-orange-500/10 border-orange-500/20";
-      case "MODERATE": return "text-yellow-400 bg-yellow-500/10 border-yellow-500/20";
-      case "LOW": return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+      case "CRITICAL": return "text-[#E05252] bg-[#E05252]/10 border-red-500/20";
+      case "HIGH": return "text-[#D4A24C] bg-[#D4A24C]/10 border-[#D4A24C]/20";
+      case "MODERATE": return "text-[#D4A24C]/80 bg-[#D4A24C]/8 border-[#D4A24C]/15";
+      case "LOW": return "text-primary bg-primary/10 border-primary/20";
       default: return "text-zinc-400 bg-zinc-500/10 border-zinc-500/20";
     }
   };
 
   const severityColor = (sev: string) => {
     switch (sev) {
-      case "CRITICAL": return "bg-red-500/10 text-red-400 border-red-500/30";
-      case "WARNING": return "bg-amber-500/10 text-amber-400 border-amber-500/30";
-      case "INFO": return "bg-blue-500/10 text-blue-400 border-blue-500/30";
+      case "CRITICAL": return "bg-[#E05252]/10 text-[#E05252] border-red-500/30";
+      case "WARNING": return "bg-[#D4A24C]/10 text-[#D4A24C] border-[#D4A24C]/30";
+      case "INFO": return "bg-primary/10 text-primary border-primary/30";
       default: return "bg-zinc-500/10 text-zinc-400 border-zinc-500/30";
     }
   };
 
   const trendIcon = (dir: string | null) => {
-    if (dir === "RISING") return <TrendingUp className="w-3.5 h-3.5 text-red-400" />;
-    if (dir === "FALLING") return <TrendingUp className="w-3.5 h-3.5 text-emerald-400 rotate-180" />;
+    if (dir === "RISING") return <TrendingUp className="w-3.5 h-3.5 text-[#E05252]" />;
+    if (dir === "FALLING") return <TrendingUp className="w-3.5 h-3.5 text-primary rotate-180" />;
     return <Activity className="w-3.5 h-3.5 text-zinc-400" />;
   };
 
@@ -242,7 +242,7 @@ export default function PredictiveIntelligence() {
           <button
             onClick={computePatterns}
             disabled={computingPatterns}
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 disabled:opacity-50 flex items-center gap-1.5 border border-violet-500/20"
+            className="px-3 py-1.5 text-xs font-medium rounded-md bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 flex items-center gap-1.5 border border-primary/20"
           >
             {computingPatterns ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BarChart3 className="w-3.5 h-3.5" />}
             Compute Patterns
@@ -259,25 +259,25 @@ export default function PredictiveIntelligence() {
 
       <div className="grid grid-cols-4 gap-4">
         <MetricCard
-          icon={<Shield className="w-4 h-4 text-emerald-400" />}
+          icon={<Shield className="w-4 h-4 text-primary" />}
           label="Evaluation Coverage"
           value={`${analytics?.evaluationCoverage ?? 0}%`}
           sub={`${analytics?.evaluatedShipments ?? 0} of ${analytics?.upcomingShipments ?? 0} evaluated`}
         />
         <MetricCard
-          icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
+          icon={<AlertTriangle className="w-4 h-4 text-[#D4A24C]" />}
           label="Active Alerts"
           value={String(alerts.length)}
           sub={`${alerts.filter((a) => a.severity === "CRITICAL").length} critical`}
         />
         <MetricCard
-          icon={<TrendingUp className="w-4 h-4 text-blue-400" />}
+          icon={<TrendingUp className="w-4 h-4 text-primary" />}
           label="Patterns Tracked"
           value={String(patterns.length)}
           sub={`${analytics?.patternSummary?.length ?? 0} categories`}
         />
         <MetricCard
-          icon={<Activity className="w-4 h-4 text-violet-400" />}
+          icon={<Activity className="w-4 h-4 text-primary" />}
           label="Risk Distribution"
           value={String(analytics?.riskDistribution?.length ?? 0)}
           sub="risk levels observed"
@@ -325,7 +325,7 @@ export default function PredictiveIntelligence() {
                       <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${
-                            level === "CRITICAL" ? "bg-red-500" : level === "HIGH" ? "bg-orange-500" : level === "MODERATE" ? "bg-yellow-500" : "bg-emerald-500"
+                            level === "CRITICAL" ? "bg-[#E05252]" : level === "HIGH" ? "bg-[#D4A24C]" : level === "MODERATE" ? "bg-[#D4A24C]/70" : "bg-primary"
                           }`}
                           style={{ width: `${pct}%` }}
                         />
@@ -349,7 +349,7 @@ export default function PredictiveIntelligence() {
             className="bg-card border border-border rounded-xl p-5"
           >
             <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <AlertTriangle className="w-4 h-4 text-[#D4A24C]" />
               Active Alerts by Severity
             </h3>
             {analytics?.alertsBySeverity && analytics.alertsBySeverity.length > 0 ? (
@@ -362,7 +362,7 @@ export default function PredictiveIntelligence() {
                     <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full ${
-                          item.severity === "CRITICAL" ? "bg-red-500" : item.severity === "WARNING" ? "bg-amber-500" : "bg-blue-500"
+                          item.severity === "CRITICAL" ? "bg-[#E05252]" : item.severity === "WARNING" ? "bg-[#D4A24C]" : "bg-primary/60"
                         }`}
                         style={{ width: `${Math.min((item.count / 10) * 100, 100)}%` }}
                       />
@@ -383,7 +383,7 @@ export default function PredictiveIntelligence() {
             className="bg-card border border-border rounded-xl p-5 col-span-2"
           >
             <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-blue-400" />
+              <Clock className="w-4 h-4 text-primary" />
               Recent Alerts
             </h3>
             {analytics?.recentAlerts && analytics.recentAlerts.length > 0 ? (
@@ -517,25 +517,25 @@ export default function PredictiveIntelligence() {
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
-                  icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
+                  icon={<AlertTriangle className="w-4 h-4 text-[#D4A24C]" />}
                   label="Alerts (30d)"
                   value={String(performance.alerts.totalAlerts)}
                   sub={`${performance.alerts.resolvedAlerts} resolved, ${performance.alerts.expiredAlerts} expired`}
                 />
                 <MetricCard
-                  icon={<Shield className="w-4 h-4 text-cyan-400" />}
+                  icon={<Shield className="w-4 h-4 text-primary/70" />}
                   label="Booking Decisions"
                   value={String(performance.bookings.totalDecisions)}
                   sub={`${Math.round(performance.bookings.approvalRate * 100)}% approval rate`}
                 />
                 <MetricCard
-                  icon={<Activity className="w-4 h-4 text-orange-400" />}
+                  icon={<Activity className="w-4 h-4 text-[#D4A24C]" />}
                   label="Gate Holds"
                   value={String(performance.gateHolds.totalHolds)}
                   sub={`${performance.gateHolds.activeHolds} active, ${performance.gateHolds.overriddenHolds} overridden`}
                 />
                 <MetricCard
-                  icon={<BarChart3 className="w-4 h-4 text-teal-400" />}
+                  icon={<BarChart3 className="w-4 h-4 text-primary" />}
                   label="Playbooks"
                   value={String(performance.playbooks.totalPlaybooks)}
                   sub={`${Math.round(performance.playbooks.avgCompletionRate * 100)}% avg completion`}
@@ -563,7 +563,7 @@ export default function PredictiveIntelligence() {
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Blocked Rate</span>
-                        <span className="font-mono text-red-400">{Math.round(performance.bookings.blockedRate * 100)}%</span>
+                        <span className="font-mono text-[#E05252]">{Math.round(performance.bookings.blockedRate * 100)}%</span>
                       </div>
                     </div>
                   </div>
@@ -583,8 +583,8 @@ export default function PredictiveIntelligence() {
                     {Object.entries(performance.gateHolds.bySeverity || {}).map(([sev, cnt]: [string, any]) => (
                       <div key={sev} className="flex items-center justify-between text-xs">
                         <span className={`${
-                          sev === "CRITICAL" ? "text-red-400" :
-                          sev === "HIGH" ? "text-orange-400" : "text-amber-400"
+                          sev === "CRITICAL" ? "text-[#E05252]" :
+                          sev === "HIGH" ? "text-[#D4A24C]" : "text-[#D4A24C]"
                         }`}>{sev}</span>
                         <span className="font-mono text-foreground">{cnt}</span>
                       </div>
@@ -621,18 +621,18 @@ export default function PredictiveIntelligence() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Completed</span>
-                      <span className="font-mono text-emerald-400">{performance.playbooks.completedPlaybooks}</span>
+                      <span className="font-mono text-primary">{performance.playbooks.completedPlaybooks}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">In Progress</span>
-                      <span className="font-mono text-amber-400">{performance.playbooks.inProgressPlaybooks}</span>
+                      <span className="font-mono text-[#D4A24C]">{performance.playbooks.inProgressPlaybooks}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-2 mt-3">By Priority:</p>
                     {Object.entries(performance.playbooks.byPriority || {}).map(([pri, cnt]: [string, any]) => (
                       <div key={pri} className="flex items-center justify-between text-xs">
                         <span className={`${
-                          pri === "CRITICAL" ? "text-red-400" :
-                          pri === "HIGH" ? "text-orange-400" : "text-amber-400"
+                          pri === "CRITICAL" ? "text-[#E05252]" :
+                          pri === "HIGH" ? "text-[#D4A24C]" : "text-[#D4A24C]"
                         }`}>{pri}</span>
                         <span className="font-mono text-foreground">{cnt}</span>
                       </div>

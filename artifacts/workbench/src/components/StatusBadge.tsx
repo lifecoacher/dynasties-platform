@@ -14,35 +14,41 @@ interface StatusBadgeProps {
 export function StatusBadge({ status, className, type = 'shipment' }: StatusBadgeProps) {
   const getStyles = () => {
     switch (status.toUpperCase()) {
-      // Compliance Statuses
       case 'CLEAR':
-        return 'bg-success/20 text-success border-success/30';
+        return 'bg-primary/15 text-primary border-primary/25';
       case 'ALERT':
-        return 'bg-warning/20 text-warning border-warning/30';
+        return 'bg-warning/15 text-warning border-warning/25';
       case 'BLOCKED':
       case 'ESCALATE':
-        return 'bg-destructive/20 text-destructive border-destructive/30';
+        return 'bg-destructive/15 text-destructive border-destructive/25';
       
-      // Risk Statuses
       case 'AUTO_APPROVE':
-        return 'bg-success/20 text-success border-success/30';
+        return 'bg-primary/15 text-primary border-primary/25';
       case 'OPERATOR_REVIEW':
-        return 'bg-warning/20 text-warning border-warning/30';
+        return 'bg-warning/15 text-warning border-warning/25';
 
-      // Shipment Statuses
       case 'DRAFT':
         return 'bg-muted/50 text-muted-foreground border-muted';
       case 'PENDING_REVIEW':
-        return 'bg-primary/20 text-primary border-primary/30';
+        return 'bg-warning/15 text-[#D4A24C] border-warning/25';
       case 'APPROVED':
-        return 'bg-success/20 text-success border-success/30';
+        return 'bg-primary/15 text-primary border-primary/25';
       case 'REJECTED':
-        return 'bg-destructive/20 text-destructive border-destructive/30';
+        return 'bg-destructive/15 text-destructive border-destructive/25';
       case 'IN_TRANSIT':
-        return 'bg-accent/20 text-accent border-accent/30';
+        return 'bg-primary/10 text-primary border-primary/20';
+      case 'AT_PORT':
+      case 'CUSTOMS':
+        return 'bg-warning/15 text-[#D4A24C] border-warning/25';
+      case 'BOOKED':
+        return 'bg-primary/10 text-primary/80 border-primary/20';
       case 'DELIVERED':
       case 'CLOSED':
         return 'bg-secondary/50 text-secondary-foreground border-secondary';
+      case 'PENDING':
+        return 'bg-muted/50 text-muted-foreground border-muted';
+      case 'CANCELLED':
+        return 'bg-destructive/10 text-destructive/70 border-destructive/20';
       default:
         return 'bg-muted/50 text-muted-foreground border-muted';
     }

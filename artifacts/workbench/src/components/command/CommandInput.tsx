@@ -158,7 +158,7 @@ export function CommandInput() {
             exit={{ opacity: 0, y: -4 }}
             className={`mt-3 p-4 rounded-xl border ${
               result.type === "success"
-                ? "bg-emerald-500/5 border-emerald-500/20"
+                ? "bg-primary/5 border-primary/20"
                 : result.type === "error"
                   ? "bg-destructive/5 border-destructive/20"
                   : "bg-primary/5 border-primary/20"

@@ -105,8 +105,8 @@ export default function CustomersPage() {
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${
                           c.status === "VERIFIED"
-                            ? "bg-emerald-400/10 text-emerald-400"
-                            : "bg-blue-400/10 text-blue-400"
+                            ? "bg-primary/10 text-primary"
+                            : "bg-primary/10 text-primary"
                         }`}>
                           {c.status}
                         </span>

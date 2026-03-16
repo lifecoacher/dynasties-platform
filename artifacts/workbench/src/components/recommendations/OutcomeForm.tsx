@@ -45,37 +45,37 @@ export function OutcomeForm({ recommendationId, onSubmit, onCancel }: Props) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       onSubmit={handleSubmit}
-      className="rounded-lg border border-white/10 bg-[#1a1a2e] p-4 space-y-3"
+      className="rounded-lg border border-border bg-card p-4 space-y-3"
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-violet-300">
+        <div className="flex items-center gap-2 text-primary">
           <ClipboardCheck size={16} />
-          <h4 className="text-[13px] font-semibold text-white">Record Outcome</h4>
+          <h4 className="text-[13px] font-semibold text-foreground">Record Outcome</h4>
         </div>
-        <button type="button" onClick={onCancel} className="text-white/40 hover:text-white/70">
+        <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-foreground">
           <X size={14} />
         </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">
             Actual Delay (days)
           </label>
           <input
             type="number"
             step="0.5"
-            className="w-full px-2.5 py-1.5 rounded bg-black/30 border border-white/10 text-[12px] text-white outline-none focus:border-violet-500/40"
+            className="w-full px-2.5 py-1.5 rounded bg-background border border-border text-[12px] text-foreground outline-none focus:border-primary/40"
             value={form.actualDelayDays ?? ""}
             onChange={(e) => setForm({ ...form, actualDelayDays: e.target.value ? Number(e.target.value) : undefined })}
           />
         </div>
         <div>
-          <label className="text-[10px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">
             Claim Occurred
           </label>
           <select
-            className="w-full px-2.5 py-1.5 rounded bg-black/30 border border-white/10 text-[12px] text-white outline-none focus:border-violet-500/40"
+            className="w-full px-2.5 py-1.5 rounded bg-background border border-border text-[12px] text-foreground outline-none focus:border-primary/40"
             value={form.actualClaimOccurred ?? ""}
             onChange={(e) => setForm({ ...form, actualClaimOccurred: (e.target.value || undefined) as any })}
           >
@@ -86,25 +86,25 @@ export function OutcomeForm({ recommendationId, onSubmit, onCancel }: Props) {
           </select>
         </div>
         <div>
-          <label className="text-[10px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">
             Cost Delta ($)
           </label>
           <input
             type="number"
             step="0.01"
-            className="w-full px-2.5 py-1.5 rounded bg-black/30 border border-white/10 text-[12px] text-white outline-none focus:border-violet-500/40"
+            className="w-full px-2.5 py-1.5 rounded bg-background border border-border text-[12px] text-foreground outline-none focus:border-primary/40"
             value={form.actualCostDelta ?? ""}
             onChange={(e) => setForm({ ...form, actualCostDelta: e.target.value ? Number(e.target.value) : undefined })}
           />
         </div>
         <div>
-          <label className="text-[10px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">
             Margin Delta (%)
           </label>
           <input
             type="number"
             step="0.1"
-            className="w-full px-2.5 py-1.5 rounded bg-black/30 border border-white/10 text-[12px] text-white outline-none focus:border-violet-500/40"
+            className="w-full px-2.5 py-1.5 rounded bg-background border border-border text-[12px] text-foreground outline-none focus:border-primary/40"
             value={form.actualMarginDelta ?? ""}
             onChange={(e) => setForm({ ...form, actualMarginDelta: e.target.value ? Number(e.target.value) : undefined })}
           />
@@ -112,16 +112,16 @@ export function OutcomeForm({ recommendationId, onSubmit, onCancel }: Props) {
       </div>
 
       <div>
-        <label className="text-[10px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">
           Outcome Evaluation
         </label>
         <div className="flex gap-2">
           {(["POSITIVE", "NEUTRAL", "NEGATIVE"] as const).map((val) => {
             const selected = form.outcomeEvaluation === val;
             const colors = {
-              POSITIVE: selected ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-white/5 text-white/40 border-white/10",
-              NEUTRAL: selected ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40" : "bg-white/5 text-white/40 border-white/10",
-              NEGATIVE: selected ? "bg-red-500/20 text-red-300 border-red-500/40" : "bg-white/5 text-white/40 border-white/10",
+              POSITIVE: selected ? "bg-primary/20 text-primary border-primary/40" : "bg-secondary text-muted-foreground border-border",
+              NEUTRAL: selected ? "bg-[#D4A24C]/20 text-[#D4A24C] border-[#D4A24C]/40" : "bg-secondary text-muted-foreground border-border",
+              NEGATIVE: selected ? "bg-[#E05252]/20 text-[#E05252] border-[#E05252]/40" : "bg-secondary text-muted-foreground border-border",
             };
             return (
               <button
@@ -138,11 +138,11 @@ export function OutcomeForm({ recommendationId, onSubmit, onCancel }: Props) {
       </div>
 
       <div>
-        <label className="text-[10px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">
           Post-Decision Notes
         </label>
         <textarea
-          className="w-full px-2.5 py-1.5 rounded bg-black/30 border border-white/10 text-[12px] text-white outline-none focus:border-violet-500/40 resize-none h-16"
+          className="w-full px-2.5 py-1.5 rounded bg-background border border-border text-[12px] text-foreground outline-none focus:border-primary/40 resize-none h-16"
           placeholder="What actually happened after this decision..."
           value={form.postDecisionNotes ?? ""}
           onChange={(e) => setForm({ ...form, postDecisionNotes: e.target.value })}
@@ -153,14 +153,14 @@ export function OutcomeForm({ recommendationId, onSubmit, onCancel }: Props) {
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-1.5 rounded text-[12px] font-medium text-white/50 hover:bg-white/5 transition-colors"
+          className="px-3 py-1.5 rounded text-[12px] font-medium text-muted-foreground hover:bg-muted transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={!hasAnyField}
-          className="px-3 py-1.5 rounded text-[12px] font-medium bg-violet-500 hover:bg-violet-500/90 text-white disabled:opacity-50 transition-colors"
+          className="px-3 py-1.5 rounded text-[12px] font-medium bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 transition-colors"
         >
           Record Outcome
         </button>

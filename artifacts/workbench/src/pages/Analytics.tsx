@@ -84,7 +84,7 @@ function StatCard({ label, value, sub, icon: Icon, color }: {
 
 function ScoreBar({ label, value, max = 100, href }: { label: string; value: number; max?: number; href?: string }) {
   const pct = Math.min(100, (value / max) * 100);
-  const color = pct >= 70 ? "bg-red-500" : pct >= 40 ? "bg-amber-500" : "bg-emerald-500";
+  const color = pct >= 70 ? "bg-[#E05252]" : pct >= 40 ? "bg-[#D4A24C]" : "bg-primary";
   const content = (
     <div className={`flex items-center gap-3 ${href ? "cursor-pointer hover:bg-slate-50 rounded-lg p-1 -m-1" : ""}`}>
       <span className="text-sm text-slate-600 w-40 truncate">{label}</span>
@@ -110,7 +110,7 @@ export default function AnalyticsPage() {
       <div className="p-6 max-w-7xl mx-auto space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-violet-600" />
+            <BarChart3 className="w-6 h-6 text-primary" />
             Recommendation Analytics
           </h1>
           <p className="text-slate-500 mt-1">Quality metrics and scoring intelligence</p>
@@ -121,7 +121,7 @@ export default function AnalyticsPage() {
             onClick={() => setTab("overview")}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === "overview"
-                ? "border-violet-600 text-violet-600"
+                ? "border-primary text-primary"
                 : "border-transparent text-slate-500 hover:text-slate-700"
             }`}
           >
@@ -131,7 +131,7 @@ export default function AnalyticsPage() {
             onClick={() => setTab("diagnostics")}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === "diagnostics"
-                ? "border-violet-600 text-violet-600"
+                ? "border-primary text-primary"
                 : "border-transparent text-slate-500 hover:text-slate-700"
             }`}
           >
@@ -150,27 +150,27 @@ export default function AnalyticsPage() {
                     label="Total Recommendations"
                     value={recData.totals?.total ?? 0}
                     icon={BarChart3}
-                    color="bg-violet-500"
+                    color="bg-primary"
                   />
                   <StatCard
                     label="Acceptance Rate"
                     value={`${recData.totals?.overallAcceptanceRate ?? 0}%`}
                     sub={`${(recData.totals?.accepted ?? 0) + (recData.totals?.modified ?? 0) + (recData.totals?.implemented ?? 0)} accepted/modified/implemented`}
                     icon={CheckCircle2}
-                    color="bg-emerald-500"
+                    color="bg-primary"
                   />
                   <StatCard
                     label="Intel Enriched"
                     value={`${recData.totals?.intelEnrichmentRate ?? 0}%`}
                     sub={`${recData.totals?.intelEnriched ?? 0} enriched recs`}
                     icon={Zap}
-                    color="bg-blue-500"
+                    color="bg-primary/60"
                   />
                   <StatCard
                     label="Pending"
                     value={recData.totals?.pending ?? 0}
                     icon={Clock}
-                    color="bg-amber-500"
+                    color="bg-[#D4A24C]"
                   />
                 </div>
 
@@ -183,10 +183,10 @@ export default function AnalyticsPage() {
                           <span className="text-slate-600 font-mono text-xs">{t.type}</span>
                           <div className="flex items-center gap-3">
                             <span className="text-slate-400">Total: {t.total}</span>
-                            <span className="text-emerald-600">Accept: {t.acceptanceRate}%</span>
-                            <span className="text-blue-600">Impl: {t.implementationRate}%</span>
+                            <span className="text-primary">Accept: {t.acceptanceRate}%</span>
+                            <span className="text-primary/70">Impl: {t.implementationRate}%</span>
                             {t.intelEnriched > 0 && (
-                              <span className="text-violet-600 text-xs">Intel: {t.intelEnriched}</span>
+                              <span className="text-primary text-xs">Intel: {t.intelEnriched}</span>
                             )}
                           </div>
                         </div>
@@ -203,8 +203,8 @@ export default function AnalyticsPage() {
                       {(recData.byUrgency || []).map((u: any) => {
                         const colors: Record<string, string> = {
                           CRITICAL: "bg-red-500",
-                          HIGH: "bg-orange-500",
-                          MEDIUM: "bg-amber-500",
+                          HIGH: "bg-[#D4A24C]",
+                          MEDIUM: "bg-[#D4A24C]",
                           LOW: "bg-slate-400",
                         };
                         return (
@@ -242,7 +242,7 @@ export default function AnalyticsPage() {
 
             <div>
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-violet-600" />
+                <TrendingUp className="w-5 h-5 text-primary" />
                 Persistent Scoring
               </h2>
 
@@ -373,12 +373,12 @@ function DiagnosticsView({ data, isLoading }: { data: any; isLoading: boolean })
                 <tr key={d.type} className="border-b border-slate-50">
                   <td className="py-2 pr-4 font-mono text-xs">{d.type}</td>
                   <td className="py-2 pr-4 text-right">{d.total}</td>
-                  <td className="py-2 pr-4 text-right text-emerald-600">{d.accepted + d.modified}</td>
+                  <td className="py-2 pr-4 text-right text-primary">{d.accepted + d.modified}</td>
                   <td className="py-2 pr-4 text-right text-red-600">{d.rejected}</td>
                   <td className="py-2 pr-4 text-right font-medium">{d.acceptanceRate}%</td>
                   <td className="py-2 pr-4 text-right">{d.rejectionRate}%</td>
-                  <td className="py-2 pr-4 text-right text-blue-600">{d.implementationRate}%</td>
-                  <td className="py-2 pr-4 text-right text-violet-600">{d.intelEnrichedAcceptanceRate}%</td>
+                  <td className="py-2 pr-4 text-right text-primary/70">{d.implementationRate}%</td>
+                  <td className="py-2 pr-4 text-right text-primary">{d.intelEnrichedAcceptanceRate}%</td>
                   <td className="py-2 text-right">{d.internalOnlyAcceptanceRate}%</td>
                 </tr>
               ))}
@@ -402,10 +402,10 @@ function DiagnosticsView({ data, isLoading }: { data: any; isLoading: boolean })
               <div key={type} className="p-3 rounded-lg border border-slate-100">
                 <div className="font-mono text-xs text-slate-600 mb-2">{type}</div>
                 <div className="flex gap-3 text-sm">
-                  <span className="text-emerald-600">+{quality.positive}</span>
+                  <span className="text-primary">+{quality.positive}</span>
                   <span className="text-slate-400">~{quality.neutral}</span>
                   <span className="text-red-600">-{quality.negative}</span>
-                  <span className="text-amber-500">?{quality.pending}</span>
+                  <span className="text-[#D4A24C]/80">?{quality.pending}</span>
                 </div>
               </div>
             ))}
@@ -423,8 +423,8 @@ function DiagnosticsView({ data, isLoading }: { data: any; isLoading: boolean })
               const acceptRate = u.total > 0 ? Math.round((u.accepted / u.total) * 100) : 0;
               const colors: Record<string, string> = {
                 CRITICAL: "border-red-200 bg-red-50",
-                HIGH: "border-orange-200 bg-orange-50",
-                MEDIUM: "border-amber-200 bg-amber-50",
+                HIGH: "border-[#D4A24C]/20 bg-[#D4A24C]/5",
+                MEDIUM: "border-[#D4A24C]/20 bg-[#D4A24C]/5",
                 LOW: "border-slate-200 bg-slate-50",
               };
               return (

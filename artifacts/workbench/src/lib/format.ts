@@ -7,9 +7,9 @@ export function normalizeRiskScore(score: number | undefined | null): number | n
 
 export function riskColor(score: number | null): string {
   if (score == null) return "text-muted-foreground";
-  if (score < 30) return "text-emerald-400";
-  if (score < 60) return "text-amber-400";
-  return "text-red-400";
+  if (score < 30) return "text-primary";
+  if (score < 60) return "text-[#D4A24C]";
+  return "text-[#E05252]";
 }
 
 export function riskLabel(score: number | null): string {

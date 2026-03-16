@@ -68,24 +68,24 @@ const typeIcons: Record<string, typeof AlertTriangle> = {
 };
 
 const urgencyColors: Record<string, string> = {
-  CRITICAL: "text-red-400 bg-red-500/10 border-red-500/30",
-  HIGH: "text-amber-400 bg-amber-500/10 border-amber-500/30",
-  MEDIUM: "text-yellow-400 bg-yellow-500/10 border-yellow-500/30",
-  LOW: "text-blue-400 bg-blue-500/10 border-blue-500/30",
+  CRITICAL: "text-[#E05252] bg-[#E05252]/10 border-[#E05252]/30",
+  HIGH: "text-[#D4A24C] bg-[#D4A24C]/10 border-[#D4A24C]/30",
+  MEDIUM: "text-[#D4A24C]/80 bg-[#D4A24C]/5 border-[#D4A24C]/20",
+  LOW: "text-primary/80 bg-primary/5 border-primary/20",
 };
 
 const urgencyBadgeColors: Record<string, string> = {
-  CRITICAL: "bg-red-500/20 text-red-300 border-red-500/40",
-  HIGH: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-  MEDIUM: "bg-yellow-500/20 text-yellow-300 border-yellow-500/40",
-  LOW: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+  CRITICAL: "bg-[#E05252]/20 text-[#E05252] border-[#E05252]/40",
+  HIGH: "bg-[#D4A24C]/20 text-[#D4A24C] border-[#D4A24C]/40",
+  MEDIUM: "bg-[#D4A24C]/10 text-[#D4A24C]/80 border-[#D4A24C]/30",
+  LOW: "bg-primary/10 text-primary/80 border-primary/30",
 };
 
 const statusBadgeColors: Record<string, string> = {
-  ACCEPTED: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-  MODIFIED: "bg-blue-500/20 text-blue-300 border-blue-500/40",
-  REJECTED: "bg-red-500/20 text-red-300 border-red-500/40",
-  IMPLEMENTED: "bg-violet-500/20 text-violet-300 border-violet-500/40",
+  ACCEPTED: "bg-primary/20 text-primary border-primary/40",
+  MODIFIED: "bg-primary/10 text-primary/70 border-primary/30",
+  REJECTED: "bg-[#E05252]/20 text-[#E05252] border-[#E05252]/40",
+  IMPLEMENTED: "bg-primary/20 text-primary border-primary/40",
   EXPIRED: "bg-white/10 text-white/40 border-white/20",
   SUPERSEDED: "bg-white/10 text-white/40 border-white/20",
 };
@@ -106,18 +106,18 @@ const externalReasonCodeIcons: Record<string, typeof Globe> = {
 };
 
 const externalReasonCodeColors: Record<string, string> = {
-  PORT_CONGESTION_HIGH: "bg-orange-500/15 text-orange-300 border-orange-500/30",
-  PORT_CONGESTION_CRITICAL: "bg-red-500/15 text-red-300 border-red-500/30",
-  LANE_DISRUPTION_ACTIVE: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-  LANE_DISRUPTION_CRITICAL: "bg-red-500/15 text-red-300 border-red-500/30",
-  WEATHER_RISK_ELEVATED: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
-  WEATHER_RISK_CRITICAL: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
-  SANCTIONS_MATCH_POSSIBLE: "bg-rose-500/15 text-rose-300 border-rose-500/30",
-  SANCTIONS_MATCH_HIGH_CONFIDENCE: "bg-red-500/15 text-red-300 border-red-500/30",
-  MARKET_RATE_PRESSURE: "bg-violet-500/15 text-violet-300 border-violet-500/30",
-  MARKET_RATE_SURGE: "bg-violet-500/15 text-violet-300 border-violet-500/30",
-  VESSEL_ANOMALY_DETECTED: "bg-teal-500/15 text-teal-300 border-teal-500/30",
-  MULTI_SIGNAL_ESCALATION: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+  PORT_CONGESTION_HIGH: "bg-[#D4A24C]/15 text-[#D4A24C] border-[#D4A24C]/30",
+  PORT_CONGESTION_CRITICAL: "bg-[#E05252]/15 text-[#E05252] border-[#E05252]/30",
+  LANE_DISRUPTION_ACTIVE: "bg-[#D4A24C]/15 text-[#D4A24C] border-[#D4A24C]/30",
+  LANE_DISRUPTION_CRITICAL: "bg-[#E05252]/15 text-[#E05252] border-[#E05252]/30",
+  WEATHER_RISK_ELEVATED: "bg-[#D4A24C]/15 text-[#D4A24C] border-[#D4A24C]/30",
+  WEATHER_RISK_CRITICAL: "bg-[#E05252]/15 text-[#E05252] border-[#E05252]/30",
+  SANCTIONS_MATCH_POSSIBLE: "bg-[#D4A24C]/15 text-[#D4A24C] border-[#D4A24C]/30",
+  SANCTIONS_MATCH_HIGH_CONFIDENCE: "bg-[#E05252]/15 text-[#E05252] border-[#E05252]/30",
+  MARKET_RATE_PRESSURE: "bg-[#D4A24C]/15 text-[#D4A24C] border-[#D4A24C]/30",
+  MARKET_RATE_SURGE: "bg-[#E05252]/15 text-[#E05252] border-[#E05252]/30",
+  VESSEL_ANOMALY_DETECTED: "bg-primary/15 text-primary border-primary/30",
+  MULTI_SIGNAL_ESCALATION: "bg-[#E05252]/15 text-[#E05252] border-[#E05252]/30",
 };
 
 const externalReasonCodeLabels: Record<string, string> = {
@@ -188,7 +188,7 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
                 {rec.urgency}
               </span>
               {isEnriched && (
-                <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded border bg-violet-500/20 text-violet-300 border-violet-500/40">
+                <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded border bg-primary/20 text-primary border-primary/40">
                   <Globe size={9} /> Intel
                 </span>
               )}
@@ -269,16 +269,16 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
 
                     {evidence.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-white/5">
-                        <p className="text-[10px] font-medium text-violet-300/80 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                        <p className="text-[10px] font-medium text-primary/80 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                           <Globe size={10} /> Signal Evidence ({evidence.length})
                         </p>
                         <div className="space-y-1">
                           {evidence.map((sig, i) => (
                             <div key={sig.signalId || i} className="flex items-start gap-1.5 text-[10px] text-white/50">
                               <span className={`mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                                sig.severity === "CRITICAL" ? "bg-red-400" :
-                                sig.severity === "HIGH" ? "bg-amber-400" :
-                                sig.severity === "MEDIUM" ? "bg-yellow-400" : "bg-blue-400"
+                                sig.severity === "CRITICAL" ? "bg-[#E05252]" :
+                                sig.severity === "HIGH" ? "bg-[#D4A24C]" :
+                                sig.severity === "MEDIUM" ? "bg-[#D4A24C]/60" : "bg-primary/60"
                               }`} />
                               <span className="leading-tight">{sig.summary}</span>
                             </div>
@@ -301,19 +301,19 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={() => handleRespond("ACCEPTED")}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-emerald-500/20 text-emerald-300 rounded hover:bg-emerald-500/30 transition-colors border border-emerald-500/30"
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-primary/20 text-primary rounded hover:bg-primary/30 transition-colors border border-primary/30"
                 >
                   <Check size={12} /> Accept
                 </button>
                 <button
                   onClick={() => setShowModifyModal(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/30 transition-colors border border-blue-500/30"
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-primary/10 text-primary/70 rounded hover:bg-primary/20 transition-colors border border-primary/20"
                 >
                   <Pencil size={12} /> Modify
                 </button>
                 <button
                   onClick={() => handleRespond("REJECTED")}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-red-500/20 text-red-300 rounded hover:bg-red-500/30 transition-colors border border-red-500/30"
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-[#E05252]/20 text-[#E05252] rounded hover:bg-[#E05252]/30 transition-colors border border-[#E05252]/30"
                 >
                   <X size={12} /> Reject
                 </button>
@@ -330,9 +330,9 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="rounded-xl bg-[#1a1a2e] border border-white/10 p-5 w-full max-w-md"
+              className="rounded-xl bg-card border border-card-border p-5 w-full max-w-md"
             >
-              <div className="flex items-center gap-2 mb-3 text-blue-300">
+              <div className="flex items-center gap-2 mb-3 text-primary">
                 <Pencil className="w-5 h-5" />
                 <h2 className="text-[16px] font-semibold text-white">Modify Recommendation</h2>
               </div>
@@ -345,7 +345,7 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
                 Modification Notes
               </label>
               <textarea
-                className="w-full p-3 rounded-lg bg-black/30 border border-white/10 focus:border-blue-500/40 outline-none resize-none h-28 text-[13px] text-white placeholder-white/30 mb-4"
+                className="w-full p-3 rounded-lg bg-background border border-border focus:border-primary/40 outline-none resize-none h-28 text-[13px] text-foreground placeholder-muted-foreground/50 mb-4"
                 placeholder="Describe how you would like to modify this recommendation..."
                 value={modifyNotes}
                 onChange={(e) => setModifyNotes(e.target.value)}
@@ -361,7 +361,7 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
                 <button
                   onClick={handleModifySubmit}
                   disabled={!modifyNotes.trim()}
-                  className="px-4 py-2 rounded-lg text-[13px] font-medium bg-blue-500 hover:bg-blue-500/90 text-white disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 rounded-lg text-[13px] font-medium bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 transition-colors"
                 >
                   Submit Modification
                 </button>

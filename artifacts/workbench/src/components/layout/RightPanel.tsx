@@ -36,12 +36,12 @@ function getEventIcon(type: string) {
 }
 
 function getEventColor(type: string) {
-  if (type.includes("COMPLIANCE")) return "text-emerald-400 bg-emerald-400/10";
-  if (type.includes("RISK")) return "text-amber-400 bg-amber-400/10";
-  if (type.includes("INSURANCE")) return "text-violet-400 bg-violet-400/10";
-  if (type.includes("EXTRACT")) return "text-blue-400 bg-blue-400/10";
-  if (type.includes("APPROVED")) return "text-emerald-400 bg-emerald-400/10";
-  if (type.includes("EXCEPTION")) return "text-red-400 bg-red-400/10";
+  if (type.includes("COMPLIANCE")) return "text-primary bg-primary/10";
+  if (type.includes("RISK")) return "text-[#D4A24C] bg-[#D4A24C]/10";
+  if (type.includes("INSURANCE")) return "text-muted-foreground bg-muted/50";
+  if (type.includes("EXTRACT")) return "text-primary bg-primary/10";
+  if (type.includes("APPROVED")) return "text-primary bg-primary/10";
+  if (type.includes("EXCEPTION")) return "text-[#E05252] bg-[#E05252]/10";
   return "text-primary bg-primary/10";
 }
 
@@ -65,10 +65,10 @@ export function RightPanel() {
       <div className="px-4 py-4 border-b border-sidebar-border">
         <div className="flex items-center gap-1.5">
           <div className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
           </div>
-          <span className="text-[11px] font-medium text-emerald-400 uppercase tracking-wider">Agents Online</span>
+          <span className="text-[11px] font-medium text-primary uppercase tracking-wider">Agents Online</span>
         </div>
       </div>
 
@@ -146,7 +146,7 @@ export function RightPanel() {
             >
               {alerts.length === 0 ? (
                 <div className="text-center py-8">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-400/40 mx-auto mb-2" />
+                  <CheckCircle2 className="w-8 h-8 text-primary/40 mx-auto mb-2" />
                   <p className="text-[12px] text-muted-foreground">All clear — no active alerts</p>
                 </div>
               ) : (

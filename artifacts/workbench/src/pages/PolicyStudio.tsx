@@ -78,12 +78,12 @@ const POLICY_LABELS: Record<string, { label: string; description: string }> = {
 };
 
 const MODE_COLORS: Record<string, string> = {
-  ADVISORY: "bg-blue-500/10 border-blue-500/30 text-blue-400",
-  APPROVAL_HEAVY: "bg-orange-500/10 border-orange-500/30 text-orange-400",
-  SEMI_AUTONOMOUS: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
-  HIGH_COMPLIANCE: "bg-rose-500/10 border-rose-500/30 text-rose-400",
-  MARGIN_PROTECTION: "bg-amber-500/10 border-amber-500/30 text-amber-400",
-  DISRUPTION_SENSITIVE: "bg-purple-500/10 border-purple-500/30 text-purple-400",
+  ADVISORY: "bg-primary/10 border-primary/30 text-primary",
+  APPROVAL_HEAVY: "bg-[#D4A24C]/10 border-[#D4A24C]/30 text-[#D4A24C]",
+  SEMI_AUTONOMOUS: "bg-primary/10 border-primary/30 text-primary",
+  HIGH_COMPLIANCE: "bg-[#E05252]/10 border-[#E05252]/30 text-[#E05252]",
+  MARGIN_PROTECTION: "bg-[#D4A24C]/10 border-[#D4A24C]/30 text-[#D4A24C]",
+  DISRUPTION_SENSITIVE: "bg-[#E05252]/10 border-[#E05252]/30 text-[#E05252]",
 };
 
 export default function PolicyStudio() {
@@ -207,9 +207,9 @@ function PoliciesTab({ headers }: { headers: Record<string, string> }) {
                     {p.source === "TENANT_OVERRIDE" ? "Custom" : "Default"}
                   </span>
                   {p.isActive ? (
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <CheckCircle className="w-3.5 h-3.5 text-primary" />
                   ) : (
-                    <XCircle className="w-3.5 h-3.5 text-red-400" />
+                    <XCircle className="w-3.5 h-3.5 text-[#E05252]" />
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{meta.description}</p>
@@ -228,7 +228,7 @@ function PoliciesTab({ headers }: { headers: Record<string, string> }) {
                 {p.source === "TENANT_OVERRIDE" && (
                   <button
                     onClick={() => handleReset(p.policyKey)}
-                    className="p-1.5 rounded text-muted-foreground hover:text-orange-400 hover:bg-orange-500/10 transition-colors"
+                    className="p-1.5 rounded text-muted-foreground hover:text-[#D4A24C] hover:bg-[#D4A24C]/10 transition-colors"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                   </button>
@@ -237,7 +237,7 @@ function PoliciesTab({ headers }: { headers: Record<string, string> }) {
             </div>
 
             {!isEditing && (
-              <pre className="mt-2 text-[11px] font-mono bg-black/20 rounded p-2 overflow-x-auto max-h-24 text-muted-foreground">
+              <pre className="mt-2 text-[11px] font-mono bg-secondary rounded p-2 overflow-x-auto max-h-24 text-muted-foreground">
                 {JSON.stringify(p.value, null, 2)}
               </pre>
             )}
@@ -247,7 +247,7 @@ function PoliciesTab({ headers }: { headers: Record<string, string> }) {
                 <textarea
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
-                  className="w-full h-32 bg-black/30 border border-border rounded-md p-2 text-[11px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                  className="w-full h-32 bg-background border border-border rounded-md p-2 text-[11px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-y"
                 />
                 <div className="flex gap-2">
                   <button
@@ -323,7 +323,7 @@ function SimulationTab({ headers }: { headers: Record<string, string> }) {
             <input
               value={simName}
               onChange={(e) => setSimName(e.target.value)}
-              className="w-full mt-1 bg-black/20 border border-border rounded-md px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full mt-1 bg-secondary border border-border rounded-md px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
           <div>
@@ -331,7 +331,7 @@ function SimulationTab({ headers }: { headers: Record<string, string> }) {
             <textarea
               value={policyChanges}
               onChange={(e) => setPolicyChanges(e.target.value)}
-              className="w-full mt-1 h-32 bg-black/30 border border-border rounded-md p-2 text-[11px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+              className="w-full mt-1 h-32 bg-background border border-border rounded-md p-2 text-[11px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-y"
             />
           </div>
           <button
@@ -379,7 +379,7 @@ function SimulationTab({ headers }: { headers: Record<string, string> }) {
           <div className="space-y-1.5">
             {result.impactAnalysis.summary.map((s, i) => (
               <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                <AlertTriangle className="w-3 h-3 mt-0.5 text-amber-400 shrink-0" />
+                <AlertTriangle className="w-3 h-3 mt-0.5 text-[#D4A24C] shrink-0" />
                 {s}
               </div>
             ))}
@@ -409,7 +409,7 @@ function SimulationTab({ headers }: { headers: Record<string, string> }) {
               <button
                 key={h.id}
                 onClick={() => setResult(h)}
-                className="w-full text-left p-3 rounded-md bg-black/20 hover:bg-black/30 transition-colors"
+                className="w-full text-left p-3 rounded-md bg-secondary hover:bg-muted transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{h.simulationName}</span>
@@ -486,7 +486,7 @@ function ModesTab({ headers }: { headers: Record<string, string> }) {
             </div>
             <button
               onClick={deactivate}
-              className="px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+              className="px-3 py-1 text-xs font-medium text-[#E05252] hover:bg-[#E05252]/10 rounded-md transition-colors"
             >
               Deactivate
             </button>
@@ -588,13 +588,13 @@ function MetricCard({ label, value, format }: { label: string; value: number; fo
     : `${isPositive ? "+" : ""}${value}`;
 
   return (
-    <div className="bg-black/20 rounded-lg p-3">
+    <div className="bg-secondary rounded-lg p-3">
       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
       <div className="flex items-center gap-1 mt-1">
-        {isPositive && <TrendingUp className="w-3.5 h-3.5 text-red-400" />}
-        {isNegative && <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />}
+        {isPositive && <TrendingUp className="w-3.5 h-3.5 text-[#E05252]" />}
+        {isNegative && <TrendingDown className="w-3.5 h-3.5 text-primary" />}
         {value === 0 && <Minus className="w-3.5 h-3.5 text-muted-foreground" />}
-        <span className={`text-lg font-semibold ${isPositive ? "text-red-400" : isNegative ? "text-emerald-400" : ""}`}>
+        <span className={`text-lg font-semibold ${isPositive ? "text-[#E05252]" : isNegative ? "text-primary" : ""}`}>
           {display}
         </span>
       </div>
@@ -605,16 +605,16 @@ function MetricCard({ label, value, format }: { label: string; value: number; fo
 function BookingBar({ data }: { data: Record<string, number> }) {
   const total = Object.values(data).reduce((a, b) => a + b, 0) || 1;
   const segments = [
-    { key: "approved", color: "bg-emerald-500", label: "Approved" },
-    { key: "cautionApproved", color: "bg-yellow-500", label: "Caution" },
-    { key: "requireReview", color: "bg-orange-500", label: "Review" },
-    { key: "alternative", color: "bg-blue-500", label: "Alternative" },
-    { key: "blocked", color: "bg-red-500", label: "Blocked" },
+    { key: "approved", color: "bg-primary", label: "Approved" },
+    { key: "cautionApproved", color: "bg-[#D4A24C]/70", label: "Caution" },
+    { key: "requireReview", color: "bg-[#D4A24C]", label: "Review" },
+    { key: "alternative", color: "bg-[#D4A24C]", label: "Alternative" },
+    { key: "blocked", color: "bg-[#E05252]", label: "Blocked" },
   ];
 
   return (
     <div>
-      <div className="flex h-3 rounded-full overflow-hidden bg-black/20">
+      <div className="flex h-3 rounded-full overflow-hidden bg-secondary">
         {segments.map((s) => {
           const pct = ((data[s.key] || 0) / total) * 100;
           if (pct === 0) return null;

@@ -7,9 +7,9 @@ import { normalizeRiskScore, riskColor, riskLabel, formatCurrency, formatWeight 
 
 function complianceColor(status: string | undefined | null): string {
   if (!status) return "text-muted-foreground";
-  if (status === "CLEAR") return "text-emerald-400";
-  if (status === "FLAGGED" || status === "ALERT") return "text-red-400";
-  return "text-amber-400";
+  if (status === "CLEAR") return "text-primary";
+  if (status === "FLAGGED" || status === "ALERT") return "text-[#E05252]";
+  return "text-[#D4A24C]";
 }
 
 export default function ShipmentIntelligence() {
@@ -44,12 +44,12 @@ export default function ShipmentIntelligence() {
             AI-powered analysis across all processed shipments.
           </p>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium shrink-0">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium shrink-0">
           <Activity className="w-3 h-3" />
           Monitoring
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
           </span>
         </div>
         <div className="relative w-72">
@@ -75,7 +75,7 @@ export default function ShipmentIntelligence() {
           icon={<Shield className="w-5 h-5" />}
           label="Compliance Clear"
           value={shipments.filter((s: any) => s.compliance?.status === "CLEAR").length.toString()}
-          color="text-emerald-400"
+          color="text-primary"
         />
         <SummaryCard
           icon={<TrendingUp className="w-5 h-5" />}
@@ -84,13 +84,13 @@ export default function ShipmentIntelligence() {
             const score = normalizeRiskScore(s.risk?.compositeScore);
             return score != null && score < 30;
           }).length.toString()}
-          color="text-blue-400"
+          color="text-primary"
         />
         <SummaryCard
           icon={<Umbrella className="w-5 h-5" />}
           label="Insured"
           value={shipments.filter((s: any) => s.insurance?.estimatedPremium).length.toString()}
-          color="text-violet-400"
+          color="text-primary"
         />
       </div>
 

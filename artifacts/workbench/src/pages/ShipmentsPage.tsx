@@ -164,12 +164,12 @@ export default function ShipmentsPage() {
                           <div className="text-right">
                             <div className="flex items-center gap-3 text-[12px]">
                               {s.compliance?.status === "CLEAR" && (
-                                <span className="flex items-center gap-1 text-emerald-400">
+                                <span className="flex items-center gap-1 text-primary">
                                   <CheckCircle2 className="w-3 h-3" /> Clear
                                 </span>
                               )}
                               {s.compliance?.status && s.compliance.status !== "CLEAR" && (
-                                <span className="flex items-center gap-1 text-amber-400">
+                                <span className="flex items-center gap-1 text-[#D4A24C]">
                                   <AlertTriangle className="w-3 h-3" /> {s.compliance.status}
                                 </span>
                               )}
@@ -226,10 +226,18 @@ export default function ShipmentsPage() {
 
 function StatusPill({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    DRAFT: "bg-blue-400/10 text-blue-400",
-    PENDING_REVIEW: "bg-amber-400/10 text-amber-400",
-    APPROVED: "bg-emerald-400/10 text-emerald-400",
-    REJECTED: "bg-red-400/10 text-red-400",
+    DRAFT: "bg-muted/50 text-muted-foreground",
+    PENDING_REVIEW: "bg-[#D4A24C]/10 text-[#D4A24C]",
+    APPROVED: "bg-primary/10 text-primary",
+    REJECTED: "bg-[#E05252]/10 text-[#E05252]",
+    IN_TRANSIT: "bg-primary/10 text-primary",
+    BOOKED: "bg-primary/10 text-primary/80",
+    AT_PORT: "bg-[#D4A24C]/10 text-[#D4A24C]",
+    CUSTOMS: "bg-[#D4A24C]/10 text-[#D4A24C]",
+    DELIVERED: "bg-muted/50 text-muted-foreground",
+    CLOSED: "bg-muted/50 text-muted-foreground",
+    PENDING: "bg-muted/50 text-muted-foreground",
+    CANCELLED: "bg-[#E05252]/10 text-[#E05252]/70",
   };
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[status] || "bg-muted text-muted-foreground"}`}>
