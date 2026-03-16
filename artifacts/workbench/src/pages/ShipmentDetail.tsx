@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import {
   useGetShipment,
@@ -41,6 +41,7 @@ import {
   Radar,
   RefreshCw,
   ClipboardCheck,
+  ClipboardList,
   GitCompareArrows,
   ChevronDown,
   ChevronUp,
@@ -136,8 +137,26 @@ export default function ShipmentDetail() {
   const [modifyNotes, setModifyNotes] = useState("");
   const [outcomeRecId, setOutcomeRecId] = useState<string | null>(null);
   const [showDiff, setShowDiff] = useState(false);
+  const qc = useQueryClient();
 
   const BASE = `${import.meta.env.BASE_URL}api`;
+
+  const createTaskMutation = useMutation({
+    mutationFn: async (recId: string) => {
+      const token = getAuthToken();
+      const res = await fetch(`${BASE}/recommendations/${recId}/create-task`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchRecs();
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
   const { data: diffData } = useQuery({
     queryKey: ["recommendations", "diff", id],
     queryFn: async () => {
@@ -464,12 +483,21 @@ export default function ShipmentDetail() {
                                 />
                               </div>
                             ) : (
-                              <button
-                                onClick={() => setOutcomeRecId(rec.id)}
-                                className="flex items-center gap-1 mt-1.5 px-2 py-0.5 text-[10px] font-medium bg-violet-500/20 text-violet-300 rounded hover:bg-violet-500/30 border border-violet-500/30"
-                              >
-                                <ClipboardCheck size={10} /> Record Outcome
-                              </button>
+                              <div className="flex gap-1.5 mt-1.5">
+                                <button
+                                  onClick={() => setOutcomeRecId(rec.id)}
+                                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-violet-500/20 text-violet-300 rounded hover:bg-violet-500/30 border border-violet-500/30"
+                                >
+                                  <ClipboardCheck size={10} /> Record Outcome
+                                </button>
+                                <button
+                                  onClick={() => createTaskMutation.mutate(rec.id)}
+                                  disabled={createTaskMutation.isPending}
+                                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-amber-500/20 text-amber-300 rounded hover:bg-amber-500/30 border border-amber-500/30 disabled:opacity-50"
+                                >
+                                  <ClipboardList size={10} /> Create Task
+                                </button>
+                              </div>
                             )}
                           </div>
                         ))}
