@@ -299,6 +299,177 @@ router.get("/recommendations/:id/outcomes", async (req, res) => {
   res.json({ data });
 });
 
+function computeImpactScore(rec: typeof recommendationsTable.$inferSelect): number {
+  const marginWeight = 0.25;
+  const delayWeight = 0.25;
+  const riskWeight = 0.2;
+  const confidenceWeight = 0.15;
+  const recencyWeight = 0.15;
+
+  const marginImpact = Math.min(100, Math.abs(Number(rec.expectedMarginImpactPct ?? 0)) * 10);
+  const delayImpact = Math.min(100, Math.abs(Number(rec.expectedDelayImpactDays ?? 0)) * 15);
+  const riskImpact = Math.min(100, Number(rec.expectedRiskReduction ?? 0));
+  const confidence = Number(rec.confidence ?? 0) * 100;
+
+  const ageMs = Date.now() - new Date(rec.createdAt).getTime();
+  const ageHours = ageMs / (1000 * 60 * 60);
+  const recency = Math.max(0, 100 - ageHours * 2);
+
+  return Math.round(
+    marginImpact * marginWeight +
+    delayImpact * delayWeight +
+    riskImpact * riskWeight +
+    confidence * confidenceWeight +
+    recency * recencyWeight,
+  );
+}
+
+router.get("/recommendations/prioritized", async (req, res) => {
+  const companyId = getCompanyId(req);
+
+  await expireStaleRecommendations(companyId);
+
+  const recs = await db
+    .select()
+    .from(recommendationsTable)
+    .where(
+      and(
+        eq(recommendationsTable.companyId, companyId),
+        inArray(recommendationsTable.status, [...ACTIVE_STATUSES]),
+      ),
+    )
+    .orderBy(desc(recommendationsTable.createdAt))
+    .limit(100);
+
+  const scored = recs.map((r) => ({
+    ...serializeRec(r),
+    impactScore: computeImpactScore(r),
+    isIntelligenceTriggered: r.intelligenceEnriched === "true",
+    isRecentlyChanged: Date.now() - new Date(r.createdAt).getTime() < 6 * 60 * 60 * 1000,
+  }));
+
+  scored.sort((a, b) => b.impactScore - a.impactScore);
+
+  const sortBy = req.query.sortBy as string | undefined;
+  if (sortBy === "margin") {
+    scored.sort((a, b) => Math.abs(b.expectedMarginImpactPct ?? 0) - Math.abs(a.expectedMarginImpactPct ?? 0));
+  } else if (sortBy === "delay") {
+    scored.sort((a, b) => Math.abs(b.expectedDelayImpactDays ?? 0) - Math.abs(a.expectedDelayImpactDays ?? 0));
+  } else if (sortBy === "risk") {
+    scored.sort((a, b) => (b.expectedRiskReduction ?? 0) - (a.expectedRiskReduction ?? 0));
+  } else if (sortBy === "recency") {
+    scored.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  const filterType = req.query.type as string | undefined;
+  const filterUrgency = req.query.urgency as string | undefined;
+  let filtered = scored;
+  if (filterType) filtered = filtered.filter((r) => r.type === filterType);
+  if (filterUrgency) filtered = filtered.filter((r) => r.urgency === filterUrgency);
+
+  res.json({ data: filtered });
+});
+
+router.get("/shipments/:id/recommendations/diff", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const shipmentId = req.params.id;
+
+  const allRecs = await db
+    .select()
+    .from(recommendationsTable)
+    .where(
+      and(
+        eq(recommendationsTable.companyId, companyId),
+        eq(recommendationsTable.shipmentId, shipmentId),
+      ),
+    )
+    .orderBy(desc(recommendationsTable.createdAt));
+
+  const byType = new Map<string, typeof allRecs>();
+  for (const r of allRecs) {
+    const existing = byType.get(r.type) || [];
+    existing.push(r);
+    byType.set(r.type, existing);
+  }
+
+  const diffs: Array<{
+    type: string;
+    current: ReturnType<typeof serializeRec>;
+    prior: ReturnType<typeof serializeRec> | null;
+    changes: {
+      urgencyChanged: boolean;
+      confidenceChanged: boolean;
+      delayImpactChanged: boolean;
+      marginImpactChanged: boolean;
+      riskReductionChanged: boolean;
+      reasonCodesChanged: boolean;
+      externalReasonCodesChanged: boolean;
+      signalEvidenceChanged: boolean;
+      intelEnrichmentChanged: boolean;
+    };
+    scoreDelta: {
+      confidence: number | null;
+      delayImpact: number | null;
+      marginImpact: number | null;
+      riskReduction: number | null;
+    };
+    triggerSummary: string;
+  }> = [];
+
+  for (const [type, recs] of byType) {
+    if (recs.length < 2) continue;
+
+    const current = recs[0]!;
+    const prior = recs[1]!;
+
+    const priorReasons = JSON.stringify(prior.reasonCodes || []);
+    const currentReasons = JSON.stringify(current.reasonCodes || []);
+    const priorExtReasons = JSON.stringify(prior.externalReasonCodes || []);
+    const currentExtReasons = JSON.stringify(current.externalReasonCodes || []);
+    const priorEvidence = JSON.stringify(prior.signalEvidence || []);
+    const currentEvidence = JSON.stringify(current.signalEvidence || []);
+
+    const changes = {
+      urgencyChanged: prior.urgency !== current.urgency,
+      confidenceChanged: Number(prior.confidence) !== Number(current.confidence),
+      delayImpactChanged: Number(prior.expectedDelayImpactDays ?? 0) !== Number(current.expectedDelayImpactDays ?? 0),
+      marginImpactChanged: Number(prior.expectedMarginImpactPct ?? 0) !== Number(current.expectedMarginImpactPct ?? 0),
+      riskReductionChanged: Number(prior.expectedRiskReduction ?? 0) !== Number(current.expectedRiskReduction ?? 0),
+      reasonCodesChanged: priorReasons !== currentReasons,
+      externalReasonCodesChanged: priorExtReasons !== currentExtReasons,
+      signalEvidenceChanged: priorEvidence !== currentEvidence,
+      intelEnrichmentChanged: prior.intelligenceEnriched !== current.intelligenceEnriched,
+    };
+
+    const scoreDelta = {
+      confidence: Math.round((Number(current.confidence) - Number(prior.confidence)) * 100) / 100,
+      delayImpact: Math.round((Number(current.expectedDelayImpactDays ?? 0) - Number(prior.expectedDelayImpactDays ?? 0)) * 100) / 100,
+      marginImpact: Math.round((Number(current.expectedMarginImpactPct ?? 0) - Number(prior.expectedMarginImpactPct ?? 0)) * 100) / 100,
+      riskReduction: Math.round((Number(current.expectedRiskReduction ?? 0) - Number(prior.expectedRiskReduction ?? 0)) * 100) / 100,
+    };
+
+    const triggers: string[] = [];
+    if (changes.urgencyChanged) triggers.push(`urgency ${prior.urgency} → ${current.urgency}`);
+    if (changes.confidenceChanged) triggers.push(`confidence delta ${scoreDelta.confidence > 0 ? "+" : ""}${scoreDelta.confidence}`);
+    if (changes.externalReasonCodesChanged) triggers.push("external intelligence signals changed");
+    if (changes.signalEvidenceChanged) triggers.push("signal evidence updated");
+    if (changes.intelEnrichmentChanged) triggers.push(current.intelligenceEnriched === "true" ? "intelligence enrichment added" : "intelligence enrichment removed");
+    if (changes.reasonCodesChanged) triggers.push("internal reason codes changed");
+    if (triggers.length === 0) triggers.push("recommendation regenerated with same parameters");
+
+    diffs.push({
+      type,
+      current: serializeRec(current),
+      prior: serializeRec(prior),
+      changes,
+      scoreDelta,
+      triggerSummary: triggers.join("; "),
+    });
+  }
+
+  res.json({ data: { shipmentId, diffs } });
+});
+
 router.post("/shipments/:id/analyze", requireMinRole("OPERATOR"), async (req, res) => {
   const companyId = getCompanyId(req);
   const shipmentId = req.params.id;
