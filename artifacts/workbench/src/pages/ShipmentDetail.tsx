@@ -11,6 +11,7 @@ import {
   useListShipmentRecommendations,
   useRespondToRecommendation,
   useTriggerShipmentAnalysis,
+  useRecordRecommendationOutcome,
 } from "@workspace/api-client-react";
 import { useShipmentActions } from "@/hooks/use-shipment-actions";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -37,7 +38,9 @@ import {
   BarChart3,
   Radar,
   RefreshCw,
+  ClipboardCheck,
 } from "lucide-react";
+import { OutcomeForm, type OutcomeData } from "@/components/recommendations/OutcomeForm";
 import {
   normalizeRiskScore,
   riskColor,
@@ -106,6 +109,7 @@ export default function ShipmentDetail() {
   const { data: recsRes, refetch: refetchRecs } = useListShipmentRecommendations(id);
   const respondMutation = useRespondToRecommendation();
   const analyzeMutation = useTriggerShipmentAnalysis();
+  const outcomeMutation = useRecordRecommendationOutcome();
 
   const { approve, reject, updateFields } = useShipmentActions(id);
 
@@ -121,6 +125,9 @@ export default function ShipmentDetail() {
   const [hasChanges, setHasChanges] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showModifyModal, setShowModifyModal] = useState<string | null>(null);
+  const [modifyNotes, setModifyNotes] = useState("");
+  const [outcomeRecId, setOutcomeRecId] = useState<string | null>(null);
 
   useEffect(() => {
     if (shipment) {
@@ -332,6 +339,11 @@ export default function ShipmentDetail() {
             {(() => {
               const recs = (recsRes?.data || []) as any[];
               if (recs.length === 0 && !analyzeMutation.isPending) return null;
+
+              const activeRecs = recs.filter((r: any) => r.status === "PENDING" || r.status === "SHOWN");
+              const decidedRecs = recs.filter((r: any) => r.status === "ACCEPTED" || r.status === "MODIFIED");
+              const implementedRecs = recs.filter((r: any) => r.status === "IMPLEMENTED");
+
               return (
                 <div className="p-4 rounded-xl bg-card border border-card-border">
                   <div className="flex items-center justify-between mb-3">
@@ -339,9 +351,9 @@ export default function ShipmentDetail() {
                       <Radar className="w-4 h-4 text-primary" />
                       <h3 className="text-[13px] font-semibold text-foreground">
                         AI Recommendations
-                        {recs.length > 0 && (
+                        {activeRecs.length > 0 && (
                           <span className="ml-1.5 text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
-                            {recs.filter((r: any) => r.status === "PENDING" || r.status === "SHOWN").length}
+                            {activeRecs.length}
                           </span>
                         )}
                       </h3>
@@ -356,8 +368,7 @@ export default function ShipmentDetail() {
                     </button>
                   </div>
                   <div className="space-y-2">
-                    {recs.map((rec: any) => {
-                      const isPending = rec.status === "PENDING" || rec.status === "SHOWN";
+                    {activeRecs.map((rec: any) => {
                       const urgencyBorder = rec.urgency === "CRITICAL" ? "border-red-500/30 bg-red-500/5" :
                         rec.urgency === "HIGH" ? "border-amber-500/30 bg-amber-500/5" :
                         rec.urgency === "MEDIUM" ? "border-yellow-500/30 bg-yellow-500/5" : "border-white/10 bg-white/[0.02]";
@@ -373,11 +384,6 @@ export default function ShipmentDetail() {
                                 <span className={`px-1 py-0.5 text-[9px] font-bold uppercase rounded ${urgencyBadge}`}>
                                   {rec.urgency}
                                 </span>
-                                {!isPending && (
-                                  <span className="px-1 py-0.5 text-[9px] uppercase rounded bg-white/10 text-white/50">
-                                    {rec.status}
-                                  </span>
-                                )}
                               </div>
                               <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{rec.explanation}</p>
                               <div className="flex gap-2 mt-1 text-[10px] text-muted-foreground/60">
@@ -387,25 +393,81 @@ export default function ShipmentDetail() {
                               </div>
                             </div>
                           </div>
-                          {isPending && (
-                            <div className="flex gap-1.5 mt-2">
-                              <button
-                                onClick={() => respondMutation.mutate({ id: rec.id, data: { action: "ACCEPTED" } }, { onSuccess: () => refetchRecs() })}
-                                className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/20 text-emerald-300 rounded hover:bg-emerald-500/30 border border-emerald-500/30"
-                              >
-                                Accept
-                              </button>
-                              <button
-                                onClick={() => respondMutation.mutate({ id: rec.id, data: { action: "REJECTED" } }, { onSuccess: () => refetchRecs() })}
-                                className="px-2 py-0.5 text-[10px] font-medium bg-red-500/20 text-red-300 rounded hover:bg-red-500/30 border border-red-500/30"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex gap-1.5 mt-2">
+                            <button
+                              onClick={() => respondMutation.mutate({ id: rec.id, data: { action: "ACCEPTED" } }, { onSuccess: () => refetchRecs() })}
+                              className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/20 text-emerald-300 rounded hover:bg-emerald-500/30 border border-emerald-500/30"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => { setShowModifyModal(rec.id); setModifyNotes(""); }}
+                              className="px-2 py-0.5 text-[10px] font-medium bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/30 border border-blue-500/30"
+                            >
+                              Modify
+                            </button>
+                            <button
+                              onClick={() => respondMutation.mutate({ id: rec.id, data: { action: "REJECTED" } }, { onSuccess: () => refetchRecs() })}
+                              className="px-2 py-0.5 text-[10px] font-medium bg-red-500/20 text-red-300 rounded hover:bg-red-500/30 border border-red-500/30"
+                            >
+                              Reject
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
+
+                    {decidedRecs.length > 0 && (
+                      <div className="pt-2 border-t border-card-border">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Decided</p>
+                        {decidedRecs.map((rec: any) => (
+                          <div key={rec.id} className="border border-white/10 rounded-lg p-3 bg-white/[0.02] mb-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[12px] font-medium text-foreground">{rec.title}</span>
+                              <span className={`px-1 py-0.5 text-[9px] uppercase rounded ${rec.status === "ACCEPTED" ? "bg-emerald-500/20 text-emerald-300" : "bg-blue-500/20 text-blue-300"}`}>
+                                {rec.status}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">{rec.explanation}</p>
+                            {outcomeRecId === rec.id ? (
+                              <div className="mt-2">
+                                <OutcomeForm
+                                  recommendationId={rec.id}
+                                  onSubmit={(recId, data) => {
+                                    outcomeMutation.mutate({ id: recId, data }, { onSuccess: () => { refetchRecs(); setOutcomeRecId(null); } });
+                                  }}
+                                  onCancel={() => setOutcomeRecId(null)}
+                                />
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setOutcomeRecId(rec.id)}
+                                className="flex items-center gap-1 mt-1.5 px-2 py-0.5 text-[10px] font-medium bg-violet-500/20 text-violet-300 rounded hover:bg-violet-500/30 border border-violet-500/30"
+                              >
+                                <ClipboardCheck size={10} /> Record Outcome
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {implementedRecs.length > 0 && (
+                      <div className="pt-2 border-t border-card-border">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Implemented</p>
+                        {implementedRecs.map((rec: any) => (
+                          <div key={rec.id} className="border border-violet-500/20 rounded-lg p-3 bg-violet-500/5 mb-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[12px] font-medium text-foreground">{rec.title}</span>
+                              <span className="px-1 py-0.5 text-[9px] uppercase rounded bg-violet-500/20 text-violet-300">
+                                IMPLEMENTED
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">{rec.explanation}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -507,6 +569,66 @@ export default function ShipmentDetail() {
             )}
           </div>
         </div>
+
+        <AnimatePresence>
+          {showModifyModal && (() => {
+            const modRec = ((recsRes?.data || []) as any[]).find((r: any) => r.id === showModifyModal);
+            return (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="rounded-xl bg-card border border-card-border p-5 w-full max-w-md"
+                >
+                  <div className="flex items-center gap-2 mb-3 text-blue-400">
+                    <Pencil className="w-5 h-5" />
+                    <h2 className="text-[16px] font-semibold text-foreground">Modify Recommendation</h2>
+                  </div>
+                  {modRec && (
+                    <>
+                      <p className="text-[12px] text-muted-foreground mb-1">{modRec.title}</p>
+                      <p className="text-[11px] text-muted-foreground/60 mb-4">
+                        <span className="text-muted-foreground font-medium">Current action: </span>
+                        {modRec.recommendedAction}
+                      </p>
+                    </>
+                  )}
+                  <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                    Modification Notes
+                  </label>
+                  <textarea
+                    className="w-full p-3 rounded-lg bg-background border border-card-border focus:border-blue-500/40 outline-none resize-none h-28 text-[13px] mb-4"
+                    placeholder="Describe how you would like to modify this recommendation..."
+                    value={modifyNotes}
+                    onChange={(e) => setModifyNotes(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => { setShowModifyModal(null); setModifyNotes(""); }}
+                      className="px-4 py-2 rounded-lg text-[13px] font-medium hover:bg-muted transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        respondMutation.mutate(
+                          { id: showModifyModal, data: { action: "MODIFIED", modificationNotes: modifyNotes } },
+                          { onSuccess: () => { refetchRecs(); setShowModifyModal(null); setModifyNotes(""); } },
+                        );
+                      }}
+                      disabled={!modifyNotes.trim()}
+                      className="px-4 py-2 rounded-lg text-[13px] font-medium bg-blue-500 hover:bg-blue-500/90 text-white disabled:opacity-50 transition-colors"
+                    >
+                      Submit Modification
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            );
+          })()}
+        </AnimatePresence>
 
         <AnimatePresence>
           {showRejectModal && (

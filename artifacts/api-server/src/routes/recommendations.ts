@@ -5,7 +5,7 @@ import {
   recommendationOutcomesTable,
   eventsTable,
 } from "@workspace/db/schema";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, notInArray, sql, lt } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { validateBody } from "../middlewares/validate.js";
@@ -14,6 +14,35 @@ import { publishDecisionJob } from "@workspace/queue";
 import { z } from "zod";
 
 const router: IRouter = Router();
+
+const TERMINAL_STATUSES = ["EXPIRED", "SUPERSEDED"] as const;
+const ACTIVE_STATUSES = ["PENDING", "SHOWN"] as const;
+
+async function expireStaleRecommendations(companyId: string): Promise<number> {
+  const now = new Date();
+  const result = await db
+    .update(recommendationsTable)
+    .set({ status: "EXPIRED", updatedAt: now })
+    .where(
+      and(
+        eq(recommendationsTable.companyId, companyId),
+        inArray(recommendationsTable.status, [...ACTIVE_STATUSES]),
+        lt(recommendationsTable.expiresAt, now),
+      ),
+    )
+    .returning({ id: recommendationsTable.id });
+  return result.length;
+}
+
+function serializeRec(r: typeof recommendationsTable.$inferSelect) {
+  return {
+    ...r,
+    confidence: Number(r.confidence),
+    expectedDelayImpactDays: r.expectedDelayImpactDays != null ? Number(r.expectedDelayImpactDays) : null,
+    expectedMarginImpactPct: r.expectedMarginImpactPct != null ? Number(r.expectedMarginImpactPct) : null,
+    expectedRiskReduction: r.expectedRiskReduction != null ? Number(r.expectedRiskReduction) : null,
+  };
+}
 
 const respondSchema = z.object({
   action: z.enum(["ACCEPTED", "MODIFIED", "REJECTED"]),
@@ -32,6 +61,29 @@ const outcomeSchema = z.object({
 router.get("/shipments/:id/recommendations", async (req, res) => {
   const companyId = getCompanyId(req);
   const shipmentId = req.params.id;
+  const includeHistory = req.query.history === "true";
+
+  await expireStaleRecommendations(companyId);
+
+  let query = db
+    .select()
+    .from(recommendationsTable)
+    .where(
+      and(
+        eq(recommendationsTable.shipmentId, shipmentId),
+        eq(recommendationsTable.companyId, companyId),
+        ...(includeHistory ? [] : [notInArray(recommendationsTable.status, [...TERMINAL_STATUSES])]),
+      ),
+    )
+    .orderBy(desc(recommendationsTable.createdAt));
+
+  const recs = await query;
+  res.json({ data: recs.map(serializeRec) });
+});
+
+router.get("/shipments/:id/recommendations/history", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const shipmentId = req.params.id;
 
   const recs = await db
     .select()
@@ -44,19 +96,13 @@ router.get("/shipments/:id/recommendations", async (req, res) => {
     )
     .orderBy(desc(recommendationsTable.createdAt));
 
-  const data = recs.map((r) => ({
-    ...r,
-    confidence: Number(r.confidence),
-    expectedDelayImpactDays: r.expectedDelayImpactDays != null ? Number(r.expectedDelayImpactDays) : null,
-    expectedMarginImpactPct: r.expectedMarginImpactPct != null ? Number(r.expectedMarginImpactPct) : null,
-    expectedRiskReduction: r.expectedRiskReduction != null ? Number(r.expectedRiskReduction) : null,
-  }));
-
-  res.json({ data });
+  res.json({ data: recs.map(serializeRec) });
 });
 
 router.get("/recommendations/pending", async (req, res) => {
   const companyId = getCompanyId(req);
+
+  await expireStaleRecommendations(companyId);
 
   const recs = await db
     .select()
@@ -64,21 +110,13 @@ router.get("/recommendations/pending", async (req, res) => {
     .where(
       and(
         eq(recommendationsTable.companyId, companyId),
-        inArray(recommendationsTable.status, ["PENDING", "SHOWN"]),
+        inArray(recommendationsTable.status, [...ACTIVE_STATUSES]),
       ),
     )
     .orderBy(desc(recommendationsTable.createdAt))
     .limit(50);
 
-  const data = recs.map((r) => ({
-    ...r,
-    confidence: Number(r.confidence),
-    expectedDelayImpactDays: r.expectedDelayImpactDays != null ? Number(r.expectedDelayImpactDays) : null,
-    expectedMarginImpactPct: r.expectedMarginImpactPct != null ? Number(r.expectedMarginImpactPct) : null,
-    expectedRiskReduction: r.expectedRiskReduction != null ? Number(r.expectedRiskReduction) : null,
-  }));
-
-  res.json({ data });
+  res.json({ data: recs.map(serializeRec) });
 });
 
 router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validateBody(respondSchema), async (req, res) => {
@@ -99,6 +137,11 @@ router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validate
 
   if (!rec) {
     res.status(404).json({ error: "Recommendation not found" });
+    return;
+  }
+
+  if ([...TERMINAL_STATUSES].includes(rec.status as any)) {
+    res.status(400).json({ error: `Cannot respond to a ${rec.status} recommendation` });
     return;
   }
 

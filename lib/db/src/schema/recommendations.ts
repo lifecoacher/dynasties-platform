@@ -12,6 +12,7 @@ export const recommendationsTable = pgTable(
     shipmentId: text("shipment_id")
       .notNull()
       .references(() => shipmentsTable.id),
+    fingerprint: text("fingerprint"),
     type: text("type", {
       enum: [
         "CARRIER_SWITCH",
@@ -21,7 +22,6 @@ export const recommendationsTable = pgTable(
         "DELAY_WARNING",
         "MARGIN_WARNING",
         "DOCUMENT_CORRECTION",
-        "PRICING_ALERT",
         "RISK_MITIGATION",
       ],
     }).notNull(),
@@ -37,12 +37,13 @@ export const recommendationsTable = pgTable(
     expectedRiskReduction: real("expected_risk_reduction"),
     recommendedAction: text("recommended_action").notNull(),
     status: text("status", {
-      enum: ["PENDING", "SHOWN", "ACCEPTED", "MODIFIED", "REJECTED", "IMPLEMENTED", "EXPIRED"],
+      enum: ["PENDING", "SHOWN", "ACCEPTED", "MODIFIED", "REJECTED", "IMPLEMENTED", "EXPIRED", "SUPERSEDED"],
     })
       .notNull()
       .default("PENDING"),
     sourceAgent: text("source_agent").notNull(),
     sourceData: jsonb("source_data").$type<Record<string, unknown>>(),
+    supersededById: text("superseded_by_id"),
     expiresAt: timestamp("expires_at"),
     respondedAt: timestamp("responded_at"),
     respondedBy: text("responded_by"),
@@ -60,6 +61,7 @@ export const recommendationsTable = pgTable(
     index("recommendations_status_idx").on(table.status),
     index("recommendations_urgency_idx").on(table.urgency),
     index("recommendations_created_at_idx").on(table.createdAt),
+    index("recommendations_fingerprint_idx").on(table.fingerprint),
   ],
 );
 
