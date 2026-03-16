@@ -222,7 +222,7 @@ export default function DemoControls() {
                   >
                     <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
                       step.status === "done"
-                        ? "bg-emerald-400/10 text-emerald-400"
+                        ? "bg-primary/10 text-primary"
                         : step.status === "active"
                           ? "bg-primary/10 text-primary"
                           : step.status === "error"
@@ -232,7 +232,7 @@ export default function DemoControls() {
                       {step.status === "done" ? <CheckCircle2 className="w-3.5 h-3.5" /> : step.status === "active" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : step.icon}
                     </div>
                     <div className="flex-1">
-                      <span className={`text-[12px] font-medium ${step.status === "done" ? "text-emerald-400" : step.status === "active" ? "text-foreground" : "text-muted-foreground"}`}>
+                      <span className={`text-[12px] font-medium ${step.status === "done" ? "text-primary" : step.status === "active" ? "text-foreground" : "text-muted-foreground"}`}>
                         {step.label}
                       </span>
                       {step.detail && <span className="text-[11px] text-muted-foreground ml-2">— {step.detail}</span>}
@@ -246,7 +246,7 @@ export default function DemoControls() {
               <div className="mt-4">
                 <Link
                   href={`/shipments/${newShipmentId}`}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 text-[12px] font-medium transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-[12px] font-medium transition-colors"
                 >
                   <Ship className="w-3.5 h-3.5" />
                   View Created Shipment
@@ -273,7 +273,7 @@ export default function DemoControls() {
         {message && (
           <div className={`mt-5 p-4 rounded-xl flex items-start gap-3 text-[13px] ${
             message.type === "success"
-              ? "bg-emerald-400/5 border border-emerald-400/20 text-emerald-400"
+              ? "bg-primary/5 border border-primary/20 text-primary"
               : message.type === "error"
                 ? "bg-destructive/5 border border-destructive/20 text-destructive"
                 : "bg-primary/5 border border-primary/20 text-primary"

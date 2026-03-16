@@ -18,9 +18,9 @@ import { normalizeRiskScore, riskColor, riskLabel, formatCurrency, formatWeight 
 
 function complianceColor(status: string | undefined | null): string {
   if (!status) return "text-muted-foreground";
-  if (status === "CLEAR") return "text-emerald-400";
-  if (status === "FLAGGED" || status === "ALERT") return "text-red-400";
-  return "text-amber-400";
+  if (status === "CLEAR") return "text-primary";
+  if (status === "FLAGGED" || status === "ALERT") return "text-[#E05252]";
+  return "text-[#D4A24C]";
 }
 
 export default function IntelligencePage() {
@@ -72,9 +72,9 @@ export default function IntelligencePage() {
 
         <div className="grid grid-cols-4 gap-3 mb-6">
           <StatCard icon={<Brain className="w-4 h-4" />} label="Total" value={totalShipments} color="text-primary" />
-          <StatCard icon={<Shield className="w-4 h-4" />} label="Compliant" value={complianceClear} color="text-emerald-400" />
-          <StatCard icon={<TrendingUp className="w-4 h-4" />} label="Low Risk" value={lowRisk} color="text-blue-400" />
-          <StatCard icon={<Umbrella className="w-4 h-4" />} label="Insured" value={insured} color="text-violet-400" />
+          <StatCard icon={<Shield className="w-4 h-4" />} label="Compliant" value={complianceClear} color="text-primary" />
+          <StatCard icon={<TrendingUp className="w-4 h-4" />} label="Low Risk" value={lowRisk} color="text-primary" />
+          <StatCard icon={<Umbrella className="w-4 h-4" />} label="Insured" value={insured} color="text-muted-foreground" />
         </div>
 
         {isLoading ? (

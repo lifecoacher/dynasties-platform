@@ -60,7 +60,7 @@ function TraceField({ label, value, mono = false }: { label: string; value: any;
 function ConfidenceDot({ value }: { value: number | undefined | null }) {
   if (value == null) return <span className="text-[10px] text-muted-foreground">—</span>;
   const pct = (Number(value) * 100).toFixed(0);
-  const color = Number(value) >= 0.8 ? "bg-emerald-400" : Number(value) >= 0.5 ? "bg-amber-400" : "bg-red-400";
+  const color = Number(value) >= 0.8 ? "bg-primary" : Number(value) >= 0.5 ? "bg-[#D4A24C]" : "bg-[#E05252]";
   return (
     <span className="inline-flex items-center gap-1">
       <span className={`w-1.5 h-1.5 rounded-full ${color}`} />
@@ -143,7 +143,7 @@ export default function DecisionTrace() {
         </div>
 
         <div className="space-y-3">
-          <TraceLayer icon={<FileText className="w-4 h-4 text-blue-400" />} title="Document Layer" color="bg-blue-400/10" defaultOpen={true}>
+          <TraceLayer icon={<FileText className="w-4 h-4 text-primary" />} title="Document Layer" color="bg-primary/10" defaultOpen={true}>
             <div className="space-y-4">
               <div>
                 <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Source Email</p>
@@ -172,7 +172,7 @@ export default function DecisionTrace() {
             </div>
           </TraceLayer>
 
-          <TraceLayer icon={<Brain className="w-4 h-4 text-violet-400" />} title="Extraction Layer" color="bg-violet-400/10" defaultOpen={true}>
+          <TraceLayer icon={<Brain className="w-4 h-4 text-primary" />} title="Extraction Layer" color="bg-primary/10" defaultOpen={true}>
             <div className="space-y-3">
               {avgConfidence != null && (
                 <div className="flex items-center gap-2 text-[11px] mb-2">
@@ -202,7 +202,7 @@ export default function DecisionTrace() {
             </div>
           </TraceLayer>
 
-          <TraceLayer icon={<Users className="w-4 h-4 text-cyan-400" />} title="Entity Resolution" color="bg-cyan-400/10">
+          <TraceLayer icon={<Users className="w-4 h-4 text-primary/70" />} title="Entity Resolution" color="bg-primary/10">
             <div className="space-y-3">
               {[
                 { role: "Shipper", entity: shipment.shipper },
@@ -215,7 +215,7 @@ export default function DecisionTrace() {
                   <div key={role} className="bg-muted/20 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{role}</p>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${entity.status === "VERIFIED" ? "bg-emerald-400/15 text-emerald-400" : "bg-blue-400/15 text-blue-400"}`}>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${entity.status === "VERIFIED" ? "bg-primary/15 text-primary" : "bg-primary/15 text-primary"}`}>
                         {entity.status === "VERIFIED" ? "Verified" : "Auto-Resolved"}
                       </span>
                     </div>
@@ -229,10 +229,10 @@ export default function DecisionTrace() {
             </div>
           </TraceLayer>
 
-          <TraceLayer icon={<Shield className="w-4 h-4 text-emerald-400" />} title="Compliance Screening" color="bg-emerald-400/10">
+          <TraceLayer icon={<Shield className="w-4 h-4 text-primary" />} title="Compliance Screening" color="bg-primary/10">
             {compliance ? (
               <div className="space-y-3">
-                <div className={`flex items-center gap-1.5 text-[14px] font-semibold ${compliance.status === "CLEAR" ? "text-emerald-400" : "text-red-400"}`}>
+                <div className={`flex items-center gap-1.5 text-[14px] font-semibold ${compliance.status === "CLEAR" ? "text-primary" : "text-[#E05252]"}`}>
                   {compliance.status === "CLEAR" ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                   {compliance.status}
                 </div>
@@ -250,7 +250,7 @@ export default function DecisionTrace() {
             )}
           </TraceLayer>
 
-          <TraceLayer icon={<TrendingUp className="w-4 h-4 text-amber-400" />} title="Risk Scoring" color="bg-amber-400/10">
+          <TraceLayer icon={<TrendingUp className="w-4 h-4 text-[#D4A24C]" />} title="Risk Scoring" color="bg-[#D4A24C]/10">
             {risk ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-6">
@@ -276,7 +276,7 @@ export default function DecisionTrace() {
                           <span className="font-medium">{key.replace(/([A-Z])/g, " $1").trim()}</span>
                           <div className="flex items-center gap-2">
                             <div className="w-20 h-1.5 bg-background rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full ${normalized < 30 ? "bg-emerald-400" : normalized < 60 ? "bg-amber-400" : "bg-red-400"}`} style={{ width: `${Math.min(normalized, 100)}%` }} />
+                              <div className={`h-full rounded-full ${normalized < 30 ? "bg-primary" : normalized < 60 ? "bg-[#D4A24C]" : "bg-[#E05252]"}`} style={{ width: `${Math.min(normalized, 100)}%` }} />
                             </div>
                             <span className="font-mono w-6 text-right text-[11px]">{Math.round(normalized)}</span>
                           </div>
@@ -294,13 +294,13 @@ export default function DecisionTrace() {
             )}
           </TraceLayer>
 
-          <TraceLayer icon={<Umbrella className="w-4 h-4 text-violet-400" />} title="Insurance Quote" color="bg-violet-400/10">
+          <TraceLayer icon={<Umbrella className="w-4 h-4 text-primary" />} title="Insurance Quote" color="bg-primary/10">
             {insurance ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-muted/20 rounded-lg p-3 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Coverage</p>
-                    <p className="text-[13px] font-semibold text-violet-400">{humanizeCoverageType(insurance.coverageType)}</p>
+                    <p className="text-[13px] font-semibold text-primary">{humanizeCoverageType(insurance.coverageType)}</p>
                   </div>
                   <div className="bg-muted/20 rounded-lg p-3 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Cargo Value</p>
@@ -308,7 +308,7 @@ export default function DecisionTrace() {
                   </div>
                   <div className="bg-muted/20 rounded-lg p-3 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Premium</p>
-                    <p className="text-[13px] font-semibold text-emerald-400">{formatCurrency(insurance.estimatedPremium, insurance.currency)}</p>
+                    <p className="text-[13px] font-semibold text-primary">{formatCurrency(insurance.estimatedPremium, insurance.currency)}</p>
                   </div>
                 </div>
                 {insurance.coverageRationale && (

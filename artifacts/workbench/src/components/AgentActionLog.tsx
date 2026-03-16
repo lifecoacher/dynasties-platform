@@ -9,14 +9,14 @@ export function AgentActionLog({ events }: { events?: Event[] }) {
 
   const getIcon = (type: string) => {
     if (type.includes('EXTRACT')) return <FileText className="w-4 h-4 text-primary" />;
-    if (type.includes('COMPLIANCE')) return <Shield className="w-4 h-4 text-emerald-400" />;
-    if (type.includes('RISK')) return <TrendingUp className="w-4 h-4 text-amber-400" />;
-    if (type.includes('INSURANCE')) return <Umbrella className="w-4 h-4 text-violet-400" />;
-    if (type.includes('PRIC')) return <DollarSign className="w-4 h-4 text-blue-400" />;
-    if (type.includes('DOCGEN') || type.includes('DOCUMENT_GENERATED')) return <FileOutput className="w-4 h-4 text-cyan-400" />;
-    if (type.includes('BILLING') || type.includes('INVOICE')) return <Receipt className="w-4 h-4 text-orange-400" />;
-    if (type.includes('EXCEPTION')) return <AlertCircle className="w-4 h-4 text-red-400" />;
-    if (type.includes('TRADE_LANE')) return <BarChart3 className="w-4 h-4 text-indigo-400" />;
+    if (type.includes('COMPLIANCE')) return <Shield className="w-4 h-4 text-primary" />;
+    if (type.includes('RISK')) return <TrendingUp className="w-4 h-4 text-[#D4A24C]" />;
+    if (type.includes('INSURANCE')) return <Umbrella className="w-4 h-4 text-muted-foreground" />;
+    if (type.includes('PRIC')) return <DollarSign className="w-4 h-4 text-primary" />;
+    if (type.includes('DOCGEN') || type.includes('DOCUMENT_GENERATED')) return <FileOutput className="w-4 h-4 text-primary/70" />;
+    if (type.includes('BILLING') || type.includes('INVOICE')) return <Receipt className="w-4 h-4 text-muted-foreground" />;
+    if (type.includes('EXCEPTION')) return <AlertCircle className="w-4 h-4 text-[#E05252]" />;
+    if (type.includes('TRADE_LANE')) return <BarChart3 className="w-4 h-4 text-primary/70" />;
     if (type.includes('CORRECTION')) return <Edit3 className="w-4 h-4 text-accent" />;
     if (type.includes('APPROVED')) return <CheckCircle className="w-4 h-4 text-success" />;
     if (type.includes('REJECTED')) return <XCircle className="w-4 h-4 text-destructive" />;
@@ -26,7 +26,7 @@ export function AgentActionLog({ events }: { events?: Event[] }) {
 
   return (
     <div className="glass-panel rounded-xl p-6">
-      <h3 className="text-lg font-display font-bold mb-6 flex items-center gap-2">
+      <h3 className="text-lg font-heading font-bold mb-6 flex items-center gap-2">
         <Bot className="w-5 h-5 text-primary" />
         Processing Timeline
       </h3>

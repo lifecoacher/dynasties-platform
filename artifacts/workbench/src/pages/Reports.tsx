@@ -151,14 +151,14 @@ export default function ReportsPage() {
               <div className="flex gap-1.5">
                 <button
                   onClick={() => exportReport(selectedReport.id, "JSON")}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-black/20 hover:bg-black/30 rounded-md transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary hover:bg-muted rounded-md transition-colors"
                 >
                   <Download className="w-3 h-3" />
                   JSON
                 </button>
                 <button
                   onClick={() => exportReport(selectedReport.id, "CSV")}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-black/20 hover:bg-black/30 rounded-md transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary hover:bg-muted rounded-md transition-colors"
                 >
                   <Download className="w-3 h-3" />
                   CSV
@@ -221,17 +221,17 @@ function ReportDataView({ data, reportType }: { data: Record<string, unknown>; r
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-4 gap-3">
-          <StatCard label="Stressed Lanes" value={health.stressedLanes} total={health.totalLanes} color="text-orange-400" />
-          <StatCard label="Problem Carriers" value={health.problemCarriers} total={health.totalCarriers} color="text-red-400" />
-          <StatCard label="Open Recommendations" value={health.openRecommendations} color="text-blue-400" />
-          <StatCard label="Critical Recs" value={health.criticalRecommendations} color="text-rose-400" />
+          <StatCard label="Stressed Lanes" value={health.stressedLanes} total={health.totalLanes} color="text-[#D4A24C]" />
+          <StatCard label="Problem Carriers" value={health.problemCarriers} total={health.totalCarriers} color="text-[#E05252]" />
+          <StatCard label="Open Recommendations" value={health.openRecommendations} color="text-primary" />
+          <StatCard label="Critical Recs" value={health.criticalRecommendations} color="text-[#E05252]" />
         </div>
 
         {portfolio && (
           <div className="grid grid-cols-3 gap-3">
             <StatCard label="Active Shipments" value={portfolio.activeShipments} color="text-primary" />
-            <StatCard label="Margin at Risk" value={`$${(portfolio.marginAtRisk || 0).toLocaleString()}`} color="text-amber-400" />
-            <StatCard label="Delay Exposure" value={`${(portfolio.delayExposure || 0).toFixed(1)}%`} color="text-orange-400" />
+            <StatCard label="Margin at Risk" value={`$${(portfolio.marginAtRisk || 0).toLocaleString()}`} color="text-[#D4A24C]" />
+            <StatCard label="Delay Exposure" value={`${(portfolio.delayExposure || 0).toFixed(1)}%`} color="text-[#D4A24C]" />
           </div>
         )}
 
@@ -243,11 +243,11 @@ function ReportDataView({ data, reportType }: { data: Record<string, unknown>; r
             </h3>
             <div className="space-y-1.5">
               {topIssues.map((issue: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 text-xs p-2 rounded bg-black/20">
+                <div key={i} className="flex items-center gap-2 text-xs p-2 rounded bg-secondary">
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                    issue.type === "LANE" ? "bg-blue-500/10 text-blue-400" :
-                    issue.type === "CARRIER" ? "bg-orange-500/10 text-orange-400" :
-                    "bg-purple-500/10 text-purple-400"
+                    issue.type === "LANE" ? "bg-primary/10 text-primary" :
+                    issue.type === "CARRIER" ? "bg-[#D4A24C]/10 text-[#D4A24C]" :
+                    "bg-muted text-muted-foreground"
                   }`}>{issue.type}</span>
                   <span className="font-mono text-foreground">{issue.identifier}</span>
                   <span className="text-muted-foreground ml-auto">
@@ -263,7 +263,7 @@ function ReportDataView({ data, reportType }: { data: Record<string, unknown>; r
   }
 
   return (
-    <pre className="text-[11px] font-mono text-muted-foreground bg-black/20 rounded-lg p-3 overflow-auto max-h-96">
+    <pre className="text-[11px] font-mono text-muted-foreground bg-secondary rounded-lg p-3 overflow-auto max-h-96">
       {JSON.stringify(data, null, 2)}
     </pre>
   );
@@ -271,7 +271,7 @@ function ReportDataView({ data, reportType }: { data: Record<string, unknown>; r
 
 function StatCard({ label, value, total, color }: { label: string; value: string | number; total?: number; color: string }) {
   return (
-    <div className="bg-black/20 rounded-lg p-3">
+    <div className="bg-secondary rounded-lg p-3">
       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
       <p className={`text-lg font-semibold mt-1 ${color}`}>
         {value}

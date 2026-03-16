@@ -93,13 +93,13 @@ function getEventIcon(type: string) {
 }
 
 function getEventColor(type: string) {
-  if (type.includes("COMPLIANCE")) return "text-emerald-400 bg-emerald-400/10";
-  if (type.includes("RISK")) return "text-amber-400 bg-amber-400/10";
-  if (type.includes("INSURANCE")) return "text-violet-400 bg-violet-400/10";
-  if (type.includes("EXTRACT")) return "text-blue-400 bg-blue-400/10";
-  if (type.includes("APPROVED")) return "text-emerald-400 bg-emerald-400/10";
-  if (type.includes("REJECTED")) return "text-red-400 bg-red-400/10";
-  if (type.includes("EXCEPTION")) return "text-red-400 bg-red-400/10";
+  if (type.includes("COMPLIANCE")) return "text-primary bg-primary/10";
+  if (type.includes("RISK")) return "text-[#D4A24C] bg-[#D4A24C]/10";
+  if (type.includes("INSURANCE")) return "text-muted-foreground bg-muted/50";
+  if (type.includes("EXTRACT")) return "text-primary bg-primary/10";
+  if (type.includes("APPROVED")) return "text-primary bg-primary/10";
+  if (type.includes("REJECTED")) return "text-[#E05252] bg-[#E05252]/10";
+  if (type.includes("EXCEPTION")) return "text-[#E05252] bg-[#E05252]/10";
   return "text-primary bg-primary/10";
 }
 
@@ -344,7 +344,7 @@ export default function ShipmentDetail() {
               <button
                 onClick={() => approve.mutate({ id, data: {} })}
                 disabled={approve.isPending || hasChanges}
-                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-emerald-500 hover:bg-emerald-500/90 text-white disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-primary hover:bg-primary/90 text-white disabled:opacity-50 transition-colors flex items-center gap-1.5"
               >
                 {approve.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                 Approve
@@ -503,11 +503,11 @@ export default function ShipmentDetail() {
                   <div className="space-y-2">
                     {activeRecs.map((rec: any) => {
                       const urgencyBorder = rec.urgency === "CRITICAL" ? "border-red-500/30 bg-red-500/5" :
-                        rec.urgency === "HIGH" ? "border-amber-500/30 bg-amber-500/5" :
-                        rec.urgency === "MEDIUM" ? "border-yellow-500/30 bg-yellow-500/5" : "border-white/10 bg-white/[0.02]";
+                        rec.urgency === "HIGH" ? "border-[#D4A24C]/30 bg-[#D4A24C]/5" :
+                        rec.urgency === "MEDIUM" ? "border-[#D4A24C]/20 bg-[#D4A24C]/3" : "border-white/10 bg-white/[0.02]";
                       const urgencyBadge = rec.urgency === "CRITICAL" ? "bg-red-500/20 text-red-300" :
-                        rec.urgency === "HIGH" ? "bg-amber-500/20 text-amber-300" :
-                        rec.urgency === "MEDIUM" ? "bg-yellow-500/20 text-yellow-300" : "bg-blue-500/20 text-blue-300";
+                        rec.urgency === "HIGH" ? "bg-[#D4A24C]/20 text-[#D4A24C]" :
+                        rec.urgency === "MEDIUM" ? "bg-[#D4A24C]/15 text-[#D4A24C]/80" : "bg-primary/15 text-primary/80";
                       return (
                         <div key={rec.id} className={`border rounded-lg p-3 ${urgencyBorder}`}>
                           <div className="flex items-start justify-between gap-2">
@@ -529,13 +529,13 @@ export default function ShipmentDetail() {
                           <div className="flex gap-1.5 mt-2">
                             <button
                               onClick={() => respondMutation.mutate({ id: rec.id, data: { action: "ACCEPTED" } }, { onSuccess: () => refetchRecs() })}
-                              className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/20 text-emerald-300 rounded hover:bg-emerald-500/30 border border-emerald-500/30"
+                              className="px-2 py-0.5 text-[10px] font-medium bg-primary/20 text-primary rounded hover:bg-primary/30 border border-primary/30"
                             >
                               Accept
                             </button>
                             <button
                               onClick={() => { setShowModifyModal(rec.id); setModifyNotes(""); }}
-                              className="px-2 py-0.5 text-[10px] font-medium bg-blue-500/20 text-blue-300 rounded hover:bg-blue-500/30 border border-blue-500/30"
+                              className="px-2 py-0.5 text-[10px] font-medium bg-primary/15 text-primary/80 rounded hover:bg-primary/20 border border-primary/20"
                             >
                               Modify
                             </button>
@@ -557,7 +557,7 @@ export default function ShipmentDetail() {
                           <div key={rec.id} className="border border-white/10 rounded-lg p-3 bg-white/[0.02] mb-1.5">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-[12px] font-medium text-foreground">{rec.title}</span>
-                              <span className={`px-1 py-0.5 text-[9px] uppercase rounded ${rec.status === "ACCEPTED" ? "bg-emerald-500/20 text-emerald-300" : "bg-blue-500/20 text-blue-300"}`}>
+                              <span className={`px-1 py-0.5 text-[9px] uppercase rounded ${rec.status === "ACCEPTED" ? "bg-primary/20 text-primary" : "bg-primary/15 text-primary/80"}`}>
                                 {rec.status}
                               </span>
                             </div>
@@ -576,14 +576,14 @@ export default function ShipmentDetail() {
                               <div className="flex gap-1.5 mt-1.5">
                                 <button
                                   onClick={() => setOutcomeRecId(rec.id)}
-                                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-violet-500/20 text-violet-300 rounded hover:bg-violet-500/30 border border-violet-500/30"
+                                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-primary/20 text-primary rounded hover:bg-primary/30 border border-primary/30"
                                 >
                                   <ClipboardCheck size={10} /> Record Outcome
                                 </button>
                                 <button
                                   onClick={() => createTaskMutation.mutate(rec.id)}
                                   disabled={createTaskMutation.isPending}
-                                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-amber-500/20 text-amber-300 rounded hover:bg-amber-500/30 border border-amber-500/30 disabled:opacity-50"
+                                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-[#D4A24C]/20 text-[#D4A24C] rounded hover:bg-[#D4A24C]/30 border border-[#D4A24C]/30 disabled:opacity-50"
                                 >
                                   <ClipboardList size={10} /> Create Task
                                 </button>
@@ -598,10 +598,10 @@ export default function ShipmentDetail() {
                       <div className="pt-2 border-t border-card-border">
                         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Implemented</p>
                         {implementedRecs.map((rec: any) => (
-                          <div key={rec.id} className="border border-violet-500/20 rounded-lg p-3 bg-violet-500/5 mb-1.5">
+                          <div key={rec.id} className="border border-primary/20 rounded-lg p-3 bg-primary/5 mb-1.5">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-[12px] font-medium text-foreground">{rec.title}</span>
-                              <span className="px-1 py-0.5 text-[9px] uppercase rounded bg-violet-500/20 text-violet-300">
+                              <span className="px-1 py-0.5 text-[9px] uppercase rounded bg-primary/20 text-primary">
                                 IMPLEMENTED
                               </span>
                             </div>
@@ -620,7 +620,7 @@ export default function ShipmentDetail() {
                 onClick={() => setShowDiff(!showDiff)}
                 className="flex items-center gap-2 w-full text-left"
               >
-                <GitCompareArrows className="w-4 h-4 text-violet-400" />
+                <GitCompareArrows className="w-4 h-4 text-primary" />
                 <h3 className="text-[13px] font-semibold text-foreground">Recommendation Changes</h3>
                 {showDiff ? <ChevronUp className="w-3 h-3 text-muted-foreground ml-auto" /> : <ChevronDown className="w-3 h-3 text-muted-foreground ml-auto" />}
               </button>
@@ -632,34 +632,34 @@ export default function ShipmentDetail() {
                   {(diffData?.diffs || []).map((diff: any) => {
                     const hasChanges = Object.values(diff.changes || {}).some(Boolean);
                     return (
-                      <div key={diff.type} className={`border rounded-lg p-3 ${hasChanges ? "border-violet-500/30 bg-violet-500/5" : "border-white/10 bg-white/[0.02]"}`}>
+                      <div key={diff.type} className={`border rounded-lg p-3 ${hasChanges ? "border-primary/20 bg-primary/5" : "border-white/10 bg-white/[0.02]"}`}>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[11px] font-mono font-medium text-foreground">{diff.type}</span>
-                          {hasChanges && <span className="text-[9px] bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded-full">CHANGED</span>}
+                          {hasChanges && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">CHANGED</span>}
                         </div>
                         <p className="text-[10px] text-muted-foreground mb-2">{diff.triggerSummary}</p>
                         {diff.scoreDelta && (
                           <div className="flex flex-wrap gap-2 text-[10px]">
                             {diff.scoreDelta.confidence !== 0 && (
-                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.confidence > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.confidence > 0 ? "text-primary" : "text-[#E05252]"}`}>
                                 {diff.scoreDelta.confidence > 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                                 Conf: {diff.scoreDelta.confidence > 0 ? "+" : ""}{diff.scoreDelta.confidence}
                               </span>
                             )}
                             {diff.scoreDelta.delayImpact !== 0 && (
-                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.delayImpact < 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.delayImpact < 0 ? "text-primary" : "text-[#E05252]"}`}>
                                 {diff.scoreDelta.delayImpact < 0 ? <ArrowDownRight size={10} /> : <ArrowUpRight size={10} />}
                                 Delay: {diff.scoreDelta.delayImpact > 0 ? "+" : ""}{diff.scoreDelta.delayImpact}d
                               </span>
                             )}
                             {diff.scoreDelta.marginImpact !== 0 && (
-                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.marginImpact > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.marginImpact > 0 ? "text-primary" : "text-[#E05252]"}`}>
                                 {diff.scoreDelta.marginImpact > 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                                 Margin: {diff.scoreDelta.marginImpact > 0 ? "+" : ""}{diff.scoreDelta.marginImpact}%
                               </span>
                             )}
                             {diff.scoreDelta.riskReduction !== 0 && (
-                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.riskReduction > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              <span className={`flex items-center gap-0.5 ${diff.scoreDelta.riskReduction > 0 ? "text-primary" : "text-[#E05252]"}`}>
                                 {diff.scoreDelta.riskReduction > 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                                 Risk: {diff.scoreDelta.riskReduction > 0 ? "+" : ""}{diff.scoreDelta.riskReduction}
                               </span>
@@ -676,10 +676,10 @@ export default function ShipmentDetail() {
             {compliance && (
               <div className="p-4 rounded-xl bg-card border border-card-border">
                 <div className="flex items-center gap-2 mb-3">
-                  <Shield className="w-4 h-4 text-emerald-400" />
+                  <Shield className="w-4 h-4 text-primary" />
                   <h3 className="text-[13px] font-semibold text-foreground">Compliance</h3>
                 </div>
-                <div className={`flex items-center gap-1.5 text-[14px] font-semibold ${compliance.status === "CLEAR" ? "text-emerald-400" : "text-red-400"}`}>
+                <div className={`flex items-center gap-1.5 text-[14px] font-semibold ${compliance.status === "CLEAR" ? "text-primary" : "text-[#E05252]"}`}>
                   {compliance.status === "CLEAR" ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                   {compliance.status}
                 </div>
@@ -692,7 +692,7 @@ export default function ShipmentDetail() {
             {risk && (
               <div className="p-4 rounded-xl bg-card border border-card-border">
                 <div className="flex items-center gap-2 mb-3">
-                  <TrendingUp className="w-4 h-4 text-amber-400" />
+                  <TrendingUp className="w-4 h-4 text-[#D4A24C]" />
                   <h3 className="text-[13px] font-semibold text-foreground">Risk Score</h3>
                 </div>
                 <div className="flex items-center gap-4">
@@ -714,7 +714,7 @@ export default function ShipmentDetail() {
                           <div className="flex items-center gap-2">
                             <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full ${normalized < 30 ? "bg-emerald-400" : normalized < 60 ? "bg-amber-400" : "bg-red-400"}`}
+                                className={`h-full rounded-full ${normalized < 30 ? "bg-primary" : normalized < 60 ? "bg-[#D4A24C]" : "bg-[#E05252]"}`}
                                 style={{ width: `${Math.min(normalized, 100)}%` }}
                               />
                             </div>
@@ -731,13 +731,13 @@ export default function ShipmentDetail() {
             <div className="p-4 rounded-xl bg-card border border-card-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-violet-400" />
+                  <Brain className="w-4 h-4 text-primary" />
                   <h3 className="text-[13px] font-semibold text-foreground">Pre-Shipment Risk</h3>
                 </div>
                 <button
                   onClick={evaluatePreShipmentRisk}
                   disabled={evaluatingRisk}
-                  className="px-2 py-1 text-[10px] font-medium rounded bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 disabled:opacity-50 flex items-center gap-1 border border-violet-500/20"
+                  className="px-2 py-1 text-[10px] font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 flex items-center gap-1 border border-primary/20"
                 >
                   {evaluatingRisk ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                   {predictiveRisk ? "Re-evaluate" : "Evaluate"}
@@ -747,17 +747,17 @@ export default function ShipmentDetail() {
                 <div>
                   <div className="flex items-center gap-3 mb-3">
                     <span className={`text-2xl font-bold tabular-nums ${
-                      predictiveRisk.riskLevel === "CRITICAL" ? "text-red-400" :
-                      predictiveRisk.riskLevel === "HIGH" ? "text-orange-400" :
-                      predictiveRisk.riskLevel === "MODERATE" ? "text-yellow-400" : "text-emerald-400"
+                      predictiveRisk.riskLevel === "CRITICAL" ? "text-[#E05252]" :
+                      predictiveRisk.riskLevel === "HIGH" ? "text-[#D4A24C]" :
+                      predictiveRisk.riskLevel === "MODERATE" ? "text-[#D4A24C]/80" : "text-primary"
                     }`}>
                       {Math.round(predictiveRisk.overallRiskScore * 100)}
                     </span>
                     <div>
                       <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
-                        predictiveRisk.riskLevel === "CRITICAL" ? "bg-red-500/10 text-red-400" :
-                        predictiveRisk.riskLevel === "HIGH" ? "bg-orange-500/10 text-orange-400" :
-                        predictiveRisk.riskLevel === "MODERATE" ? "bg-yellow-500/10 text-yellow-400" : "bg-emerald-500/10 text-emerald-400"
+                        predictiveRisk.riskLevel === "CRITICAL" ? "bg-[#E05252]/10 text-[#E05252]" :
+                        predictiveRisk.riskLevel === "HIGH" ? "bg-[#D4A24C]/10 text-[#D4A24C]" :
+                        predictiveRisk.riskLevel === "MODERATE" ? "bg-[#D4A24C]/8 text-[#D4A24C]/80" : "bg-primary/10 text-primary"
                       }`}>{predictiveRisk.riskLevel}</span>
                       {predictiveRisk.daysUntilDeparture != null && (
                         <p className="text-[10px] text-muted-foreground mt-0.5">{predictiveRisk.daysUntilDeparture}d to departure</p>
@@ -772,7 +772,7 @@ export default function ShipmentDetail() {
                           <div className="flex items-center gap-1.5">
                             <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full ${comp.score < 0.3 ? "bg-emerald-400" : comp.score < 0.6 ? "bg-amber-400" : "bg-red-400"}`}
+                                className={`h-full rounded-full ${comp.score < 0.3 ? "bg-primary" : comp.score < 0.6 ? "bg-[#D4A24C]" : "bg-[#E05252]"}`}
                                 style={{ width: `${Math.min(comp.score * 100, 100)}%` }}
                               />
                             </div>
@@ -799,19 +799,19 @@ export default function ShipmentDetail() {
             {readiness && readiness.shipmentId && (
               <div className="p-4 rounded-xl bg-card border border-card-border">
                 <div className="flex items-center gap-2 mb-3">
-                  <ClipboardCheck className="w-4 h-4 text-blue-400" />
+                  <ClipboardCheck className="w-4 h-4 text-primary" />
                   <h3 className="text-[13px] font-semibold text-foreground">Readiness</h3>
                 </div>
                 <div className="flex items-center gap-3 mb-3">
                   <span className={`text-2xl font-bold tabular-nums ${
-                    readiness.readinessLevel === "READY" ? "text-emerald-400" :
-                    readiness.readinessLevel === "NEEDS_ATTENTION" ? "text-amber-400" : "text-red-400"
+                    readiness.readinessLevel === "READY" ? "text-primary" :
+                    readiness.readinessLevel === "NEEDS_ATTENTION" ? "text-[#D4A24C]" : "text-[#E05252]"
                   }`}>
                     {Math.round(readiness.overallScore * 100)}%
                   </span>
                   <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
-                    readiness.readinessLevel === "READY" ? "bg-emerald-500/10 text-emerald-400" :
-                    readiness.readinessLevel === "NEEDS_ATTENTION" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
+                    readiness.readinessLevel === "READY" ? "bg-primary/10 text-primary" :
+                    readiness.readinessLevel === "NEEDS_ATTENTION" ? "bg-[#D4A24C]/10 text-[#D4A24C]" : "bg-[#E05252]/10 text-[#E05252]"
                   }`}>{readiness.readinessLevel?.replace(/_/g, " ")}</span>
                 </div>
                 {readiness.components && (
@@ -820,8 +820,8 @@ export default function ShipmentDetail() {
                       <div key={key} className="flex items-center justify-between text-[10px]">
                         <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
                         <span className={`font-medium ${
-                          comp.status === "READY" ? "text-emerald-400" :
-                          comp.status === "NEEDS_ATTENTION" ? "text-amber-400" : "text-red-400"
+                          comp.status === "READY" ? "text-primary" :
+                          comp.status === "NEEDS_ATTENTION" ? "text-[#D4A24C]" : "text-[#E05252]"
                         }`}>{Math.round(comp.score * 100)}%</span>
                       </div>
                     ))}
@@ -833,13 +833,13 @@ export default function ShipmentDetail() {
             <div className="p-4 rounded-xl bg-card border border-card-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <ClipboardList className="w-4 h-4 text-cyan-400" />
+                  <ClipboardList className="w-4 h-4 text-primary/70" />
                   <h3 className="text-[13px] font-semibold text-foreground">Booking Decision</h3>
                 </div>
                 <button
                   onClick={runBookingDecision}
                   disabled={evaluatingBooking}
-                  className="px-2 py-1 text-[10px] font-medium rounded bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 disabled:opacity-50 flex items-center gap-1 border border-cyan-500/20"
+                  className="px-2 py-1 text-[10px] font-medium rounded bg-primary/10 text-primary/80 hover:bg-primary/20 disabled:opacity-50 flex items-center gap-1 border border-primary/20"
                 >
                   {evaluatingBooking ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                   {bookingDecision ? "Re-evaluate" : "Evaluate"}
@@ -849,11 +849,11 @@ export default function ShipmentDetail() {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                      bookingDecision.status === "APPROVED" ? "bg-emerald-500/10 text-emerald-400" :
-                      bookingDecision.status === "APPROVED_WITH_CAUTION" ? "bg-amber-500/10 text-amber-400" :
-                      bookingDecision.status === "BLOCKED" ? "bg-red-500/10 text-red-400" :
-                      bookingDecision.status === "RECOMMEND_ALTERNATIVE" ? "bg-purple-500/10 text-purple-400" :
-                      "bg-orange-500/10 text-orange-400"
+                      bookingDecision.status === "APPROVED" ? "bg-primary/10 text-primary" :
+                      bookingDecision.status === "APPROVED_WITH_CAUTION" ? "bg-[#D4A24C]/10 text-[#D4A24C]" :
+                      bookingDecision.status === "BLOCKED" ? "bg-[#E05252]/10 text-[#E05252]" :
+                      bookingDecision.status === "RECOMMEND_ALTERNATIVE" ? "bg-primary/10 text-primary" :
+                      "bg-[#D4A24C]/10 text-[#D4A24C]"
                     }`}>{bookingDecision.status.replace(/_/g, " ")}</span>
                     <span className="text-[10px] text-muted-foreground">
                       Confidence: {Math.round(bookingDecision.confidence * 100)}%
@@ -862,7 +862,7 @@ export default function ShipmentDetail() {
                   {bookingDecision.reasonCodes?.length > 0 && (
                     <div className="space-y-0.5 mb-2">
                       {bookingDecision.reasonCodes.slice(0, 4).map((r: string, i: number) => (
-                        <p key={i} className="text-[10px] text-amber-400/80">• {r.replace(/_/g, " ")}</p>
+                        <p key={i} className="text-[10px] text-[#D4A24C]/80">• {r.replace(/_/g, " ")}</p>
                       ))}
                     </div>
                   )}
@@ -879,8 +879,8 @@ export default function ShipmentDetail() {
                       <p className="text-[10px] text-muted-foreground mb-1">Alternatives:</p>
                       {bookingDecision.recommendedAlternatives.map((alt: any, i: number) => (
                         <div key={i} className="flex items-center justify-between text-[10px] mb-0.5">
-                          <span className="text-purple-400">{alt.type.replace(/_/g, " ")}</span>
-                          <span className="text-emerald-400">-{Math.round(alt.estimatedRiskReduction * 100)}% risk</span>
+                          <span className="text-primary">{alt.type.replace(/_/g, " ")}</span>
+                          <span className="text-primary">-{Math.round(alt.estimatedRiskReduction * 100)}% risk</span>
                         </div>
                       ))}
                     </div>
@@ -894,13 +894,13 @@ export default function ShipmentDetail() {
             <div className="p-4 rounded-xl bg-card border border-card-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-orange-400" />
+                  <Shield className="w-4 h-4 text-[#D4A24C]" />
                   <h3 className="text-[13px] font-semibold text-foreground">Release Gates</h3>
                 </div>
                 <button
                   onClick={runReleaseGates}
                   disabled={evaluatingGates}
-                  className="px-2 py-1 text-[10px] font-medium rounded bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 disabled:opacity-50 flex items-center gap-1 border border-orange-500/20"
+                  className="px-2 py-1 text-[10px] font-medium rounded bg-[#D4A24C]/10 text-[#D4A24C] hover:bg-[#D4A24C]/20 disabled:opacity-50 flex items-center gap-1 border border-[#D4A24C]/20"
                 >
                   {evaluatingGates ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                   Check Gates
@@ -913,20 +913,20 @@ export default function ShipmentDetail() {
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[10px] font-semibold text-foreground">{hold.gateType?.replace(/_/g, " ")}</span>
                         <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${
-                          hold.severity === "CRITICAL" ? "bg-red-500/10 text-red-400" :
-                          hold.severity === "HIGH" ? "bg-orange-500/10 text-orange-400" :
-                          "bg-amber-500/10 text-amber-400"
+                          hold.severity === "CRITICAL" ? "bg-[#E05252]/10 text-[#E05252]" :
+                          hold.severity === "HIGH" ? "bg-[#D4A24C]/10 text-[#D4A24C]" :
+                          "bg-[#D4A24C]/10 text-[#D4A24C]"
                         }`}>{hold.severity}</span>
                       </div>
                       <p className="text-[10px] text-muted-foreground">{hold.reason}</p>
-                      <p className="text-[10px] text-cyan-400/80 mt-0.5">→ {hold.requiredAction}</p>
+                      <p className="text-[10px] text-primary/70 mt-0.5">→ {hold.requiredAction}</p>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <p className="text-[11px] text-emerald-400">No active holds — clear to proceed</p>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                  <p className="text-[11px] text-primary">No active holds — clear to proceed</p>
                 </div>
               )}
             </div>
@@ -934,13 +934,13 @@ export default function ShipmentDetail() {
             <div className="p-4 rounded-xl bg-card border border-card-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <GitCompareArrows className="w-4 h-4 text-indigo-400" />
+                  <GitCompareArrows className="w-4 h-4 text-primary" />
                   <h3 className="text-[13px] font-semibold text-foreground">Scenario Comparison</h3>
                 </div>
                 <button
                   onClick={runScenarioComparison}
                   disabled={evaluatingScenarios}
-                  className="px-2 py-1 text-[10px] font-medium rounded bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-50 flex items-center gap-1 border border-indigo-500/20"
+                  className="px-2 py-1 text-[10px] font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 flex items-center gap-1 border border-primary/20"
                 >
                   {evaluatingScenarios ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                   Compare
@@ -959,16 +959,16 @@ export default function ShipmentDetail() {
                   {(scenarioComparison.alternatives || scenarioComparison.alternativeScenarios || []).map((alt: any, i: number) => (
                     <div key={i} className={`p-2 rounded-lg border mb-1.5 ${
                       (scenarioComparison.bestAlternative === alt.scenarioType)
-                        ? "border-emerald-500/30 bg-emerald-500/5" : "border-border bg-background"
+                        ? "border-primary/30 bg-primary/5" : "border-border bg-background"
                     }`}>
                       <div className="flex items-center justify-between mb-0.5">
                         <span className="text-[10px] font-semibold text-foreground">{alt.label}</span>
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-mono ${alt.riskDelta < 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          <span className={`text-[10px] font-mono ${alt.riskDelta < 0 ? "text-primary" : "text-[#E05252]"}`}>
                             {alt.riskDelta < 0 ? "↓" : "↑"}{Math.abs(Math.round(alt.riskDelta * 100))}
                           </span>
                           {scenarioComparison.bestAlternative === alt.scenarioType && (
-                            <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-400">BEST</span>
+                            <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-primary/10 text-primary">BEST</span>
                           )}
                         </div>
                       </div>
@@ -984,7 +984,7 @@ export default function ShipmentDetail() {
             {playbooks.length > 0 && (
               <div className="p-4 rounded-xl bg-card border border-card-border">
                 <div className="flex items-center gap-2 mb-3">
-                  <BarChart3 className="w-4 h-4 text-teal-400" />
+                  <BarChart3 className="w-4 h-4 text-primary" />
                   <h3 className="text-[13px] font-semibold text-foreground">Mitigation Playbooks</h3>
                 </div>
                 <div className="space-y-2">
@@ -993,15 +993,15 @@ export default function ShipmentDetail() {
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[10px] font-semibold text-foreground">{pb.triggerCondition?.replace(/_/g, " ")}</span>
                         <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
-                          pb.priority === "CRITICAL" ? "bg-red-500/10 text-red-400" :
-                          pb.priority === "HIGH" ? "bg-orange-500/10 text-orange-400" :
-                          "bg-amber-500/10 text-amber-400"
+                          pb.priority === "CRITICAL" ? "bg-[#E05252]/10 text-[#E05252]" :
+                          pb.priority === "HIGH" ? "bg-[#D4A24C]/10 text-[#D4A24C]" :
+                          "bg-[#D4A24C]/10 text-[#D4A24C]"
                         }`}>{pb.priority}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-teal-400 rounded-full"
+                            className="h-full bg-primary rounded-full"
                             style={{ width: `${pb.totalSteps > 0 ? (pb.completedSteps / pb.totalSteps) * 100 : 0}%` }}
                           />
                         </div>
@@ -1016,7 +1016,7 @@ export default function ShipmentDetail() {
             {insurance && (
               <div className="p-4 rounded-xl bg-card border border-card-border">
                 <div className="flex items-center gap-2 mb-3">
-                  <Umbrella className="w-4 h-4 text-violet-400" />
+                  <Umbrella className="w-4 h-4 text-primary" />
                   <h3 className="text-[13px] font-semibold text-foreground">Insurance</h3>
                 </div>
                 <div className="space-y-2 text-[12px]">
@@ -1030,7 +1030,7 @@ export default function ShipmentDetail() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Premium</span>
-                    <span className="font-semibold text-emerald-400">{formatCurrency(insurance.estimatedPremium, insurance.currency)}</span>
+                    <span className="font-semibold text-primary">{formatCurrency(insurance.estimatedPremium, insurance.currency)}</span>
                   </div>
                 </div>
               </div>
@@ -1066,7 +1066,7 @@ export default function ShipmentDetail() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="rounded-xl bg-card border border-card-border p-5 w-full max-w-md"
                 >
-                  <div className="flex items-center gap-2 mb-3 text-blue-400">
+                  <div className="flex items-center gap-2 mb-3 text-primary">
                     <Pencil className="w-5 h-5" />
                     <h2 className="text-[16px] font-semibold text-foreground">Modify Recommendation</h2>
                   </div>
@@ -1083,7 +1083,7 @@ export default function ShipmentDetail() {
                     Modification Notes
                   </label>
                   <textarea
-                    className="w-full p-3 rounded-lg bg-background border border-card-border focus:border-blue-500/40 outline-none resize-none h-28 text-[13px] mb-4"
+                    className="w-full p-3 rounded-lg bg-background border border-card-border focus:border-primary/40 outline-none resize-none h-28 text-[13px] mb-4"
                     placeholder="Describe how you would like to modify this recommendation..."
                     value={modifyNotes}
                     onChange={(e) => setModifyNotes(e.target.value)}
@@ -1104,7 +1104,7 @@ export default function ShipmentDetail() {
                         );
                       }}
                       disabled={!modifyNotes.trim()}
-                      className="px-4 py-2 rounded-lg text-[13px] font-medium bg-blue-500 hover:bg-blue-500/90 text-white disabled:opacity-50 transition-colors"
+                      className="px-4 py-2 rounded-lg text-[13px] font-medium bg-primary hover:bg-primary/90 text-white disabled:opacity-50 transition-colors"
                     >
                       Submit Modification
                     </button>
@@ -1166,10 +1166,10 @@ export default function ShipmentDetail() {
 
 function StatusPill({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    DRAFT: "bg-blue-400/10 text-blue-400",
-    PENDING_REVIEW: "bg-amber-400/10 text-amber-400",
-    APPROVED: "bg-emerald-400/10 text-emerald-400",
-    REJECTED: "bg-red-400/10 text-red-400",
+    DRAFT: "bg-primary/10 text-primary",
+    PENDING_REVIEW: "bg-[#D4A24C]/10 text-[#D4A24C]",
+    APPROVED: "bg-primary/10 text-primary",
+    REJECTED: "bg-[#E05252]/10 text-red-400",
   };
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[status] || "bg-muted text-muted-foreground"}`}>

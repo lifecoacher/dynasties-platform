@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import { Ship, Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const { login, isLoading: authLoading } = useAuth();
@@ -44,11 +44,12 @@ export default function LoginPage() {
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Ship className="w-6 h-6 text-primary" />
+          <div className="relative">
+            <span className="font-heading text-[20px] font-medium text-foreground" style={{ letterSpacing: '0.22em' }}>DYNASTIES</span>
+            <div className="absolute -bottom-1.5 left-0 w-[1.3em] h-[2.5px] rounded-full bg-primary" />
           </div>
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <p className="text-[13px] text-muted-foreground">Connecting to Dynasties...</p>
+          <Loader2 className="h-5 w-5 animate-spin text-primary mt-4" />
+          <p className="text-[13px] text-muted-foreground">Connecting...</p>
         </motion.div>
       </div>
     );
@@ -63,11 +64,11 @@ export default function LoginPage() {
         className="w-full max-w-sm mx-4"
       >
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Ship className="w-6 h-6 text-primary" />
+          <div className="relative inline-block mb-4">
+            <span className="font-heading text-[24px] font-medium text-foreground" style={{ letterSpacing: '0.22em' }}>DYNASTIES</span>
+            <div className="absolute -bottom-1.5 left-0 w-[1.3em] h-[2.5px] rounded-full bg-primary" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dynasties</h1>
-          <p className="text-[14px] text-muted-foreground mt-1">Trade Intelligence OS</p>
+          <p className="text-[14px] text-muted-foreground mt-1">The intelligence layer for global trade</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-card-border bg-card p-6">

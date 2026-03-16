@@ -61,7 +61,7 @@ export default function SettingsPage() {
                   onClick={handleCopyId}
                   className="p-2 rounded-lg bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>

@@ -34,35 +34,35 @@ function useAuthHeaders() {
 type Tab = "overview" | "lanes" | "carriers" | "portfolio" | "attribution";
 
 const STRATEGY_COLORS: Record<string, string> = {
-  STABLE: "text-emerald-400",
-  MONITOR_CLOSELY: "text-yellow-400",
-  REDUCE_EXPOSURE: "text-orange-400",
-  REROUTE_CONDITIONAL: "text-red-400",
-  REPRICE_LANE: "text-amber-400",
-  TIGHTEN_GATES: "text-rose-400",
+  STABLE: "text-primary",
+  MONITOR_CLOSELY: "text-[#D4A24C]/80",
+  REDUCE_EXPOSURE: "text-[#D4A24C]",
+  REROUTE_CONDITIONAL: "text-[#E05252]",
+  REPRICE_LANE: "text-[#D4A24C]",
+  TIGHTEN_GATES: "text-[#E05252]",
 };
 
 const STRATEGY_BG: Record<string, string> = {
-  STABLE: "bg-emerald-500/10 border-emerald-500/20",
-  MONITOR_CLOSELY: "bg-yellow-500/10 border-yellow-500/20",
-  REDUCE_EXPOSURE: "bg-orange-500/10 border-orange-500/20",
-  REROUTE_CONDITIONAL: "bg-red-500/10 border-red-500/20",
-  REPRICE_LANE: "bg-amber-500/10 border-amber-500/20",
-  TIGHTEN_GATES: "bg-rose-500/10 border-rose-500/20",
+  STABLE: "bg-primary/10 border-primary/20",
+  MONITOR_CLOSELY: "bg-[#D4A24C]/8 border-[#D4A24C]/15",
+  REDUCE_EXPOSURE: "bg-[#D4A24C]/10 border-[#D4A24C]/20",
+  REROUTE_CONDITIONAL: "bg-[#E05252]/10 border-red-500/20",
+  REPRICE_LANE: "bg-[#D4A24C]/10 border-[#D4A24C]/20",
+  TIGHTEN_GATES: "bg-[#E05252]/10 border-[#E05252]/20",
 };
 
 const ALLOCATION_COLORS: Record<string, string> = {
-  PREFERRED: "text-emerald-400",
-  ACCEPTABLE_MONITOR: "text-yellow-400",
-  AVOID_CURRENT_CONDITIONS: "text-red-400",
-  INCREASE_ALLOCATION: "text-blue-400",
-  REDUCE_ALLOCATION: "text-orange-400",
+  PREFERRED: "text-primary",
+  ACCEPTABLE_MONITOR: "text-[#D4A24C]/80",
+  AVOID_CURRENT_CONDITIONS: "text-[#E05252]",
+  INCREASE_ALLOCATION: "text-primary",
+  REDUCE_ALLOCATION: "text-[#D4A24C]",
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  CRITICAL: "text-red-400 bg-red-500/10",
-  HIGH: "text-orange-400 bg-orange-500/10",
-  MEDIUM: "text-yellow-400 bg-yellow-500/10",
+  CRITICAL: "text-[#E05252] bg-[#E05252]/10",
+  HIGH: "text-[#D4A24C] bg-[#D4A24C]/10",
+  MEDIUM: "text-[#D4A24C]/80 bg-[#D4A24C]/10",
   LOW: "text-slate-400 bg-slate-500/10",
 };
 
@@ -136,7 +136,7 @@ export default function StrategyIntelligence() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">
-              <Target className="w-6 h-6 text-cyan-400" />
+              <Target className="w-6 h-6 text-primary/70" />
               Strategic Intelligence
             </h1>
             <p className="text-sm text-slate-400 mt-1">
@@ -146,7 +146,7 @@ export default function StrategyIntelligence() {
           <button
             onClick={runCompute}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             {loading ? "Computing..." : "Run Analysis"}
@@ -160,7 +160,7 @@ export default function StrategyIntelligence() {
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 tab === t.key
-                  ? "bg-cyan-600/20 text-cyan-400"
+                  ? "bg-primary/20 text-primary/70"
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -172,7 +172,7 @@ export default function StrategyIntelligence() {
 
         {loading && !executiveSummary ? (
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary/70" />
           </div>
         ) : (
           <>
@@ -188,7 +188,7 @@ export default function StrategyIntelligence() {
   );
 }
 
-function MetricCard({ label, value, icon: Icon, color = "text-cyan-400", sub }: {
+function MetricCard({ label, value, icon: Icon, color = "text-primary/70", sub }: {
   label: string; value: string | number; icon: any; color?: string; sub?: string;
 }) {
   return (
@@ -210,9 +210,9 @@ function MetricCard({ label, value, icon: Icon, color = "text-cyan-400", sub }: 
 function TrendBadge({ trend }: { trend: string | null }) {
   if (!trend) return <span className="text-xs text-slate-500">—</span>;
   const config: Record<string, { icon: any; color: string }> = {
-    improving: { icon: TrendingDown, color: "text-emerald-400" },
+    improving: { icon: TrendingDown, color: "text-primary" },
     stable: { icon: Minus, color: "text-slate-400" },
-    worsening: { icon: TrendingUp, color: "text-red-400" },
+    worsening: { icon: TrendingUp, color: "text-[#E05252]" },
   };
   const c = config[trend] ?? config.stable;
   return (
@@ -244,13 +244,13 @@ function OverviewTab({ summary, networkRecs }: { summary: any; networkRecs: any[
           label="Stressed Lanes"
           value={`${nh.stressedLanes} / ${nh.totalLanes}`}
           icon={AlertTriangle}
-          color={nh.stressedLanes > 0 ? "text-orange-400" : "text-emerald-400"}
+          color={nh.stressedLanes > 0 ? "text-[#D4A24C]" : "text-primary"}
         />
         <MetricCard
           label="Problem Carriers"
           value={`${nh.problemCarriers} / ${nh.totalCarriers}`}
           icon={Truck}
-          color={nh.problemCarriers > 0 ? "text-red-400" : "text-emerald-400"}
+          color={nh.problemCarriers > 0 ? "text-[#E05252]" : "text-primary"}
         />
         <MetricCard
           label="Open Recommendations"
@@ -271,13 +271,13 @@ function OverviewTab({ summary, networkRecs }: { summary: any; networkRecs: any[
             label="Margin at Risk"
             value={`$${(port.marginAtRisk ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
             icon={DollarSign}
-            color="text-amber-400"
+            color="text-[#D4A24C]"
           />
           <MetricCard
             label="Mitigated Exposure"
             value={`$${(port.mitigatedExposure ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
             icon={Shield}
-            color="text-emerald-400"
+            color="text-primary"
           />
           <MetricCard
             label="Risk Trend"
@@ -288,7 +288,7 @@ function OverviewTab({ summary, networkRecs }: { summary: any; networkRecs: any[
             label="Delays Avoided"
             value={attr?.delaysAvoided ?? 0}
             icon={CheckCircle}
-            color="text-emerald-400"
+            color="text-primary"
             sub={attr ? `$${attr.marginProtected?.toLocaleString()} protected` : undefined}
           />
         </div>
@@ -302,7 +302,7 @@ function OverviewTab({ summary, networkRecs }: { summary: any; networkRecs: any[
               const count = port.riskDistribution[level] ?? 0;
               const total = Object.values(port.riskDistribution as Record<string, number>).reduce((a: number, b: number) => a + b, 0);
               const pct = total > 0 ? (count / total) * 100 : 0;
-              const colors: Record<string, string> = { low: "bg-emerald-500", medium: "bg-yellow-500", high: "bg-orange-500", critical: "bg-red-500" };
+              const colors: Record<string, string> = { low: "bg-primary", medium: "bg-[#D4A24C]/70", high: "bg-[#D4A24C]", critical: "bg-[#E05252]" };
               return pct > 0 ? (
                 <div
                   key={level}
@@ -522,18 +522,18 @@ function PortfolioTab({ portfolio }: { portfolio: any }) {
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard label="Total Shipments" value={portfolio.totalShipments} icon={Anchor} />
-        <MetricCard label="Active" value={portfolio.activeShipments} icon={Activity} color="text-blue-400" />
+        <MetricCard label="Active" value={portfolio.activeShipments} icon={Activity} color="text-primary" />
         <MetricCard
           label="Margin at Risk"
           value={`$${(portfolio.marginAtRisk ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
           icon={DollarSign}
-          color="text-amber-400"
+          color="text-[#D4A24C]"
         />
         <MetricCard
           label="Delay Exposure"
           value={(portfolio.delayExposure ?? 0).toFixed(1)}
           icon={AlertTriangle}
-          color="text-orange-400"
+          color="text-[#D4A24C]"
           sub="aggregate score"
         />
       </div>
@@ -543,13 +543,13 @@ function PortfolioTab({ portfolio }: { portfolio: any }) {
           label="Mitigated Exposure"
           value={`$${(portfolio.mitigatedExposure ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
           icon={Shield}
-          color="text-emerald-400"
+          color="text-primary"
         />
         <MetricCard
           label="Unmitigated Exposure"
           value={`$${(portfolio.unmitigatedExposure ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
           icon={AlertTriangle}
-          color="text-red-400"
+          color="text-[#E05252]"
         />
       </div>
 
@@ -598,7 +598,7 @@ function ExposureTable({ title, data, keyField }: { title: string; data: any[]; 
               <span className="w-32 truncate text-slate-300 shrink-0">{item[keyField]}</span>
               <div className="flex-1 bg-white/[0.03] rounded h-4">
                 <div
-                  className="bg-cyan-500/40 h-full rounded"
+                  className="bg-primary/40 h-full rounded"
                   style={{ width: `${(item.exposure / maxExp) * 100}%` }}
                 />
               </div>
@@ -629,20 +629,20 @@ function AttributionTab({ attribution }: { attribution: any }) {
           label="Delays Avoided"
           value={attribution.delaysAvoided}
           icon={CheckCircle}
-          color="text-emerald-400"
+          color="text-primary"
           sub={`~${attribution.estimatedDaysSaved?.toFixed(1)} days saved`}
         />
         <MetricCard
           label="Margin Protected"
           value={`$${(attribution.marginProtected ?? 0).toLocaleString()}`}
           icon={DollarSign}
-          color="text-emerald-400"
+          color="text-primary"
         />
         <MetricCard
           label="Risks Mitigated"
           value={attribution.risksMitigated}
           icon={Shield}
-          color="text-blue-400"
+          color="text-primary"
         />
         <MetricCard
           label="Recs Accepted"
@@ -659,25 +659,25 @@ function AttributionTab({ attribution }: { attribution: any }) {
           label="Interventions Triggered"
           value={attribution.interventionsTriggered}
           icon={Activity}
-          color="text-amber-400"
+          color="text-[#D4A24C]"
         />
         <MetricCard
           label="Interventions Completed"
           value={attribution.interventionsCompleted}
           icon={CheckCircle}
-          color="text-emerald-400"
+          color="text-primary"
         />
         <MetricCard
           label="Tasks Auto-Created"
           value={attribution.tasksAutoCreated}
           icon={Target}
-          color="text-cyan-400"
+          color="text-primary/70"
         />
         <MetricCard
           label="Booking Holds → Prevented"
           value={attribution.bookingHoldsPreventedIssues}
           icon={Shield}
-          color="text-violet-400"
+          color="text-primary"
         />
       </div>
 
@@ -686,7 +686,7 @@ function AttributionTab({ attribution }: { attribution: any }) {
         <div className="grid grid-cols-2 gap-4">
           <div className="p-4 bg-white/[0.02] rounded-lg border border-white/5">
             <span className="text-xs text-slate-500">Intelligence-Enriched Acceptance</span>
-            <div className="text-xl font-bold text-cyan-400 mt-1">
+            <div className="text-xl font-bold text-primary/70 mt-1">
               {(attribution.intelligenceEnrichedImpact * 100).toFixed(0)}%
             </div>
           </div>

@@ -26,8 +26,8 @@ async function apiFetch<T>(path: string): Promise<T> {
 
 function ScoreGauge({ label, value, max = 100 }: { label: string; value: number; max?: number }) {
   const pct = Math.min(100, (value / max) * 100);
-  const color = pct >= 70 ? "bg-red-500" : pct >= 40 ? "bg-amber-500" : "bg-emerald-500";
-  const textColor = pct >= 70 ? "text-red-600" : pct >= 40 ? "text-amber-600" : "text-emerald-600";
+  const color = pct >= 70 ? "bg-[#E05252]" : pct >= 40 ? "bg-[#D4A24C]" : "bg-primary";
+  const textColor = pct >= 70 ? "text-[#E05252]" : pct >= 40 ? "text-[#D4A24C]" : "text-primary";
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
       <div className="text-xs text-slate-500 mb-1">{label}</div>
@@ -107,9 +107,9 @@ export default function EntityDossier() {
                     <h4 className="text-xs font-semibold text-slate-500 mb-2">DENIED PARTY MATCHES</h4>
                     <div className="space-y-2">
                       {data.complianceSignals.relevantDenied.map((d: any, i: number) => (
-                        <div key={i} className="p-2 rounded-lg bg-amber-50 border border-amber-100 text-sm">
-                          <div className="font-medium text-amber-800">{d.partyName}</div>
-                          <div className="text-xs text-amber-600">
+                        <div key={i} className="p-2 rounded-lg bg-[#D4A24C]/5 border border-[#D4A24C]/15 text-sm">
+                          <div className="font-medium text-[#D4A24C]">{d.partyName}</div>
+                          <div className="text-xs text-[#D4A24C]">
                             {d.listSource} | Score: {d.matchScore ?? "N/A"}
                           </div>
                         </div>
@@ -136,8 +136,8 @@ export default function EntityDossier() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            s.shipper === data.entityName ? "bg-violet-100 text-violet-700" :
-                            s.consignee === data.entityName ? "bg-blue-100 text-blue-700" :
+                            s.shipper === data.entityName ? "bg-primary/15 text-primary" :
+                            s.consignee === data.entityName ? "bg-primary/15 text-primary" :
                             "bg-slate-100 text-slate-600"
                           }`}>{s.shipper === data.entityName ? "Shipper" : s.consignee === data.entityName ? "Consignee" : "Party"}</span>
                           <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -165,7 +165,7 @@ export default function EntityDossier() {
                           <span className="font-medium text-slate-700">{r.type}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
                             r.urgency === "CRITICAL" ? "bg-red-100 text-red-700" :
-                            r.urgency === "HIGH" ? "bg-orange-100 text-orange-700" :
+                            r.urgency === "HIGH" ? "bg-[#D4A24C]/15 text-[#D4A24C]" :
                             "bg-slate-100 text-slate-600"
                           }`}>{r.urgency}</span>
                         </div>
