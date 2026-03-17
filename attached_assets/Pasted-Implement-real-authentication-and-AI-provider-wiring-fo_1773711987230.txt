@@ -1,0 +1,98 @@
+Implement real authentication and AI provider wiring for Dynasties using Clerk and Anthropic.
+
+Context:
+- Clerk account is now created
+- Anthropic API key is now available
+- Dynasties already has the product architecture, demo tenant, workflow engine, predictive layer, strategic layer, and branding applied
+- We now need production-style login, tenant/company bootstrap, and explicit AI orchestration wiring
+
+Goals:
+1. Integrate Clerk authentication into frontend and backend
+2. Implement new-company bootstrap flow
+3. Wire Anthropic explicitly through a backend AI orchestration service
+4. Verify the end-to-end flow works for a brand-new user/company without seeded demo data
+
+PART 1 — CLERK AUTH INTEGRATION
+
+Implement Clerk authentication for the app:
+- sign up
+- sign in
+- sign out
+- protected routes
+- session-aware frontend
+- backend verification of Clerk session/JWT
+
+Requirements:
+- use Clerk for auth only, not as the application database
+- map Clerk user identity to Dynasties user records
+- support role assignment in Dynasties (admin/operator/viewer)
+- preserve tenant safety
+
+PART 2 — TENANT / COMPANY BOOTSTRAP
+
+For a brand-new authenticated user, implement bootstrap flow:
+- create tenant
+- create primary company
+- create admin user record in Dynasties
+- initialize default policies / operating mode
+- initialize empty but valid app state
+
+Requirements:
+- no dependency on demo seed data
+- empty-state pages must render correctly
+- first user becomes company admin
+- support future invite flow cleanly
+
+PART 3 — ANTHROPIC AI ORCHESTRATION
+
+Create an explicit backend AI orchestration layer using Anthropic.
+
+Requirements:
+- read ANTHROPIC_API_KEY from environment
+- backend-only calls to Anthropic
+- model routing by task type
+- log model name, token usage, latency, and request outcome
+- preserve validation and deterministic fallback patterns
+- do not let raw model output write directly to DB
+- handle retries / errors cleanly
+
+At minimum, wire one or more existing AI-driven workflows through this real orchestration layer so we can verify actual Anthropic usage.
+
+PART 4 — EMPTY-STATE UX
+
+For a new company with no data, make sure these pages still work:
+- Command Center
+- Shipments
+- Control Tower
+- Predictive
+- Strategic
+- Policy Studio
+- Reports
+
+Add clean empty states and setup guidance where needed.
+
+PART 5 — VERIFICATION FLOW
+
+Implement and verify a full testable flow:
+1. New user signs up with Clerk
+2. New company/tenant is created
+3. User lands inside Dynasties successfully
+4. Empty-state app renders correctly
+5. One AI-driven flow can be triggered
+6. Anthropic call actually executes
+7. Result is validated, stored, and shown in UI
+
+DELIVERABLES
+
+At the end provide:
+1. exact files changed
+2. new env vars required
+3. where Clerk is wired in frontend/backend
+4. how user -> company -> tenant mapping works
+5. how Anthropic orchestration is implemented
+6. how token/cost logging works
+7. what empty states were added
+8. exact steps to test the full signup-to-AI-call flow
+9. remaining gaps after this
+
+Implement code, not just a plan.
