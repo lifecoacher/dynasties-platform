@@ -266,7 +266,11 @@ function ImpactPriorityView({
 
       <div className="space-y-3">
         {data.length === 0 && (
-          <p className="text-sm text-muted-foreground py-8 text-center">No active recommendations</p>
+          <div className="text-center py-16">
+            <Shield className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+            <h3 className="text-[15px] font-semibold text-foreground mb-1">No active recommendations</h3>
+            <p className="text-[13px] text-muted-foreground">AI-powered recommendations will appear here as shipments are processed.</p>
+          </div>
         )}
         {data.map((rec: any) => (
           <div key={rec.id} className="relative">

@@ -345,7 +345,11 @@ export default function WorkQueue() {
               <div className="lg:col-span-2 space-y-2">
                 {isLoading && <div className="text-white/30 text-sm py-8 text-center">Loading tasks...</div>}
                 {!isLoading && filteredTasks.length === 0 && (
-                  <div className="text-white/30 text-sm py-8 text-center">No tasks in this queue</div>
+                  <div className="text-center py-16">
+                    <ClipboardList className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                    <h3 className="text-[15px] font-semibold text-foreground mb-1">No tasks in this queue</h3>
+                    <p className="text-[13px] text-muted-foreground">Tasks will appear here as shipments are processed and policies trigger actions.</p>
+                  </div>
                 )}
                 {filteredTasks.map((task: any) => {
                   const TaskIcon = TASK_TYPE_ICONS[task.taskType] || ClipboardList;

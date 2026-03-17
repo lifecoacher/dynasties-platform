@@ -125,8 +125,18 @@ export default function ShipmentsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
-            <Filter className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-[14px] text-muted-foreground">No shipments match your filters</p>
+            {shipments.length === 0 ? (
+              <>
+                <Ship className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                <h3 className="text-[15px] font-semibold text-foreground mb-1">No shipments yet</h3>
+                <p className="text-[13px] text-muted-foreground">Create your first shipment or import documents to get started.</p>
+              </>
+            ) : (
+              <>
+                <Filter className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-[14px] text-muted-foreground">No shipments match your filters</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

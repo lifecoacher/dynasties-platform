@@ -15,6 +15,7 @@ import orchestrationRouter from "./orchestration";
 import predictiveRouter from "./predictive";
 import strategicRouter from "./strategic";
 import policyRouter from "./policy";
+import aiUsageRouter from "./ai-usage.js";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant } from "../middlewares/tenant.js";
 
@@ -41,5 +42,6 @@ router.use(orchestrationRouter);
 router.use(predictiveRouter);
 router.use(strategicRouter);
 router.use(policyRouter);
+router.use(aiUsageRouter);
 
 export default router;
