@@ -12,9 +12,11 @@ import {
   AlertTriangle,
   Loader2,
   Clock,
+  AlertCircle,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CommandInput } from "@/components/command/CommandInput";
+import { useAuth } from "@/hooks/use-auth";
 import { normalizeRiskScore, riskColor, riskLabel, formatCurrency } from "@/lib/format";
 
 function StatusDot({ status }: { status: string }) {
@@ -34,16 +36,18 @@ function StatusDot({ status }: { status: string }) {
 }
 
 export default function CommandCenter() {
+  const { user } = useAuth();
   const { data: shipmentsRes, isLoading } = useListShipments();
   const shipments = (shipmentsRes?.data || []) as any[];
 
   const totalShipments = shipments.length;
   const complianceClear = shipments.filter((s: any) => s.compliance?.status === "CLEAR").length;
+  const complianceAlerts = shipments.filter((s: any) => s.compliance?.status && s.compliance.status !== "CLEAR").length;
   const highRisk = shipments.filter((s: any) => {
     const score = normalizeRiskScore(s.risk?.compositeScore);
     return score != null && score >= 60;
   }).length;
-  const insured = shipments.filter((s: any) => s.insurance?.estimatedPremium).length;
+  const activeShipments = shipments.filter((s: any) => !["DELIVERED", "CLOSED", "CANCELLED", "REJECTED"].includes(s.status)).length;
 
   return (
     <AppLayout>
@@ -56,7 +60,9 @@ export default function CommandCenter() {
             className="text-center mb-8"
           >
             <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-1">Trade Command Center</h1>
-            <p className="text-[14px] text-muted-foreground">Your AI-powered logistics operations hub</p>
+            <p className="text-[14px] text-muted-foreground">
+              {user?.companyName ? `${user.companyName} — ` : ""}AI-powered logistics operations hub
+            </p>
           </motion.div>
 
           <motion.div
@@ -74,10 +80,10 @@ export default function CommandCenter() {
           transition={{ duration: 0.4, delay: 0.2 }}
           className="grid grid-cols-4 gap-3 mb-8"
         >
-          <MetricCard label="Shipments" value={totalShipments} icon={<Ship className="w-4 h-4" />} color="text-primary" />
-          <MetricCard label="Compliant" value={complianceClear} icon={<Shield className="w-4 h-4" />} color="text-primary" />
-          <MetricCard label="High Risk" value={highRisk} icon={<TrendingUp className="w-4 h-4" />} color="text-[#D4A24C]" />
-          <MetricCard label="Insured" value={insured} icon={<Umbrella className="w-4 h-4" />} color="text-muted-foreground" />
+          <MetricCard label="Active" value={isLoading ? null : activeShipments} sub={isLoading ? undefined : `of ${totalShipments}`} icon={<Ship className="w-4 h-4" />} color="text-primary" />
+          <MetricCard label="Compliant" value={isLoading ? null : complianceClear} sub={isLoading ? undefined : `of ${totalShipments}`} icon={<Shield className="w-4 h-4" />} color="text-primary" />
+          <MetricCard label="Risk Alerts" value={isLoading ? null : highRisk} icon={<TrendingUp className="w-4 h-4" />} color={highRisk > 0 ? "text-[#D4A24C]" : "text-primary"} />
+          <MetricCard label="Compliance" value={isLoading ? null : complianceAlerts} sub={complianceAlerts > 0 ? "alerts" : "clear"} icon={<AlertCircle className="w-4 h-4" />} color={complianceAlerts > 0 ? "text-[#E05252]" : "text-primary"} />
         </motion.div>
 
         <motion.div
@@ -164,14 +170,21 @@ export default function CommandCenter() {
   );
 }
 
-function MetricCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode; color: string }) {
+function MetricCard({ label, value, sub, icon, color }: { label: string; value: number | null; sub?: string; icon: React.ReactNode; color: string }) {
   return (
     <div className="px-4 py-3 rounded-xl bg-card border border-card-border">
       <div className={`flex items-center gap-1.5 mb-1.5 ${color}`}>
         {icon}
         <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
       </div>
-      <div className="text-2xl font-semibold text-foreground tabular-nums">{value}</div>
+      {value === null ? (
+        <div className="h-8 w-12 rounded bg-muted/30 animate-pulse" />
+      ) : (
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-2xl font-semibold text-foreground tabular-nums">{value}</span>
+          {sub && <span className="text-[11px] text-muted-foreground">{sub}</span>}
+        </div>
+      )}
     </div>
   );
 }

@@ -52,6 +52,9 @@ export default function SettingsPage() {
               <h2 className="text-[14px] font-semibold text-foreground">Organization</h2>
             </div>
             <div className="space-y-3">
+              {user?.companyName && (
+                <SettingsField label="Company" value={user.companyName} />
+              )}
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Organization ID</p>
