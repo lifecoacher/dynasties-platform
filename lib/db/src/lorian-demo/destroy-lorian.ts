@@ -2,6 +2,7 @@ import { db } from "../index.js";
 import { eq } from "drizzle-orm";
 import { LORIAN_COMPANY_ID } from "./constants.js";
 import {
+  aiUsageLogsTable,
   reportSnapshotsTable,
   policySimulationsTable,
   policyVersionsTable,
@@ -62,6 +63,7 @@ import {
 } from "../schema/index.js";
 
 const TABLES_IN_ORDER = [
+  { table: aiUsageLogsTable, name: "ai_usage_logs" },
   { table: reportSnapshotsTable, name: "report_snapshots" },
   { table: policySimulationsTable, name: "policy_simulations" },
   { table: policyVersionsTable, name: "policy_versions" },
