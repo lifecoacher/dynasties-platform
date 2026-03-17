@@ -172,6 +172,12 @@ export async function seedLorian() {
     { n: 20, ref: "LOR-2026-0020", status: "PENDING_REVIEW" as const, lane: 6, shipper: 2, consignee: 0, carrier: 4, etdDaysAgo: -6, etaDaysFromNow: 20, cargoValue: 210000, commodity: "Automotive Sensors", hsCode: "9031.80", packageCount: 150, grossWeight: 6800, vessel: "Hapag Hamburg", voyage: "HH-278N" },
   ];
 
+  const shipmentCreationDaysAgo: Record<number, number> = {
+    1: 18, 2: 16, 3: 14, 4: 15, 5: 24, 6: 22, 7: 27,
+    8: 19, 9: 14, 10: 15, 11: 20, 12: 14, 13: 17,
+    14: 21, 15: 14, 16: 18, 17: 28, 18: 15, 19: 19, 20: 16,
+  };
+
   const shipments = shipmentDefs.map((s) => ({
     id: lid("shp", s.n),
     companyId: LORIAN_COMPANY_ID,
@@ -199,6 +205,7 @@ export async function seedLorian() {
     bookingNumber: s.status !== "DRAFT" ? `BK-${s.ref.split("-").pop()}` : null,
     cargoValue: s.cargoValue,
     blNumber: ["IN_TRANSIT", "AT_PORT", "CUSTOMS", "DELIVERED", "CLOSED"].includes(s.status) ? `BL-LOR-${String(s.n).padStart(4, "0")}` : null,
+    createdAt: spreadTime(shipmentCreationDaysAgo[s.n] ?? 10, s.n * 73 + 42),
   }));
   await db.insert(shipmentsTable).values(shipments);
 

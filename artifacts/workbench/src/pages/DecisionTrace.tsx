@@ -6,7 +6,6 @@ import {
   useGetShipmentInsurance,
   useGetShipmentEvents,
   useGetShipmentDocuments,
-  getAuthToken,
 } from "@workspace/api-client-react";
 import { ArrowLeft, Loader2, FileText, Brain, Users, Shield, TrendingUp, Umbrella, CloudRain, ChevronDown, CheckCircle2, AlertTriangle, Info } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -97,14 +96,12 @@ export default function DecisionTrace() {
 
   const [weatherContext, setWeatherContext] = useState<any>(null);
 
-  const BASE = `${import.meta.env.BASE_URL}api`;
-
   useEffect(() => {
     if (!id) return;
-    const token = getAuthToken();
-    fetch(`${BASE}/shipments/${id}/weather-context`, {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    }).then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then((j) => setWeatherContext(j.data)).catch(() => {});
+    try {
+      const cached = sessionStorage.getItem(`weather_${id}`);
+      if (cached) setWeatherContext(JSON.parse(cached));
+    } catch {}
   }, [id]);
 
   const shipment = shipmentRes?.data as any;

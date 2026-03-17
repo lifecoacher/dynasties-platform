@@ -1,0 +1,79 @@
+We have completed final demo rehearsal. There are 3 credibility issues that must be fixed immediately before recording.
+
+Do NOT add features. Do NOT refactor unrelated code. Do NOT expand scope.
+Only fix the issues below in the safest, most deterministic way.
+
+==================================================
+TASK 1 — WEATHER DATA CONSISTENCY (CRITICAL)
+==================================================
+
+Problem:
+Port Weather widget and Decision Trace are showing different weather conditions for the same port because they are making separate API calls.
+
+Requirement:
+There must be ONE single source of truth for weather per shipment view.
+
+Implement:
+1. Fetch weather ONCE per shipment (origin + destination)
+2. Cache/store it at the page or shared state level
+3. Pass the same data into:
+   - Port Weather widget
+   - Decision Trace weather layer
+4. Remove any independent fetch inside Decision Trace
+5. Ensure both views always display identical values
+
+Fallback:
+If weather fails, both views must show the same fallback state.
+
+==================================================
+TASK 2 — RISK SUB-FACTOR CONSISTENCY
+==================================================
+
+Problem:
+Shipment Detail and Decision Trace show different values for the same sub-factor (e.g. seasonal 10 vs 18).
+
+Requirement:
+All risk sub-factor values must come from the exact same data source.
+
+Implement:
+1. Identify the canonical risk scoring object per shipment
+2. Ensure Shipment Detail and Decision Trace both read from it
+3. Remove any duplicated or recomputed values in Decision Trace
+4. Validate all 20 shipments show identical sub-factor values across views
+
+==================================================
+TASK 3 — REALISTIC SHIPMENT TIMESTAMPS
+==================================================
+
+Problem:
+All shipments show the same creation date (Mar 17, 2026), making the dataset look fake.
+
+Requirement:
+Introduce realistic distribution of timestamps.
+
+Implement:
+1. Update seed data so shipments are spread across a 2–3 week window
+2. Maintain logical ordering (IDs still sequential)
+3. Ensure timestamps remain plausible relative to status (e.g. delivered older than in-transit)
+
+==================================================
+VALIDATION
+==================================================
+
+After fixes:
+- Open LOR-001 and confirm weather is identical in both views
+- Confirm at least one other shipment behaves the same
+- Verify sub-factor values match exactly between Detail and Trace
+- Confirm shipment list shows varied creation dates
+
+==================================================
+DELIVERABLES
+==================================================
+
+Return:
+1. exact files changed
+2. how weather is now shared/cached
+3. confirmation Decision Trace no longer fetches weather independently
+4. confirmation all sub-factors match across views
+5. before/after example for timestamps
+6. confirmation no demo flows were broken

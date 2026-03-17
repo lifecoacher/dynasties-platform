@@ -209,7 +209,16 @@ export default function ShipmentDetail() {
     fetch(`${BASE}/predictive/holds/${id}`, { headers: h }).then((r) => r.json()).then((j) => setGateHolds(j.data || [])).catch(() => {});
     fetch(`${BASE}/predictive/scenarios/${id}`, { headers: h }).then((r) => r.json()).then((j) => setScenarioComparison(j.data)).catch(() => {});
     fetch(`${BASE}/predictive/playbooks/${id}`, { headers: h }).then((r) => r.json()).then((j) => setPlaybooks(j.data || [])).catch(() => {});
-    fetch(`${BASE}/shipments/${id}/weather-context`, { headers: h }).then((r) => r.json()).then((j) => setWeatherContext(j.data)).catch(() => {});
+    fetch(`${BASE}/shipments/${id}/weather-context`, { headers: h }).then((r) => {
+      if (!r.ok) throw new Error();
+      return r.json();
+    }).then((j) => {
+      setWeatherContext(j.data);
+      try { sessionStorage.setItem(`weather_${id}`, JSON.stringify(j.data)); } catch {}
+    }).catch(() => {
+      setWeatherContext(null);
+      try { sessionStorage.removeItem(`weather_${id}`); } catch {}
+    });
   }, [id]);
 
   const runBookingDecision = async () => {
