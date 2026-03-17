@@ -792,25 +792,44 @@ export default function ShipmentDetail() {
                       ))}
                     </div>
                   )}
+                  {(() => {
+                    if (!weatherContext?.portWeather) return null;
+                    const adversePorts = Object.values(weatherContext.portWeather as Record<string, any>).filter((pw: any) => {
+                      if (!pw.live) return false;
+                      const beaufort = pw.live.seaState?.windBeaufort ?? 0;
+                      const risk = pw.live.seaState?.operationalRisk;
+                      return beaufort >= 4 || risk === "high" || risk === "critical";
+                    });
+                    if (adversePorts.length === 0) return null;
+                    return (
+                      <div className="mt-2 pt-2 border-t border-border">
+                        {adversePorts.map((pw: any) => (
+                          <p key={pw.portCode} className="text-[10px] text-[#D4A24C] leading-relaxed">
+                            Weather signal: {pw.live?.seaState?.description ?? "Adverse conditions"} at {pw.portCode} (+{Math.min(Math.round((pw.live?.seaState?.windBeaufort ?? 4) * 0.5), 5)} risk pts)
+                          </p>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <p className="text-[11px] text-muted-foreground">Click evaluate to assess pre-shipment risk</p>
               )}
             </div>
 
-            {weatherContext && Object.keys(weatherContext.portWeather || {}).length > 0 && (
-              <div className="p-4 rounded-xl bg-card border border-card-border">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Radar className="w-4 h-4 text-primary" />
-                    <h3 className="text-[13px] font-semibold text-foreground">Port Weather</h3>
-                  </div>
-                  {weatherContext.hasLiveData && (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                      Live · OpenWeather
-                    </span>
-                  )}
+            <div className="p-4 rounded-xl bg-card border border-card-border">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Radar className="w-4 h-4 text-primary" />
+                  <h3 className="text-[13px] font-semibold text-foreground">Port Weather</h3>
                 </div>
+                {weatherContext?.hasLiveData && (
+                  <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    Live · OpenWeather
+                  </span>
+                )}
+              </div>
+              {weatherContext && Object.keys(weatherContext.portWeather || {}).length > 0 ? (
                 <div className="space-y-3">
                   {Object.values(weatherContext.portWeather).map((pw: any) => (
                     <div key={pw.portCode} className="space-y-1.5">
@@ -819,29 +838,25 @@ export default function ShipmentDetail() {
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-[10px]">
                             <span className="text-muted-foreground">Conditions</span>
-                            <span className="text-foreground capitalize">{pw.live.current.description}</span>
+                            <span className="text-foreground capitalize">{pw.live?.current?.description ?? "N/A"}</span>
                           </div>
                           <div className="flex items-center justify-between text-[10px]">
                             <span className="text-muted-foreground">Temperature</span>
-                            <span className="text-foreground">{pw.live.current.tempC}°C</span>
+                            <span className="text-foreground">{pw.live?.current?.tempC != null ? `${pw.live.current.tempC}°C` : "N/A"}</span>
                           </div>
                           <div className="flex items-center justify-between text-[10px]">
                             <span className="text-muted-foreground">Wind</span>
-                            <span className="text-foreground">{pw.live.current.windSpeedKmh} km/h (Beaufort {pw.live.seaState.windBeaufort})</span>
+                            <span className="text-foreground">{pw.live?.current?.windSpeedKmh ?? "N/A"} km/h{pw.live?.seaState?.windBeaufort != null ? ` (Beaufort ${pw.live.seaState.windBeaufort})` : ""}</span>
                           </div>
                           <div className="flex items-center justify-between text-[10px]">
                             <span className="text-muted-foreground">Sea State</span>
                             <span className={`font-medium ${
-                              pw.live.seaState.operationalRisk === "critical" ? "text-[#E05252]" :
-                              pw.live.seaState.operationalRisk === "high" ? "text-[#D4A24C]" :
-                              pw.live.seaState.operationalRisk === "moderate" ? "text-[#D4A24C]/80" : "text-primary"
-                            }`}>{pw.live.seaState.description}</span>
+                              pw.live?.seaState?.operationalRisk === "critical" ? "text-[#E05252]" :
+                              pw.live?.seaState?.operationalRisk === "high" ? "text-[#D4A24C]" :
+                              pw.live?.seaState?.operationalRisk === "moderate" ? "text-[#D4A24C]/80" : "text-primary"
+                            }`}>{pw.live?.seaState?.description ?? "N/A"}</span>
                           </div>
-                          <div className="flex items-center justify-between text-[10px]">
-                            <span className="text-muted-foreground">Visibility</span>
-                            <span className="text-foreground">{(pw.live.current.visibility / 1000).toFixed(1)} km</span>
-                          </div>
-                          {pw.live.alerts && pw.live.alerts.length > 0 && (
+                          {pw.live?.alerts && pw.live.alerts.length > 0 && (
                             <div className="mt-1 pt-1 border-t border-border">
                               {pw.live.alerts.map((a: any, i: number) => (
                                 <p key={i} className="text-[10px] text-[#D4A24C]">⚠ {a.event}</p>
@@ -868,8 +883,10 @@ export default function ShipmentDetail() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Weather data unavailable</p>
+              )}
+            </div>
 
             {readiness && readiness.shipmentId && (
               <div className="p-4 rounded-xl bg-card border border-card-border">

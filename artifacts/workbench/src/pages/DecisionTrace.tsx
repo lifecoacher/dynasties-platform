@@ -6,9 +6,10 @@ import {
   useGetShipmentInsurance,
   useGetShipmentEvents,
   useGetShipmentDocuments,
+  getAuthToken,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Loader2, FileText, Brain, Users, Shield, TrendingUp, Umbrella, ChevronDown, CheckCircle2, AlertTriangle, Info } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Loader2, FileText, Brain, Users, Shield, TrendingUp, Umbrella, CloudRain, ChevronDown, CheckCircle2, AlertTriangle, Info } from "lucide-react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { normalizeRiskScore, riskColor, riskLabel, formatCurrency, humanizeCoverageType, humanizeDocType } from "@/lib/format";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -93,6 +94,18 @@ export default function DecisionTrace() {
   const { data: insuranceRes } = useGetShipmentInsurance(id);
   const { data: eventsRes } = useGetShipmentEvents(id);
   const { data: docsRes } = useGetShipmentDocuments(id);
+
+  const [weatherContext, setWeatherContext] = useState<any>(null);
+
+  const BASE = `${import.meta.env.BASE_URL}api`;
+
+  useEffect(() => {
+    if (!id) return;
+    const token = getAuthToken();
+    fetch(`${BASE}/shipments/${id}/weather-context`, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    }).then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then((j) => setWeatherContext(j.data)).catch(() => {});
+  }, [id]);
 
   const shipment = shipmentRes?.data as any;
   const compliance = complianceRes?.data as any;
@@ -293,6 +306,53 @@ export default function DecisionTrace() {
               <p className="text-[12px] text-muted-foreground italic">Not yet completed.</p>
             )}
           </TraceLayer>
+
+          {(() => {
+            if (!weatherContext?.portWeather) return null;
+            const ports = Object.values(weatherContext.portWeather as Record<string, any>).filter(
+              (pw: any) => pw.live || (pw.seededEvents && pw.seededEvents.length > 0)
+            );
+            if (ports.length === 0) return null;
+            return (
+              <TraceLayer icon={<CloudRain className="w-4 h-4 text-[#5B9BD5]" />} title="Weather Intelligence" color="bg-[#5B9BD5]/10">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-[11px] mb-1">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[#5B9BD5]/10 text-[#5B9BD5] border border-[#5B9BD5]/20">
+                      OpenWeather signal
+                    </span>
+                    {weatherContext.hasLiveData && (
+                      <span className="text-[10px] text-muted-foreground">Live data</span>
+                    )}
+                  </div>
+                  {ports.map((pw: any) => (
+                    <div key={pw.portCode} className="bg-muted/20 rounded-lg p-3 space-y-1">
+                      <p className="text-[11px] font-medium text-foreground mb-1.5">{pw.portName} ({pw.portCode})</p>
+                      {pw.live ? (
+                        <>
+                          <TraceField label="Conditions" value={pw.live?.current?.description ?? "N/A"} />
+                          <TraceField label="Wind" value={`${pw.live?.current?.windSpeedKmh ?? "N/A"} km/h${pw.live?.seaState?.windBeaufort != null ? ` (Beaufort ${pw.live.seaState.windBeaufort})` : ""}`} />
+                          <TraceField label="Sea State" value={pw.live?.seaState?.description ?? "N/A"} />
+                          <div className="mt-1.5 pt-1.5 border-t border-card-border/30">
+                            <p className="text-[11px] text-muted-foreground">
+                              {(pw.live?.seaState?.windBeaufort ?? 0) >= 4 || pw.live?.seaState?.operationalRisk === "high" || pw.live?.seaState?.operationalRisk === "critical"
+                                ? `Rough seas at ${pw.portCode === shipment?.portOfLoading ? "origin" : "destination"} port may affect ${pw.portCode === shipment?.portOfLoading ? "loading schedule" : "discharge operations"}`
+                                : `Conditions at ${pw.portCode === shipment?.portOfLoading ? "origin" : "destination"} port are within normal operational limits`}
+                            </p>
+                          </div>
+                        </>
+                      ) : pw.seededEvents && pw.seededEvents.length > 0 ? (
+                        <>
+                          {pw.seededEvents.map((ev: any) => (
+                            <TraceField key={ev.id} label={ev.eventType} value={ev.severity} />
+                          ))}
+                        </>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </TraceLayer>
+            );
+          })()}
 
           <TraceLayer icon={<Umbrella className="w-4 h-4 text-primary" />} title="Insurance Quote" color="bg-primary/10">
             {insurance ? (
