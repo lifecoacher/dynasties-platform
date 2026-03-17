@@ -1,10 +1,21 @@
 import { Router, type IRouter } from "express";
 import { db, type DbTransaction } from "@workspace/db";
 import { usersTable, companiesTable, eventsTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import bcrypt from "bcryptjs";
 import { signToken } from "../middlewares/auth.js";
+
+const LORIAN_COMPANY_ID = "cmp_lorian_001";
+const LORIAN_ADMIN_USER_ID = "usr_lor_admin";
+
+function getDemoEmails(): string[] {
+  const raw = process.env.DEMO_CLERK_EMAILS ?? "";
+  return raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
 
 const router: IRouter = Router();
 
@@ -58,6 +69,60 @@ router.post("/auth/clerk-sync", async (req, res) => {
     const clerkUserId = clerkUser.sub;
     const normalizedEmail = clerkUser.email.toLowerCase().trim();
     const displayName = [clerkUser.first_name, clerkUser.last_name].filter(Boolean).join(" ") || normalizedEmail.split("@")[0];
+
+    const demoEmails = getDemoEmails();
+    const isDemoUser = demoEmails.includes(normalizedEmail);
+
+    if (isDemoUser) {
+      const [lorianAdmin] = await db
+        .select()
+        .from(usersTable)
+        .where(
+          and(
+            eq(usersTable.id, LORIAN_ADMIN_USER_ID),
+            eq(usersTable.companyId, LORIAN_COMPANY_ID),
+          ),
+        )
+        .limit(1);
+
+      if (lorianAdmin) {
+        await db
+          .update(usersTable)
+          .set({
+            clerkId: clerkUserId,
+            name: displayName || lorianAdmin.name,
+            lastLoginAt: new Date(),
+          })
+          .where(eq(usersTable.id, lorianAdmin.id));
+
+        console.log(`[clerk-sync] demo bridge: mapped Clerk user ${clerkUserId} (${normalizedEmail}) → Lorian admin ${lorianAdmin.id}`);
+
+        const token = signToken({
+          userId: lorianAdmin.id,
+          companyId: LORIAN_COMPANY_ID,
+          email: lorianAdmin.email,
+          role: lorianAdmin.role as "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER",
+        });
+
+        res.json({
+          data: {
+            token,
+            user: {
+              id: lorianAdmin.id,
+              email: lorianAdmin.email,
+              name: displayName || lorianAdmin.name,
+              role: lorianAdmin.role,
+              companyId: LORIAN_COMPANY_ID,
+            },
+            isNewUser: false,
+            isDemoUser: true,
+          },
+        });
+        return;
+      }
+
+      console.warn("[clerk-sync] demo bridge: Lorian seed data not found — falling through to standard flow");
+    }
 
     const [existingByClerk] = await db
       .select()
