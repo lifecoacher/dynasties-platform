@@ -24,7 +24,7 @@ export interface EarlyRecommendationResult {
   persisted: number;
 }
 
-const PRE_DEPARTURE_STATUSES = ["DRAFT", "PENDING_REVIEW", "APPROVED"];
+const PRE_DEPARTURE_STATUSES = ["DRAFT", "PENDING_REVIEW", "APPROVED"] as const;
 
 export async function generateEarlyRecommendations(
   shipmentId: string,
@@ -42,7 +42,7 @@ export async function generateEarlyRecommendations(
   }
 
   const isPreDeparture =
-    PRE_DEPARTURE_STATUSES.includes(shipment.status) ||
+    (PRE_DEPARTURE_STATUSES as readonly string[]).includes(shipment.status) ||
     (shipment.etd && new Date(shipment.etd) > new Date());
 
   if (!isPreDeparture) {

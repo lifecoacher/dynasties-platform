@@ -10,7 +10,7 @@ router.post(
   requireMinRole("OPERATOR"),
   async (req, res) => {
     const companyId = getCompanyId(req);
-    const shipmentId = req.params.id;
+    const shipmentId = String(req.params.id);
 
     try {
       const result = await runAIAnalysis(shipmentId, companyId);

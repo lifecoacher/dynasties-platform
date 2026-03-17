@@ -264,7 +264,7 @@ export async function runExceptionDetection(
         id: row.id,
         companyId,
         shipmentId,
-        exceptionType: row.exceptionType,
+        exceptionType: row.exceptionType as any,
         severity: row.severity as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
         status: "OPEN",
         title: row.title,

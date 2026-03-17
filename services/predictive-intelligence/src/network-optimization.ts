@@ -171,10 +171,10 @@ export async function generateNetworkRecommendations(
         recs.map((r) => ({
           id: r.id,
           companyId,
-          scope: r.scope,
+          scope: r.scope as any,
           scopeIdentifier: r.scopeIdentifier,
-          type: r.type,
-          priority: r.priority,
+          type: r.type as any,
+          priority: r.priority as any,
           title: r.title,
           description: r.description,
           evidence: r.evidence,

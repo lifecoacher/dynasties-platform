@@ -173,10 +173,10 @@ export async function buildIntelligenceSummary(
 
   const shipment = await db
     .select({
-      shipper: shipmentsTable.shipper,
-      consignee: shipmentsTable.consignee,
-      carrier: shipmentsTable.carrier,
-      notifyParty: shipmentsTable.notifyParty,
+      shipperId: shipmentsTable.shipperId,
+      consigneeId: shipmentsTable.consigneeId,
+      carrierId: shipmentsTable.carrierId,
+      notifyPartyId: shipmentsTable.notifyPartyId,
     })
     .from(shipmentsTable)
     .where(eq(shipmentsTable.id, shipmentId))
@@ -185,10 +185,10 @@ export async function buildIntelligenceSummary(
   const shipmentEntityIds = new Set<string>();
   if (shipment.length > 0) {
     const s = shipment[0];
-    if (s.shipper) shipmentEntityIds.add(s.shipper);
-    if (s.consignee) shipmentEntityIds.add(s.consignee);
-    if (s.carrier) shipmentEntityIds.add(s.carrier);
-    if (s.notifyParty) shipmentEntityIds.add(s.notifyParty);
+    if (s.shipperId) shipmentEntityIds.add(s.shipperId);
+    if (s.consigneeId) shipmentEntityIds.add(s.consigneeId);
+    if (s.carrierId) shipmentEntityIds.add(s.carrierId);
+    if (s.notifyPartyId) shipmentEntityIds.add(s.notifyPartyId);
   }
 
   const entityRelatedEdges = await db
@@ -220,7 +220,7 @@ export async function buildIntelligenceSummary(
       if (score > sanctionsRiskScore) sanctionsRiskScore = score;
 
       linkedSignalIds.push(se.id);
-      const meta = (se.metadata as Record<string, unknown>) || {};
+      const meta = (se.properties as Record<string, unknown>) || {};
       signals.push({
         signalId: se.id,
         signalType: "sanctions_match",
@@ -246,14 +246,14 @@ export async function buildIntelligenceSummary(
       .limit(3);
 
     for (const vp of vesselPositions) {
-      if (vp.navigationStatus === "anchored" || vp.navigationStatus === "moored") {
+      if (vp.status === "anchored" || vp.status === "moored") {
         vesselRiskScore = Math.max(vesselRiskScore, 40);
         linkedSignalIds.push(vp.id);
         signals.push({
           signalId: vp.id,
           signalType: "vessel_anomaly",
           severity: "MEDIUM",
-          summary: `Vessel ${vp.vesselName} is ${vp.navigationStatus} at (${vp.latitude}, ${vp.longitude})`,
+          summary: `Vessel ${vp.vesselName} is ${vp.status} at (${vp.latitude}, ${vp.longitude})`,
           sourceTable: "vessel_positions",
           externalReasonCode: "VESSEL_ANOMALY_DETECTED",
         });
@@ -272,7 +272,7 @@ export async function buildIntelligenceSummary(
           tenantOrGlobalFilter(laneMarketSignalsTable.companyId, companyId),
         ),
       )
-      .orderBy(desc(laneMarketSignalsTable.signalDate))
+      .orderBy(desc(laneMarketSignalsTable.signalTimestamp))
       .limit(5);
 
     for (const ms of marketSignals) {
@@ -281,7 +281,7 @@ export async function buildIntelligenceSummary(
       const pressureScore = Math.min(100, Math.round(mag * directionMultiplier * 20));
       if (pressureScore > marketPressureScore) marketPressureScore = pressureScore;
 
-      if (mag >= 3 || ms.signalType === "demand_surge" || ms.signalType === "capacity_shortage") {
+      if (mag >= 3 || ms.signalType === "demand_surge" || ms.signalType === "capacity_shift") {
         linkedSignalIds.push(ms.id);
         signals.push({
           signalId: ms.id,

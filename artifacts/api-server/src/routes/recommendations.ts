@@ -60,7 +60,7 @@ const outcomeSchema = z.object({
 
 router.get("/shipments/:id/recommendations", async (req, res) => {
   const companyId = getCompanyId(req);
-  const shipmentId = req.params.id;
+  const shipmentId = String(req.params.id);
   const includeHistory = req.query.history === "true";
 
   await expireStaleRecommendations(companyId);
@@ -83,7 +83,7 @@ router.get("/shipments/:id/recommendations", async (req, res) => {
 
 router.get("/shipments/:id/recommendations/history", async (req, res) => {
   const companyId = getCompanyId(req);
-  const shipmentId = req.params.id;
+  const shipmentId = String(req.params.id);
 
   const recs = await db
     .select()
@@ -121,7 +121,7 @@ router.get("/recommendations/pending", async (req, res) => {
 
 router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validateBody(respondSchema), async (req, res) => {
   const companyId = getCompanyId(req);
-  const recId = req.params.id;
+  const recId = String(req.params.id);
   const { action, modificationNotes } = req.body;
 
   const [rec] = await db
@@ -191,7 +191,7 @@ router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validate
 
 router.post("/recommendations/:id/outcome", requireMinRole("OPERATOR"), validateBody(outcomeSchema), async (req, res) => {
   const companyId = getCompanyId(req);
-  const recId = req.params.id;
+  const recId = String(req.params.id);
 
   const [rec] = await db
     .select()
@@ -265,7 +265,7 @@ router.post("/recommendations/:id/outcome", requireMinRole("OPERATOR"), validate
 
 router.get("/recommendations/:id/outcomes", async (req, res) => {
   const companyId = getCompanyId(req);
-  const recId = req.params.id;
+  const recId = String(req.params.id);
 
   const [rec] = await db
     .select({ id: recommendationsTable.id })
@@ -372,7 +372,7 @@ router.get("/recommendations/prioritized", async (req, res) => {
 
 router.get("/shipments/:id/recommendations/diff", async (req, res) => {
   const companyId = getCompanyId(req);
-  const shipmentId = req.params.id;
+  const shipmentId = String(req.params.id);
 
   const allRecs = await db
     .select()
@@ -472,7 +472,7 @@ router.get("/shipments/:id/recommendations/diff", async (req, res) => {
 
 router.post("/shipments/:id/analyze", requireMinRole("OPERATOR"), async (req, res) => {
   const companyId = getCompanyId(req);
-  const shipmentId = req.params.id;
+  const shipmentId = String(req.params.id);
 
   publishDecisionJob({
     companyId,

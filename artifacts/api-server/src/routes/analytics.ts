@@ -151,7 +151,7 @@ router.get("/analytics/scores", async (req: Request, res: Response) => {
 
 router.get("/analytics/snapshots/:shipmentId", async (req: Request, res: Response) => {
   const companyId = (req as any).companyId as string;
-  const { shipmentId } = req.params;
+  const shipmentId = String(req.params.shipmentId);
 
   const snapshots = await db
     .select()

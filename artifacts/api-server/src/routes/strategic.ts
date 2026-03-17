@@ -84,26 +84,26 @@ router.get("/strategic/network-recommendations", async (req, res) => {
   }
 });
 
-router.patch("/strategic/network-recommendations/:id/acknowledge", async (req, res) => {
+router.patch("/strategic/network-recommendations/:id/acknowledge", async (req, res): Promise<void> => {
   try {
     const companyId = getCompanyId(req);
     const userId = (req as any).user?.userId;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    await acknowledgeNetworkRecommendation(req.params.id, userId, companyId);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    await acknowledgeNetworkRecommendation(String(req.params.id), userId, companyId);
     res.json({ data: { acknowledged: true } });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.patch("/strategic/network-recommendations/:id/status", async (req, res) => {
+router.patch("/strategic/network-recommendations/:id/status", async (req, res): Promise<void> => {
   try {
     const companyId = getCompanyId(req);
     const { status } = req.body;
     if (!["IN_PROGRESS", "IMPLEMENTED", "DISMISSED"].includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
+      res.status(400).json({ error: "Invalid status" }); return;
     }
-    await updateNetworkRecommendationStatus(req.params.id, status, companyId);
+    await updateNetworkRecommendationStatus(String(req.params.id), status, companyId);
     res.json({ data: { updated: true } });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

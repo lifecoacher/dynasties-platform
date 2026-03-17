@@ -16,7 +16,7 @@ function getClerkVerifier() {
     try {
       const { createClerkClient } = await import("@clerk/express");
       const clerk = createClerkClient({ secretKey });
-      const verified = await clerk.verifyToken(token);
+      const verified = await (clerk as any).verifyToken(token);
       if (!verified || !verified.sub) return null;
 
       const user = await clerk.users.getUser(verified.sub);
