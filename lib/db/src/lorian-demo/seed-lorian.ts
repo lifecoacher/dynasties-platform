@@ -722,14 +722,15 @@ export async function seedLorian() {
   // ── 23. Task Events ──
   console.log("23. Task Events...");
   const taskEventRows = taskDefs.flatMap((t, i) => {
-    const evts = [
-      { id: lid("te", i * 3 + 1), taskId: lid("task", t.n), eventType: "CREATED" as const, actorId: USERS.admin.id, notes: "Task auto-created", createdAt: daysAgo(2) },
+    type TaskEventRow = typeof taskEventsTable.$inferInsert;
+    const evts: Array<Pick<TaskEventRow, "id" | "taskId" | "eventType" | "actorId" | "notes" | "createdAt">> = [
+      { id: lid("te", i * 3 + 1), taskId: lid("task", t.n), eventType: "CREATED", actorId: USERS.admin.id, notes: "Task auto-created", createdAt: daysAgo(2) },
     ];
     if (t.status === "IN_PROGRESS" || t.status === "COMPLETED") {
-      evts.push({ id: lid("te", i * 3 + 2), taskId: lid("task", t.n), eventType: "ASSIGNED" as const, actorId: USERS.manager.id, notes: `Assigned to ${USERS.operator.name}`, createdAt: daysAgo(1) });
+      evts.push({ id: lid("te", i * 3 + 2), taskId: lid("task", t.n), eventType: "ASSIGNED", actorId: USERS.manager.id, notes: `Assigned to ${USERS.operator.name}`, createdAt: daysAgo(1) });
     }
     if (t.status === "COMPLETED") {
-      evts.push({ id: lid("te", i * 3 + 3), taskId: lid("task", t.n), eventType: "COMPLETED" as const, actorId: USERS.operator.id, notes: "Task completed", createdAt: daysAgo(0) });
+      evts.push({ id: lid("te", i * 3 + 3), taskId: lid("task", t.n), eventType: "COMPLETED", actorId: USERS.operator.id, notes: "Task completed", createdAt: daysAgo(0) });
     }
     return evts;
   });
@@ -1073,9 +1074,8 @@ export async function seedLorian() {
 
   // ── 35. Trade Graph Edges (key relationships) ──
   console.log("35. Trade Graph Edges...");
-  const edgeRows: Array<{
-    id: string; companyId: string; edgeType: string; sourceType: string; sourceId: string; targetType: string; targetId: string;
-  }> = [];
+  type EdgeRow = typeof tradeGraphEdgesTable.$inferInsert;
+  const edgeRows: Array<Pick<EdgeRow, "id" | "companyId" | "edgeType" | "sourceType" | "sourceId" | "targetType" | "targetId">> = [];
   shipments.slice(0, 10).forEach((s, i) => {
     const lane = TRADE_LANES[shipmentDefs[i].lane];
     edgeRows.push({
