@@ -1,0 +1,159 @@
+Implement full Anthropic AI integration for Dynasties using the provided ANTHROPIC_API_KEY.
+
+Context:
+- Dynasties already has a complete architecture (decision engine, workflows, intelligence ingestion, predictive, strategic, etc.)
+- AI logic exists conceptually but is currently deterministic or not fully wired to a real LLM
+- We now need a production-grade AI orchestration layer using Anthropic
+
+Environment:
+- ANTHROPIC_API_KEY = <PASTE KEY HERE>
+
+GOAL:
+Create a centralized AI service and route real LLM calls through it for at least one core workflow (recommendations or analysis), with logging, validation, and safety.
+
+---
+
+PART 1 — AI ORCHESTRATION SERVICE
+
+Create a new service (e.g. services/ai or lib/ai) that:
+
+- wraps all Anthropic API calls
+- is the ONLY place where LLM calls happen
+- supports model routing
+
+Implement:
+
+function callAI({
+  taskType,
+  prompt,
+  structuredSchema?,
+  temperature?,
+  maxTokens?
+})
+
+Requirements:
+- default model: claude-sonnet-4
+- support override (future: opus)
+- include system + user prompt structure
+- return both raw text AND parsed structured output
+
+---
+
+PART 2 — VALIDATION + SAFETY
+
+- All AI responses must pass Zod validation BEFORE use
+- If validation fails:
+  - log error
+  - trigger deterministic fallback (existing logic)
+- NEVER allow raw model output to directly write to DB
+
+---
+
+PART 3 — LOGGING + OBSERVABILITY
+
+For every AI call log:
+
+- taskType
+- model used
+- input size
+- output size
+- latency
+- success/failure
+- validation result
+
+Persist logs (DB table or structured logging system)
+
+---
+
+PART 4 — COST + TOKEN TRACKING
+
+Capture from Anthropic response:
+
+- input tokens
+- output tokens
+
+Store or log:
+
+- estimated cost per call
+- total usage aggregation-ready
+
+---
+
+PART 5 — RETRY + ERROR HANDLING
+
+Implement:
+
+- retry on transient failures (max 2 retries)
+- timeout protection
+- graceful fallback if AI unavailable
+
+---
+
+PART 6 — WIRE INTO EXISTING SYSTEM
+
+Pick ONE real workflow and replace deterministic logic with AI-assisted logic:
+
+Preferred:
+- recommendation generation
+OR
+- shipment analysis
+OR
+- compliance/risk explanation
+
+Flow:
+
+1. assemble context (shipment + intelligence)
+2. generate prompt
+3. call AI via orchestration layer
+4. validate output
+5. convert into structured recommendation format
+6. persist through existing pipeline
+
+---
+
+PART 7 — PROMPT DESIGN
+
+Create structured prompts that:
+
+- clearly define task
+- include relevant shipment + intelligence data
+- request JSON output matching schema
+- minimize hallucination risk
+
+---
+
+PART 8 — SECURITY
+
+- ANTHROPIC_API_KEY must only exist in backend environment
+- NEVER expose to frontend
+- no direct browser calls to Anthropic
+
+---
+
+PART 9 — VERIFICATION
+
+Implement a testable flow:
+
+1. trigger analysis/recommendation on a shipment
+2. confirm Anthropic API call is executed
+3. confirm logs show model, tokens, latency
+4. confirm output is validated and stored
+5. confirm UI reflects AI-generated result
+
+---
+
+DELIVERABLES
+
+Return:
+
+1. exact files created/modified
+2. where ANTHROPIC_API_KEY is read from
+3. example log of a real AI call (tokens + latency)
+4. which workflow now uses AI
+5. example prompt used
+6. example raw AI response
+7. example validated structured output
+8. fallback behavior demonstration
+9. any remaining gaps or risks
+
+Do not provide only a plan — implement working code.

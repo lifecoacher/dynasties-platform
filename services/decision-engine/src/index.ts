@@ -24,6 +24,7 @@ import {
 import { computeExpiresAt } from "./config.js";
 import { buildGraphEdges } from "./graph-builder.js";
 import { buildIntelligenceSummary } from "./intelligence-summary.js";
+import { enrichWithAI, type AIEnrichmentResult } from "./ai-enrichment.js";
 
 export interface DecisionResult {
   recommendationsCreated: number;
@@ -33,6 +34,20 @@ export interface DecisionResult {
   intelligenceSignalsUsed: number;
   success: boolean;
   error: string | null;
+  aiEnrichment?: AIEnrichmentResult;
+}
+
+export interface AIAnalysisResult {
+  shipmentId: string;
+  deterministicRecommendations: RecommendationInput[];
+  aiEnrichment: AIEnrichmentResult;
+  analysisInputs: {
+    riskScore: number | null;
+    complianceStatus: string | null;
+    insuranceCoverage: string | null;
+    intelligenceComposite: number | null;
+    signalCount: number;
+  };
 }
 
 export async function runDecisionEngine(
@@ -420,5 +435,169 @@ export async function runDecisionEngine(
     intelligenceSignalsUsed,
     success: true,
     error: null,
+  };
+}
+
+export async function runAIAnalysis(
+  shipmentId: string,
+  companyId: string,
+): Promise<AIAnalysisResult> {
+  console.log(`[decision-engine] AI analysis starting for shipment=${shipmentId}`);
+
+  const [shipment] = await db
+    .select()
+    .from(shipmentsTable)
+    .where(and(eq(shipmentsTable.id, shipmentId), eq(shipmentsTable.companyId, companyId)))
+    .limit(1);
+
+  if (!shipment) {
+    throw new Error("Shipment not found or company mismatch");
+  }
+
+  const [compliance] = await db
+    .select()
+    .from(complianceScreeningsTable)
+    .where(eq(complianceScreeningsTable.shipmentId, shipmentId))
+    .limit(1);
+
+  const [riskScore] = await db
+    .select()
+    .from(riskScoresTable)
+    .where(eq(riskScoresTable.shipmentId, shipmentId))
+    .limit(1);
+
+  const [insurance] = await db
+    .select()
+    .from(insuranceQuotesTable)
+    .where(eq(insuranceQuotesTable.shipmentId, shipmentId))
+    .limit(1);
+
+  const exceptions = await db
+    .select()
+    .from(exceptionsTable)
+    .where(
+      and(
+        eq(exceptionsTable.shipmentId, shipmentId),
+        eq(exceptionsTable.companyId, companyId),
+      ),
+    );
+
+  let tradeLane = null;
+  if (shipment.portOfLoading && shipment.portOfDischarge) {
+    const [lane] = await db
+      .select()
+      .from(tradeLaneStatsTable)
+      .where(
+        and(
+          eq(tradeLaneStatsTable.companyId, companyId),
+          eq(tradeLaneStatsTable.origin, shipment.portOfLoading),
+          eq(tradeLaneStatsTable.destination, shipment.portOfDischarge),
+        ),
+      )
+      .limit(1);
+    tradeLane = lane || null;
+  }
+
+  let pricing = null;
+  const charges = await db
+    .select({
+      total: sql<string>`COALESCE(SUM(${shipmentChargesTable.totalAmount}), 0)`,
+      count: sql<string>`COUNT(*)`,
+    })
+    .from(shipmentChargesTable)
+    .where(eq(shipmentChargesTable.shipmentId, shipmentId));
+
+  if (charges[0]) {
+    pricing = {
+      totalAmount: Number(charges[0].total),
+      chargeCount: Number(charges[0].count),
+    };
+  }
+
+  let intelligence = null;
+  try {
+    intelligence = await buildIntelligenceSummary(
+      shipmentId,
+      companyId,
+      shipment.portOfLoading,
+      shipment.portOfDischarge,
+      shipment.vessel,
+    );
+  } catch (err) {
+    console.warn(`[decision-engine] intelligence summary failed for AI analysis:`, err);
+  }
+
+  const inputs: AnalysisInputs = {
+    shipment: {
+      shipmentId,
+      companyId,
+      status: shipment.status,
+      commodity: shipment.commodity,
+      hsCode: shipment.hsCode,
+      portOfLoading: shipment.portOfLoading,
+      portOfDischarge: shipment.portOfDischarge,
+      vessel: shipment.vessel,
+      etd: shipment.etd,
+      eta: shipment.eta,
+      grossWeight: shipment.grossWeight,
+    },
+    compliance: compliance
+      ? { status: compliance.status, matches: compliance.matches }
+      : null,
+    risk: riskScore
+      ? {
+          compositeScore: riskScore.compositeScore,
+          subScores: (riskScore.subScores as Record<string, number>) || {},
+          recommendedAction: riskScore.recommendedAction || "",
+          primaryRiskFactors: (riskScore.primaryRiskFactors as Array<{ factor: string; explanation: string }>) || [],
+        }
+      : null,
+    insurance: insurance
+      ? {
+          coverageType: insurance.coverageType,
+          estimatedPremium: Number(insurance.estimatedPremium),
+          confidenceScore: Number(insurance.confidenceScore),
+        }
+      : null,
+    exceptions: exceptions.map((e) => ({
+      id: e.id,
+      exceptionType: e.exceptionType,
+      severity: e.severity,
+      title: e.title,
+      status: e.status,
+    })),
+    tradeLane: tradeLane
+      ? {
+          origin: tradeLane.origin,
+          destination: tradeLane.destination,
+          shipmentCount: tradeLane.shipmentCount,
+          delayCount: tradeLane.delayCount,
+          delayFrequency: tradeLane.delayFrequency,
+          carrierPerformanceScore: tradeLane.carrierPerformanceScore,
+          avgTransitDays: tradeLane.avgTransitDays,
+        }
+      : null,
+    pricing,
+    intelligence,
+  };
+
+  const deterministicRecs = analyzeShipment(inputs);
+  const aiEnrichment = await enrichWithAI(inputs, deterministicRecs);
+
+  console.log(
+    `[decision-engine] AI analysis complete: shipment=${shipmentId} model=${aiEnrichment.model} tokens=${aiEnrichment.inputTokens}+${aiEnrichment.outputTokens} latency=${aiEnrichment.latencyMs}ms cost=$${aiEnrichment.estimatedCostUsd.toFixed(6)} status=${aiEnrichment.status}`,
+  );
+
+  return {
+    shipmentId,
+    deterministicRecommendations: deterministicRecs,
+    aiEnrichment,
+    analysisInputs: {
+      riskScore: riskScore?.compositeScore ?? null,
+      complianceStatus: compliance?.status ?? null,
+      insuranceCoverage: insurance?.coverageType ?? null,
+      intelligenceComposite: intelligence?.compositeIntelScore ?? null,
+      signalCount: intelligence?.signals.length ?? 0,
+    },
   };
 }
