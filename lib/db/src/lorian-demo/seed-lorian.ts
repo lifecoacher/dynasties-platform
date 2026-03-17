@@ -34,6 +34,7 @@ import {
   releaseGateHoldsTable,
   mitigationPlaybooksTable,
   scenarioComparisonsTable,
+  complianceScreeningsTable,
   laneStrategiesTable,
   carrierAllocationsTable,
   networkRecommendationsTable,
@@ -195,30 +196,51 @@ export async function seedLorian() {
 
   // ── 5. Risk Scores ──
   console.log("5. Risk Scores...");
-  const activeShipmentIndices = [0, 1, 2, 3, 4, 5, 7, 8, 10, 11, 13, 15, 19];
+  const activeShipmentIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+  const riskScoreDefs = [
+    { i: 0,  composite: 28.5, cargo: 12, lane: 22, counter: 8,  geo: 18, seasonal: 10, docs: 5 },
+    { i: 1,  composite: 55.2, cargo: 18, lane: 35, counter: 12, geo: 42, seasonal: 15, docs: 8 },
+    { i: 2,  composite: 62.8, cargo: 22, lane: 38, counter: 15, geo: 45, seasonal: 20, docs: 10 },
+    { i: 3,  composite: 48.3, cargo: 15, lane: 28, counter: 18, geo: 32, seasonal: 12, docs: 6 },
+    { i: 4,  composite: 72.1, cargo: 25, lane: 40, counter: 10, geo: 48, seasonal: 22, docs: 12 },
+    { i: 5,  composite: 35.6, cargo: 10, lane: 20, counter: 8,  geo: 22, seasonal: 8,  docs: 4 },
+    { i: 6,  composite: 22.0, cargo: 8,  lane: 12, counter: 5,  geo: 10, seasonal: 6,  docs: 3 },
+    { i: 7,  composite: 30.4, cargo: 12, lane: 18, counter: 6,  geo: 15, seasonal: 8,  docs: 4 },
+    { i: 8,  composite: 26.8, cargo: 10, lane: 15, counter: 7,  geo: 12, seasonal: 6,  docs: 3 },
+    { i: 9,  composite: 45.6, cargo: 18, lane: 30, counter: 12, geo: 35, seasonal: 14, docs: 7 },
+    { i: 10, composite: 52.3, cargo: 20, lane: 32, counter: 14, geo: 38, seasonal: 18, docs: 9 },
+    { i: 11, composite: 38.5, cargo: 14, lane: 22, counter: 10, geo: 25, seasonal: 10, docs: 5 },
+    { i: 12, composite: 68.7, cargo: 24, lane: 38, counter: 18, geo: 45, seasonal: 20, docs: 11 },
+    { i: 13, composite: 42.1, cargo: 16, lane: 25, counter: 10, geo: 28, seasonal: 12, docs: 6 },
+    { i: 14, composite: 20.5, cargo: 6,  lane: 10, counter: 4,  geo: 8,  seasonal: 5,  docs: 2 },
+    { i: 15, composite: 58.9, cargo: 22, lane: 35, counter: 14, geo: 40, seasonal: 18, docs: 10 },
+    { i: 16, composite: 18.2, cargo: 5,  lane: 8,  counter: 3,  geo: 6,  seasonal: 4,  docs: 2 },
+    { i: 17, composite: 32.0, cargo: 10, lane: 18, counter: 8,  geo: 18, seasonal: 8,  docs: 4 },
+    { i: 18, composite: 64.5, cargo: 22, lane: 36, counter: 16, geo: 42, seasonal: 19, docs: 10 },
+    { i: 19, composite: 40.8, cargo: 15, lane: 24, counter: 10, geo: 26, seasonal: 12, docs: 6 },
+  ];
   await db.insert(riskScoresTable).values(
-    activeShipmentIndices.map((i) => {
-      const composite = Math.round((20 + Math.random() * 60) * 100) / 100;
-      return {
-        id: lid("rs", i + 1),
-        companyId: LORIAN_COMPANY_ID,
-        shipmentId: shipments[i].id,
-        compositeScore: composite,
-        subScores: {
-          cargoType: Math.round(Math.random() * 30 * 100) / 100,
-          tradeLane: Math.round(Math.random() * 40 * 100) / 100,
-          counterparty: Math.round(Math.random() * 20 * 100) / 100,
-          routeGeopolitical: Math.round(Math.random() * 50 * 100) / 100,
-          seasonal: Math.round(Math.random() * 25 * 100) / 100,
-          documentCompleteness: Math.round(Math.random() * 15 * 100) / 100,
-        },
-        primaryRiskFactors: composite > 50
-          ? [{ factor: "High trade lane stress", explanation: "Lane shows elevated disruption signals" }]
-          : [{ factor: "Standard risk profile", explanation: "No elevated risk factors" }],
-        recommendedAction: composite > 60 ? "ESCALATE" as const : composite > 35 ? "OPERATOR_REVIEW" as const : "AUTO_APPROVE" as const,
-        scoredAt: daysAgo(Math.floor(Math.random() * 5)),
-      };
-    }),
+    riskScoreDefs.map((r) => ({
+      id: lid("rs", r.i + 1),
+      companyId: LORIAN_COMPANY_ID,
+      shipmentId: shipments[r.i].id,
+      compositeScore: r.composite,
+      subScores: {
+        cargoType: r.cargo,
+        tradeLane: r.lane,
+        counterparty: r.counter,
+        routeGeopolitical: r.geo,
+        seasonal: r.seasonal,
+        documentCompleteness: r.docs,
+      },
+      primaryRiskFactors: r.composite > 50
+        ? [{ factor: "High trade lane stress", explanation: "Lane shows elevated disruption signals" }, { factor: "Geopolitical risk", explanation: "Route passes through elevated-risk region" }]
+        : r.composite > 30
+        ? [{ factor: "Moderate lane activity", explanation: "Lane shows moderate congestion signals" }]
+        : [{ factor: "Standard risk profile", explanation: "No elevated risk factors detected" }],
+      recommendedAction: r.composite > 60 ? "ESCALATE" as const : r.composite > 35 ? "OPERATOR_REVIEW" as const : "AUTO_APPROVE" as const,
+      scoredAt: daysAgo(r.i % 5),
+    })),
   );
 
   // ── 6. Intelligence Sources ──
@@ -529,47 +551,115 @@ export async function seedLorian() {
 
   // ── 16. Intelligence Snapshots (for active shipments) ──
   console.log("16. Intelligence Snapshots...");
+  const intelDefs = [
+    { i: 0,  congestion: 42, disruption: 28, weather: 18, sanctions: 2,  vessel: 12, market: 22, composite: 25 },
+    { i: 1,  congestion: 58, disruption: 52, weather: 30, sanctions: 3,  vessel: 18, market: 35, composite: 48 },
+    { i: 2,  congestion: 55, disruption: 48, weather: 35, sanctions: 5,  vessel: 22, market: 30, composite: 42 },
+    { i: 3,  congestion: 38, disruption: 35, weather: 15, sanctions: 8,  vessel: 10, market: 25, composite: 32 },
+    { i: 4,  congestion: 68, disruption: 55, weather: 42, sanctions: 2,  vessel: 28, market: 38, composite: 58 },
+    { i: 5,  congestion: 32, disruption: 22, weather: 12, sanctions: 2,  vessel: 8,  market: 18, composite: 20 },
+    { i: 6,  congestion: 15, disruption: 8,  weather: 5,  sanctions: 1,  vessel: 5,  market: 10, composite: 10 },
+    { i: 7,  congestion: 28, disruption: 18, weather: 10, sanctions: 2,  vessel: 10, market: 15, composite: 18 },
+    { i: 8,  congestion: 25, disruption: 15, weather: 8,  sanctions: 1,  vessel: 8,  market: 12, composite: 15 },
+    { i: 9,  congestion: 48, disruption: 40, weather: 22, sanctions: 4,  vessel: 15, market: 28, composite: 38 },
+    { i: 10, congestion: 52, disruption: 45, weather: 25, sanctions: 3,  vessel: 20, market: 32, composite: 42 },
+    { i: 11, congestion: 22, disruption: 12, weather: 8,  sanctions: 6,  vessel: 6,  market: 14, composite: 16 },
+    { i: 12, congestion: 62, disruption: 58, weather: 38, sanctions: 10, vessel: 25, market: 36, composite: 55 },
+    { i: 13, congestion: 45, disruption: 38, weather: 20, sanctions: 2,  vessel: 15, market: 25, composite: 35 },
+    { i: 14, congestion: 18, disruption: 10, weather: 5,  sanctions: 1,  vessel: 5,  market: 8,  composite: 10 },
+    { i: 15, congestion: 58, disruption: 50, weather: 28, sanctions: 2,  vessel: 22, market: 34, composite: 48 },
+    { i: 16, congestion: 12, disruption: 5,  weather: 3,  sanctions: 1,  vessel: 4,  market: 6,  composite: 8 },
+    { i: 17, congestion: 30, disruption: 20, weather: 12, sanctions: 1,  vessel: 8,  market: 16, composite: 18 },
+    { i: 18, congestion: 60, disruption: 52, weather: 32, sanctions: 8,  vessel: 24, market: 35, composite: 52 },
+    { i: 19, congestion: 40, disruption: 32, weather: 16, sanctions: 2,  vessel: 12, market: 22, composite: 28 },
+  ];
   await db.insert(shipmentIntelligenceSnapshotsTable).values(
-    activeShipmentIndices.map((i) => ({
-      id: lid("snap", i + 1),
+    intelDefs.map((d) => ({
+      id: lid("snap", d.i + 1),
       companyId: LORIAN_COMPANY_ID,
-      shipmentId: shipments[i].id,
-      congestionScore: Math.round(Math.random() * 70 * 100) / 100,
-      disruptionScore: Math.round(Math.random() * 60 * 100) / 100,
-      weatherRiskScore: Math.round(Math.random() * 50 * 100) / 100,
-      sanctionsRiskScore: Math.round(Math.random() * 15 * 100) / 100,
-      vesselRiskScore: Math.round(Math.random() * 30 * 100) / 100,
-      marketPressureScore: Math.round(Math.random() * 40 * 100) / 100,
-      compositeIntelScore: Math.round((10 + Math.random() * 60) * 100) / 100,
-      linkedSignalIds: [lid("dis", (i % 6) + 1), lid("wre", (i % 4) + 1)],
-      externalReasonCodes: ["LANE_STRESS_ELEVATED", "PORT_CONGESTION_HIGH"].slice(0, 1 + (i % 2)),
-      evidenceSummary: [{ signal: "disruption", detail: `Disruption event ${lid("dis", (i % 6) + 1)} affecting route` }],
-      snapshotHash: `snap_hash_lor_${i + 1}`,
+      shipmentId: shipments[d.i].id,
+      congestionScore: d.congestion,
+      disruptionScore: d.disruption,
+      weatherRiskScore: d.weather,
+      sanctionsRiskScore: d.sanctions,
+      vesselRiskScore: d.vessel,
+      marketPressureScore: d.market,
+      compositeIntelScore: d.composite,
+      linkedSignalIds: [lid("dis", (d.i % 6) + 1), lid("wre", (d.i % 4) + 1)],
+      externalReasonCodes: d.composite > 40
+        ? ["LANE_STRESS_ELEVATED", "PORT_CONGESTION_HIGH", "DISRUPTION_ACTIVE"]
+        : d.composite > 20
+        ? ["LANE_STRESS_ELEVATED", "PORT_CONGESTION_MODERATE"]
+        : ["NORMAL_OPERATIONS"],
+      evidenceSummary: [
+        { signal: "disruption", detail: `Disruption event ${lid("dis", (d.i % 6) + 1)} affecting route` },
+        { signal: "weather", detail: `Weather risk event ${lid("wre", (d.i % 4) + 1)} in region` },
+      ],
+      snapshotHash: `snap_hash_lor_${d.i + 1}`,
     })),
   );
 
   // ── 17. Pre-Shipment Risk Reports ──
   console.log("17. Pre-Shipment Risk Reports...");
+  const riskReportDefs = [
+    { i: 0,  overall: 20.36, lane: 35, port: 28, disruption: 15, weather: 12, carrier: 82, entity: 91, readiness: 78 },
+    { i: 1,  overall: 44.22, lane: 62, port: 48, disruption: 42, weather: 22, carrier: 71, entity: 85, readiness: 62 },
+    { i: 2,  overall: 67.24, lane: 72, port: 55, disruption: 58, weather: 38, carrier: 65, entity: 82, readiness: 55 },
+    { i: 3,  overall: 53.26, lane: 45, port: 38, disruption: 48, weather: 18, carrier: 78, entity: 72, readiness: 68 },
+    { i: 4,  overall: 76.77, lane: 78, port: 68, disruption: 62, weather: 45, carrier: 58, entity: 88, readiness: 42 },
+    { i: 5,  overall: 32.87, lane: 38, port: 32, disruption: 25, weather: 15, carrier: 76, entity: 90, readiness: 72 },
+    { i: 6,  overall: 12.50, lane: 15, port: 10, disruption: 8,  weather: 5,  carrier: 92, entity: 95, readiness: 95 },
+    { i: 7,  overall: 25.55, lane: 30, port: 22, disruption: 18, weather: 10, carrier: 85, entity: 92, readiness: 75 },
+    { i: 8,  overall: 24.26, lane: 28, port: 20, disruption: 16, weather: 8,  carrier: 80, entity: 88, readiness: 80 },
+    { i: 9,  overall: 48.15, lane: 55, port: 42, disruption: 38, weather: 20, carrier: 72, entity: 78, readiness: 58 },
+    { i: 10, overall: 37.86, lane: 42, port: 35, disruption: 32, weather: 18, carrier: 75, entity: 86, readiness: 65 },
+    { i: 11, overall: 22.93, lane: 22, port: 18, disruption: 12, weather: 8,  carrier: 88, entity: 92, readiness: 82 },
+    { i: 12, overall: 72.40, lane: 75, port: 62, disruption: 65, weather: 35, carrier: 60, entity: 68, readiness: 38 },
+    { i: 13, overall: 45.85, lane: 52, port: 40, disruption: 35, weather: 22, carrier: 78, entity: 85, readiness: 60 },
+    { i: 14, overall: 18.20, lane: 20, port: 15, disruption: 10, weather: 5,  carrier: 90, entity: 94, readiness: 88 },
+    { i: 15, overall: 63.88, lane: 68, port: 55, disruption: 52, weather: 30, carrier: 68, entity: 82, readiness: 48 },
+    { i: 16, overall: 10.50, lane: 12, port: 8,  disruption: 5,  weather: 3,  carrier: 95, entity: 96, readiness: 92 },
+    { i: 17, overall: 28.40, lane: 32, port: 25, disruption: 20, weather: 12, carrier: 82, entity: 90, readiness: 76 },
+    { i: 18, overall: 65.30, lane: 70, port: 58, disruption: 55, weather: 28, carrier: 62, entity: 70, readiness: 40 },
+    { i: 19, overall: 42.16, lane: 48, port: 35, disruption: 30, weather: 16, carrier: 76, entity: 84, readiness: 66 },
+  ];
   await db.insert(preShipmentRiskReportsTable).values(
-    activeShipmentIndices.map((i) => {
-      const overall = Math.round((15 + Math.random() * 65) * 100) / 100;
-      const riskLevel = overall > 70 ? "CRITICAL" as const : overall > 50 ? "HIGH" as const : overall > 30 ? "MODERATE" as const : "LOW" as const;
+    riskReportDefs.map((r) => {
+      const riskLevel = r.overall > 70 ? "CRITICAL" as const : r.overall > 50 ? "HIGH" as const : r.overall > 30 ? "MODERATE" as const : "LOW" as const;
       return {
-        id: lid("psr", i + 1),
+        id: lid("psr", r.i + 1),
         companyId: LORIAN_COMPANY_ID,
-        shipmentId: shipments[i].id,
-        overallRiskScore: overall,
-        laneStressScore: Math.round(Math.random() * 80 * 100) / 100,
-        portCongestionScore: Math.round(Math.random() * 70 * 100) / 100,
-        disruptionRiskScore: Math.round(Math.random() * 65 * 100) / 100,
-        weatherExposureScore: Math.round(Math.random() * 50 * 100) / 100,
-        carrierReliabilityScore: Math.round((50 + Math.random() * 40) * 100) / 100,
-        entityComplianceScore: Math.round((70 + Math.random() * 25) * 100) / 100,
+        shipmentId: shipments[r.i].id,
+        overallRiskScore: r.overall,
+        laneStressScore: r.lane,
+        portCongestionScore: r.port,
+        disruptionRiskScore: r.disruption,
+        weatherExposureScore: r.weather,
+        carrierReliabilityScore: r.carrier,
+        entityComplianceScore: r.entity,
         riskLevel,
-        mitigations: riskLevel === "LOW" ? [] : ["Monitor disruption events", "Verify carrier schedule"],
-        readinessScore: Math.round((40 + Math.random() * 50) * 100) / 100,
-        shipmentEtd: shipments[i].etd,
-        daysUntilDeparture: shipmentDefs[i].etdDaysAgo < 0 ? Math.abs(shipmentDefs[i].etdDaysAgo) : 0,
+        mitigations: riskLevel === "LOW" ? [] : riskLevel === "CRITICAL"
+          ? ["Immediate escalation required", "Activate contingency routing", "Notify all stakeholders"]
+          : riskLevel === "HIGH"
+          ? ["Escalate to management", "Monitor disruption events", "Verify carrier schedule"]
+          : ["Monitor disruption events", "Verify carrier schedule"],
+        componentDetails: {
+          laneStress: { score: r.lane, label: "Lane Stress", detail: `Lane stress score: ${r.lane}` },
+          portCongestion: { score: r.port, label: "Port Congestion", detail: `Congestion index: ${r.port}` },
+          disruptionRisk: { score: r.disruption, label: "Disruption Risk", detail: `Active disruption score: ${r.disruption}` },
+          weatherExposure: { score: r.weather, label: "Weather Exposure", detail: `Weather risk: ${r.weather}` },
+          carrierReliability: { score: r.carrier, label: "Carrier Reliability", detail: `Carrier on-time: ${r.carrier}%` },
+          entityCompliance: { score: r.entity, label: "Entity Compliance", detail: `Compliance score: ${r.entity}` },
+        },
+        readinessScore: r.readiness,
+        readinessComponents: {
+          documentCompleteness: { score: Math.min(r.readiness + 5, 100), label: "Documents" },
+          carrierConfirmation: { score: Math.min(r.readiness + 2, 100), label: "Carrier" },
+          complianceClearance: { score: Math.min(r.readiness - 3, 100), label: "Compliance" },
+          bookingStatus: { score: r.readiness, label: "Booking" },
+        },
+        shipmentEtd: shipments[r.i].etd,
+        daysUntilDeparture: shipmentDefs[r.i].etdDaysAgo < 0 ? Math.abs(shipmentDefs[r.i].etdDaysAgo) : 0,
       };
     }),
   );
@@ -790,33 +880,49 @@ export async function seedLorian() {
 
   // ── 26. Booking Decisions ──
   console.log("26. Booking Decisions...");
-  const bookingShipIndices = [0, 1, 2, 3, 4, 7, 8, 10, 11, 13, 15, 19];
+  const bookingDefs = [
+    { i: 0,  overall: 28, readiness: 72, status: "APPROVED" as const, confidence: 0.91 },
+    { i: 1,  overall: 62, readiness: 55, status: "REQUIRES_REVIEW" as const, confidence: 0.74 },
+    { i: 2,  overall: 44, readiness: 68, status: "APPROVED_WITH_CAUTION" as const, confidence: 0.82 },
+    { i: 3,  overall: 55, readiness: 61, status: "APPROVED_WITH_CAUTION" as const, confidence: 0.78 },
+    { i: 4,  overall: 71, readiness: 45, status: "REQUIRES_REVIEW" as const, confidence: 0.68 },
+    { i: 5,  overall: 35, readiness: 82, status: "APPROVED" as const, confidence: 0.88 },
+    { i: 6,  overall: 18, readiness: 95, status: "APPROVED" as const, confidence: 0.96 },
+    { i: 7,  overall: 32, readiness: 74, status: "APPROVED" as const, confidence: 0.89 },
+    { i: 8,  overall: 41, readiness: 66, status: "APPROVED_WITH_CAUTION" as const, confidence: 0.81 },
+    { i: 9,  overall: 48, readiness: 58, status: "APPROVED_WITH_CAUTION" as const, confidence: 0.76 },
+    { i: 10, overall: 58, readiness: 52, status: "REQUIRES_REVIEW" as const, confidence: 0.72 },
+    { i: 11, overall: 38, readiness: 71, status: "APPROVED" as const, confidence: 0.85 },
+    { i: 12, overall: 75, readiness: 38, status: "REQUIRES_REVIEW" as const, confidence: 0.65 },
+    { i: 13, overall: 52, readiness: 63, status: "APPROVED_WITH_CAUTION" as const, confidence: 0.79 },
+    { i: 14, overall: 22, readiness: 88, status: "APPROVED" as const, confidence: 0.93 },
+    { i: 15, overall: 65, readiness: 48, status: "REQUIRES_REVIEW" as const, confidence: 0.71 },
+    { i: 16, overall: 15, readiness: 92, status: "APPROVED" as const, confidence: 0.95 },
+    { i: 17, overall: 30, readiness: 78, status: "APPROVED" as const, confidence: 0.90 },
+    { i: 18, overall: 68, readiness: 42, status: "REQUIRES_REVIEW" as const, confidence: 0.67 },
+    { i: 19, overall: 46, readiness: 64, status: "APPROVED_WITH_CAUTION" as const, confidence: 0.80 },
+  ];
   await db.insert(bookingDecisionsTable).values(
-    bookingShipIndices.map((i, j) => {
-      const overall = 15 + Math.random() * 65;
-      const readiness = 40 + Math.random() * 50;
-      const status = overall > 60 ? "REQUIRES_REVIEW" as const : overall > 40 ? "APPROVED_WITH_CAUTION" as const : "APPROVED" as const;
-      return {
-        id: lid("bd", j + 1),
-        companyId: LORIAN_COMPANY_ID,
-        shipmentId: shipments[i].id,
-        status,
-        confidence: Math.round((0.6 + Math.random() * 0.35) * 100) / 100,
-        overallRiskScore: Math.round(overall * 100) / 100,
-        readinessScore: Math.round(readiness * 100) / 100,
-        reasonCodes: status === "APPROVED" ? ["ALL_CLEAR"] : ["ELEVATED_LANE_STRESS", "DISRUPTION_ACTIVE"],
-        requiredActions: status === "REQUIRES_REVIEW" ? ["Manual risk review required", "Verify carrier schedule"] : [],
-        inputScores: {
-          laneStress: Math.round(Math.random() * 80 * 100) / 100,
-          portCongestion: Math.round(Math.random() * 70 * 100) / 100,
-          disruptionRisk: Math.round(Math.random() * 60 * 100) / 100,
-          weatherExposure: Math.round(Math.random() * 40 * 100) / 100,
-          carrierReliability: Math.round((60 + Math.random() * 30) * 100) / 100,
-          entityCompliance: Math.round((75 + Math.random() * 20) * 100) / 100,
-        },
-        decidedAt: daysAgo(Math.floor(Math.random() * 3)),
-      };
-    }),
+    bookingDefs.map((b, j) => ({
+      id: lid("bd", j + 1),
+      companyId: LORIAN_COMPANY_ID,
+      shipmentId: shipments[b.i].id,
+      status: b.status,
+      confidence: b.confidence,
+      overallRiskScore: b.overall,
+      readinessScore: b.readiness,
+      reasonCodes: b.status === "APPROVED" ? ["ALL_CLEAR", "COMPLIANT"] : b.status === "APPROVED_WITH_CAUTION" ? ["ELEVATED_LANE_STRESS", "MONITOR_REQUIRED"] : ["ELEVATED_LANE_STRESS", "DISRUPTION_ACTIVE", "MANUAL_REVIEW_REQUIRED"],
+      requiredActions: b.status === "REQUIRES_REVIEW" ? ["Manual risk review required", "Verify carrier schedule"] : [],
+      inputScores: {
+        laneStress: Math.round(b.overall * 0.8 * 100) / 100,
+        portCongestion: Math.round(b.overall * 0.65 * 100) / 100,
+        disruptionRisk: Math.round(b.overall * 0.55 * 100) / 100,
+        weatherExposure: Math.round(b.overall * 0.3 * 100) / 100,
+        carrierReliability: Math.round((95 - b.overall * 0.3) * 100) / 100,
+        entityCompliance: Math.round((92 - b.overall * 0.15) * 100) / 100,
+      },
+      decidedAt: daysAgo(j % 3),
+    })),
   );
 
   // ── 27. Release Gate Holds ──
@@ -884,19 +990,167 @@ export async function seedLorian() {
 
   // ── 29. Scenario Comparisons ──
   console.log("29. Scenario Comparisons...");
-  await db.insert(scenarioComparisonsTable).values([
-    {
-      id: lid("sc", 1),
+  const scenarioDefs: Array<{ i: number; baseline: string; baselineRisk: number; baselineReadiness: number; cost: number; transitDays: number; route: string; alts: Array<{ type: string; label: string; risk: number; readiness: number; cost: number; transit: number; rec: string; detail: Record<string, string> }>; best: string }> = [
+    { i: 0, baseline: "Current: CNSHA→USLAX via Maersk", baselineRisk: 0.28, baselineReadiness: 0.72, cost: 3800, transitDays: 23, route: "CNSHA → Pacific → USLAX",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to COSCO – same route", risk: 0.32, readiness: 0.68, cost: 3500, transit: 24, rec: "Slightly higher risk, lower cost", detail: { carrier: "COSCO" } },
+        { type: "REROUTE", label: "Route via JPYOK transshipment", risk: 0.22, readiness: 0.75, cost: 4100, transit: 27, rec: "Lower risk with +4 days transit", detail: { route: "CNSHA → JPYOK → USLAX" } },
+      ], best: "REROUTE" },
+    { i: 1, baseline: "Current: Suez Route via MSC", baselineRisk: 0.62, baselineReadiness: 0.55, cost: 4200, transitDays: 28, route: "CNSZX → Suez → NLRTM",
+      alts: [
+        { type: "REROUTE", label: "Cape of Good Hope Route", risk: 0.35, readiness: 0.70, cost: 5800, transit: 42, rec: "Lower risk but +14 days transit", detail: { route: "CNSZX → Cape → NLRTM" } },
+        { type: "CARRIER_SWITCH", label: "Switch to MAERSK – partial Suez", risk: 0.55, readiness: 0.60, cost: 4500, transit: 32, rec: "Moderate risk reduction", detail: { carrier: "MAERSK" } },
+      ], best: "REROUTE" },
+    { i: 2, baseline: "Current: CNSHA→NLRTM via COSCO", baselineRisk: 0.44, baselineReadiness: 0.68, cost: 3600, transitDays: 35, route: "CNSHA → Suez → NLRTM",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to CMA CGM", risk: 0.38, readiness: 0.72, cost: 3800, transit: 33, rec: "Better schedule reliability", detail: { carrier: "CMA_CGM" } },
+        { type: "REROUTE", label: "Route via SGSIN transshipment", risk: 0.30, readiness: 0.78, cost: 4200, transit: 38, rec: "Reduced disruption exposure", detail: { route: "CNSHA → SGSIN → NLRTM" } },
+      ], best: "CARRIER_SWITCH" },
+    { i: 3, baseline: "Current: SGSIN→USNYC via CMA CGM", baselineRisk: 0.55, baselineReadiness: 0.61, cost: 4800, transitDays: 35, route: "SGSIN → Suez → USNYC",
+      alts: [
+        { type: "REROUTE", label: "Cape route avoiding Suez", risk: 0.30, readiness: 0.74, cost: 6200, transit: 45, rec: "Avoids Suez risk entirely", detail: { route: "SGSIN → Cape → USNYC" } },
+        { type: "CARRIER_SWITCH", label: "Switch to MAERSK direct", risk: 0.48, readiness: 0.65, cost: 5100, transit: 33, rec: "Faster transit, slight risk reduction", detail: { carrier: "MAERSK" } },
+      ], best: "CARRIER_SWITCH" },
+    { i: 4, baseline: "Current: CNSHA→USLAX via Hapag", baselineRisk: 0.71, baselineReadiness: 0.45, cost: 3900, transitDays: 22, route: "CNSHA → Pacific → USLAX",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to MAERSK", risk: 0.45, readiness: 0.68, cost: 4200, transit: 23, rec: "Significantly lower risk", detail: { carrier: "MAERSK" } },
+        { type: "REROUTE", label: "Route via KRPUS transshipment", risk: 0.38, readiness: 0.72, cost: 4500, transit: 26, rec: "Best risk reduction", detail: { route: "CNSHA → KRPUS → USLAX" } },
+      ], best: "REROUTE" },
+    { i: 5, baseline: "Current: CNSZX→NLRTM via Evergreen", baselineRisk: 0.35, baselineReadiness: 0.82, cost: 3400, transitDays: 30, route: "CNSZX → Suez → NLRTM",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to MSC", risk: 0.32, readiness: 0.80, cost: 3600, transit: 29, rec: "Similar profile, faster", detail: { carrier: "MSC" } },
+      ], best: "CARRIER_SWITCH" },
+    { i: 6, baseline: "Completed: DEHAM→BRSSZ via Maersk", baselineRisk: 0.18, baselineReadiness: 0.95, cost: 3200, transitDays: 18, route: "DEHAM → Atlantic → BRSSZ",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Alternative: MSC", risk: 0.20, readiness: 0.92, cost: 3100, transit: 19, rec: "Comparable performance", detail: { carrier: "MSC" } },
+      ], best: "CARRIER_SWITCH" },
+    { i: 7, baseline: "Current: CNSHA→AEJEA via ONE", baselineRisk: 0.32, baselineReadiness: 0.74, cost: 2800, transitDays: 20, route: "CNSHA → SCS → AEJEA",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to CMA CGM", risk: 0.28, readiness: 0.78, cost: 2900, transit: 19, rec: "Better reliability", detail: { carrier: "CMA_CGM" } },
+        { type: "REROUTE", label: "Via SGSIN hub", risk: 0.25, readiness: 0.80, cost: 3200, transit: 22, rec: "Lower risk with transshipment", detail: { route: "CNSHA → SGSIN → AEJEA" } },
+      ], best: "CARRIER_SWITCH" },
+    { i: 8, baseline: "Current: JPYOK→USLAX via MSC", baselineRisk: 0.41, baselineReadiness: 0.66, cost: 3100, transitDays: 22, route: "JPYOK → Pacific → USLAX",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to ONE", risk: 0.35, readiness: 0.72, cost: 3300, transit: 21, rec: "Better on-time performance", detail: { carrier: "ONE" } },
+        { type: "REROUTE", label: "Direct JPYOK→USLAX express", risk: 0.30, readiness: 0.78, cost: 3600, transit: 18, rec: "Fastest option, premium cost", detail: { route: "JPYOK → Direct → USLAX" } },
+      ], best: "REROUTE" },
+    { i: 9, baseline: "Current: CNSZX→DEHAM via COSCO", baselineRisk: 0.48, baselineReadiness: 0.58, cost: 3700, transitDays: 38, route: "CNSZX → Suez → DEHAM",
+      alts: [
+        { type: "REROUTE", label: "Cape route via Durban", risk: 0.28, readiness: 0.72, cost: 4800, transit: 48, rec: "Avoids Suez, +10 days", detail: { route: "CNSZX → Cape → DEHAM" } },
+        { type: "CARRIER_SWITCH", label: "Switch to Hapag-Lloyd", risk: 0.42, readiness: 0.64, cost: 3900, transit: 36, rec: "Better schedule adherence", detail: { carrier: "HAPAG" } },
+      ], best: "CARRIER_SWITCH" },
+    { i: 10, baseline: "Current: CNSZX→DEHAM via CMA CGM", baselineRisk: 0.58, baselineReadiness: 0.52, cost: 4100, transitDays: 32, route: "CNSZX → Suez → DEHAM",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to MAERSK", risk: 0.45, readiness: 0.62, cost: 4300, transit: 30, rec: "More reliable carrier", detail: { carrier: "MAERSK" } },
+        { type: "REROUTE", label: "Northern sea route (seasonal)", risk: 0.40, readiness: 0.65, cost: 3800, transit: 25, rec: "Shorter but weather-dependent", detail: { route: "CNSZX → Arctic → DEHAM" } },
+      ], best: "REROUTE" },
+    { i: 11, baseline: "Current: SGSIN→AEJEA via ZIM", baselineRisk: 0.38, baselineReadiness: 0.71, cost: 2200, transitDays: 14, route: "SGSIN → Indian Ocean → AEJEA",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to ONE", risk: 0.32, readiness: 0.76, cost: 2400, transit: 13, rec: "Faster with lower risk", detail: { carrier: "ONE" } },
+      ], best: "CARRIER_SWITCH" },
+    { i: 12, baseline: "Rejected: SGSIN→USNYC via Hapag", baselineRisk: 0.75, baselineReadiness: 0.38, cost: 5200, transitDays: 32, route: "SGSIN → Suez → USNYC",
+      alts: [
+        { type: "REROUTE", label: "Cape route avoiding conflict zone", risk: 0.40, readiness: 0.65, cost: 6500, transit: 44, rec: "Significantly safer route", detail: { route: "SGSIN → Cape → USNYC" } },
+        { type: "CARRIER_SWITCH", label: "Switch to MAERSK with escort", risk: 0.55, readiness: 0.55, cost: 5800, transit: 34, rec: "Enhanced security measures", detail: { carrier: "MAERSK" } },
+      ], best: "REROUTE" },
+    { i: 13, baseline: "Current: CNSHA→NLRTM via Maersk", baselineRisk: 0.52, baselineReadiness: 0.63, cost: 4000, transitDays: 30, route: "CNSHA → Suez → NLRTM",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to COSCO", risk: 0.48, readiness: 0.66, cost: 3700, transit: 32, rec: "Lower cost option", detail: { carrier: "COSCO" } },
+        { type: "REROUTE", label: "Via Mediterranean transshipment", risk: 0.40, readiness: 0.70, cost: 4400, transit: 34, rec: "Reduced single-point risk", detail: { route: "CNSHA → AEJEA → NLRTM" } },
+      ], best: "REROUTE" },
+    { i: 14, baseline: "Draft: CNSHA→USLAX (no carrier)", baselineRisk: 0.22, baselineReadiness: 0.88, cost: 3600, transitDays: 23, route: "CNSHA → Pacific → USLAX",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Book with MAERSK", risk: 0.20, readiness: 0.90, cost: 3800, transit: 22, rec: "Best reliability option", detail: { carrier: "MAERSK" } },
+        { type: "CARRIER_SWITCH", label: "Book with COSCO", risk: 0.25, readiness: 0.85, cost: 3400, transit: 24, rec: "Budget-friendly option", detail: { carrier: "COSCO" } },
+      ], best: "CARRIER_SWITCH" },
+    { i: 15, baseline: "Current: CNSHA→AEJEA via Evergreen", baselineRisk: 0.65, baselineReadiness: 0.48, cost: 2900, transitDays: 20, route: "CNSHA → SCS → AEJEA",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to ONE", risk: 0.42, readiness: 0.68, cost: 3100, transit: 19, rec: "Significant risk improvement", detail: { carrier: "ONE" } },
+        { type: "REROUTE", label: "Route via SGSIN", risk: 0.38, readiness: 0.72, cost: 3400, transit: 23, rec: "Best risk reduction", detail: { route: "CNSHA → SGSIN → AEJEA" } },
+      ], best: "REROUTE" },
+    { i: 16, baseline: "Completed: DEHAM→BRSSZ via ONE", baselineRisk: 0.15, baselineReadiness: 0.92, cost: 2800, transitDays: 16, route: "DEHAM → Atlantic → BRSSZ",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Alternative: Hapag-Lloyd", risk: 0.18, readiness: 0.90, cost: 2900, transit: 17, rec: "Comparable performance", detail: { carrier: "HAPAG" } },
+      ], best: "CARRIER_SWITCH" },
+    { i: 17, baseline: "Current: CNSZX→DEHAM via ZIM", baselineRisk: 0.30, baselineReadiness: 0.78, cost: 3500, transitDays: 34, route: "CNSZX → Suez → DEHAM",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to MAERSK", risk: 0.25, readiness: 0.82, cost: 3800, transit: 32, rec: "Better reliability", detail: { carrier: "MAERSK" } },
+        { type: "REROUTE", label: "Via Mediterranean hub", risk: 0.22, readiness: 0.85, cost: 4100, transit: 36, rec: "Lower disruption exposure", detail: { route: "CNSZX → AEJEA → DEHAM" } },
+      ], best: "CARRIER_SWITCH" },
+    { i: 18, baseline: "Cancelled: SGSIN→AEJEA via CMA CGM", baselineRisk: 0.68, baselineReadiness: 0.42, cost: 2600, transitDays: 15, route: "SGSIN → Indian Ocean → AEJEA",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Rebook with ONE", risk: 0.35, readiness: 0.70, cost: 2800, transit: 14, rec: "Better risk profile for rebooking", detail: { carrier: "ONE" } },
+        { type: "REROUTE", label: "Via Colombo transshipment", risk: 0.30, readiness: 0.75, cost: 3100, transit: 18, rec: "Safest rebook option", detail: { route: "SGSIN → LKCMB → AEJEA" } },
+      ], best: "REROUTE" },
+    { i: 19, baseline: "Current: JPYOK→USLAX via Hapag", baselineRisk: 0.46, baselineReadiness: 0.64, cost: 3200, transitDays: 20, route: "JPYOK → Pacific → USLAX",
+      alts: [
+        { type: "CARRIER_SWITCH", label: "Switch to MAERSK", risk: 0.35, readiness: 0.72, cost: 3500, transit: 21, rec: "Better on-time performance", detail: { carrier: "MAERSK" } },
+        { type: "REROUTE", label: "Via KRPUS transshipment", risk: 0.30, readiness: 0.76, cost: 3700, transit: 24, rec: "Lowest risk option", detail: { route: "JPYOK → KRPUS → USLAX" } },
+      ], best: "REROUTE" },
+  ];
+  await db.insert(scenarioComparisonsTable).values(
+    scenarioDefs.map((s, j) => ({
+      id: lid("sc", j + 1),
       companyId: LORIAN_COMPANY_ID,
-      shipmentId: shipments[1].id,
-      baselineScenario: { label: "Current: Suez Route via MSC", riskScore: 72, readinessScore: 45, estimatedCost: 4200, estimatedTransitDays: 28, details: { route: "CNSZX → Suez → NLRTM" } },
-      alternativeScenarios: [
-        { scenarioType: "REROUTE", label: "Cape of Good Hope Route", riskScore: 35, readinessScore: 70, estimatedCost: 5800, estimatedTransitDays: 42, riskDelta: -37, costDelta: 1600, transitDelta: 14, recommendation: "Lower risk but +14 days transit", details: { route: "CNSZX → Cape → NLRTM" } },
-        { scenarioType: "CARRIER_SWITCH", label: "Switch to MAERSK – partial Suez", riskScore: 55, readinessScore: 60, estimatedCost: 4500, estimatedTransitDays: 32, riskDelta: -17, costDelta: 300, transitDelta: 4, recommendation: "Moderate risk reduction", details: { carrier: "MAERSK" } },
-      ],
-      bestAlternative: "REROUTE",
-    },
-  ]);
+      shipmentId: shipments[s.i].id,
+      baselineScenario: { label: s.baseline, riskScore: s.baselineRisk, readinessScore: s.baselineReadiness, estimatedCost: s.cost, estimatedTransitDays: s.transitDays, details: { route: s.route } },
+      alternativeScenarios: s.alts.map((a) => ({
+        scenarioType: a.type, label: a.label, riskScore: a.risk, readinessScore: a.readiness,
+        estimatedCost: a.cost, estimatedTransitDays: a.transit,
+        riskDelta: Math.round((a.risk - s.baselineRisk) * 100) / 100,
+        costDelta: a.cost - s.cost,
+        transitDelta: a.transit - s.transitDays,
+        recommendation: a.rec, details: a.detail,
+      })),
+      bestAlternative: s.best,
+    })),
+  );
+
+  // ── 29b. Compliance Screenings ──
+  console.log("29b. Compliance Screenings...");
+  const complianceDefs: Array<{ i: number; status: "CLEAR" | "ALERT" | "BLOCKED"; matchCount: number }> = [
+    { i: 0,  status: "CLEAR", matchCount: 0 },
+    { i: 1,  status: "CLEAR", matchCount: 0 },
+    { i: 2,  status: "CLEAR", matchCount: 0 },
+    { i: 3,  status: "ALERT", matchCount: 2 },
+    { i: 4,  status: "CLEAR", matchCount: 0 },
+    { i: 5,  status: "CLEAR", matchCount: 0 },
+    { i: 6,  status: "CLEAR", matchCount: 0 },
+    { i: 7,  status: "CLEAR", matchCount: 0 },
+    { i: 8,  status: "CLEAR", matchCount: 0 },
+    { i: 9,  status: "ALERT", matchCount: 1 },
+    { i: 10, status: "CLEAR", matchCount: 0 },
+    { i: 11, status: "ALERT", matchCount: 1 },
+    { i: 12, status: "BLOCKED", matchCount: 3 },
+    { i: 13, status: "CLEAR", matchCount: 0 },
+    { i: 14, status: "CLEAR", matchCount: 0 },
+    { i: 15, status: "CLEAR", matchCount: 0 },
+    { i: 16, status: "CLEAR", matchCount: 0 },
+    { i: 17, status: "CLEAR", matchCount: 0 },
+    { i: 18, status: "BLOCKED", matchCount: 2 },
+    { i: 19, status: "CLEAR", matchCount: 0 },
+  ];
+  await db.insert(complianceScreeningsTable).values(
+    complianceDefs.map((c, j) => ({
+      id: lid("cs", j + 1),
+      companyId: LORIAN_COMPANY_ID,
+      shipmentId: shipments[c.i].id,
+      status: c.status,
+      screenedParties: 2,
+      matchCount: c.matchCount,
+      matches: c.matchCount > 0
+        ? Array.from({ length: c.matchCount }, (_, k) => ({
+            listName: k === 0 ? "OFAC SDN" : "EU Consolidated Sanctions",
+            matchedEntry: `Entity Match ${k + 1} – partial name similarity`,
+            similarity: 0.72 + k * 0.08,
+            matchType: "PARTIAL",
+            recommendation: k === 0 ? "Manual review recommended" : "Cross-reference required",
+          }))
+        : [],
+      listsChecked: ["OFAC SDN", "EU Consolidated", "UN Security Council", "UK Sanctions"],
+      screenedAt: daysAgo(j % 4),
+    })),
+  );
 
   // ── 30. Lane Strategies ──
   console.log("30. Lane Strategies...");
