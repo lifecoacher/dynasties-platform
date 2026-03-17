@@ -99,8 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const sessionToken = clerkGetToken ? await clerkGetToken() : null;
             if (!sessionToken) {
               console.error("[auth] No Clerk session token available");
-              setIsLoading(false);
               clerkSyncedRef.current = false;
+              setIsLoading(false);
               return;
             }
             const res = await fetch(`${getBaseUrl()}/api/auth/clerk-sync`, {
@@ -120,11 +120,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.removeItem(MANUAL_LOGOUT_KEY);
           } catch (err) {
             console.error("[auth] Clerk sync error:", err);
+            clerkSyncedRef.current = false;
           } finally {
             setIsLoading(false);
           }
         })();
       } else if (!clerkIsSignedIn) {
+        setIsLoading(false);
+      } else {
         setIsLoading(false);
       }
       return;

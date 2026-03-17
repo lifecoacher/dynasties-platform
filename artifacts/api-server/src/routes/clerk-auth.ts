@@ -14,11 +14,11 @@ function getClerkVerifier() {
 
   return async (token: string): Promise<{ sub: string; email?: string; first_name?: string; last_name?: string } | null> => {
     try {
-      const { createClerkClient } = await import("@clerk/express");
-      const clerk = createClerkClient({ secretKey });
-      const verified = await (clerk as any).verifyToken(token);
+      const { verifyToken, createClerkClient } = await import("@clerk/express");
+      const verified = await verifyToken(token, { secretKey });
       if (!verified || !verified.sub) return null;
 
+      const clerk = createClerkClient({ secretKey });
       const user = await clerk.users.getUser(verified.sub);
       return {
         sub: verified.sub,
