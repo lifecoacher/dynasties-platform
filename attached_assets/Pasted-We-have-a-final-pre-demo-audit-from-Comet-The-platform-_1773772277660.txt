@@ -1,0 +1,48 @@
+We have a final pre-demo audit from Comet. The platform is almost ready, but there are 2 critical math bugs on Shipment Detail that must be fixed before client demo.
+
+Critical blockers:
+1. Pre-Shipment Risk score is showing impossible values like 2036 and 7316 on what is clearly a 0–100 style scale.
+2. Readiness is showing impossible negative percentages like -433% and -1800%, with Risk Exposure sub-scores like -1935%.
+
+Your task:
+Fix these two calculation/display issues completely and verify they are coherent across all Lorian demo shipments.
+
+Requirements:
+
+1. Pre-Shipment Risk
+- Audit the full scoring formula and all inputs
+- Identify exactly why values are exceeding expected bounds
+- Normalize/clamp the final displayed score to a believable range
+- Ensure component scores and final score are internally consistent
+- If the score is intended to be 0–100, enforce that cleanly
+- If another scale is intended, update the UI so it is clearly labeled and credible
+
+2. Readiness
+- Audit the readiness formula and all subcomponents
+- Eliminate impossible negative percentages
+- Ensure all displayed readiness values are coherent and believable
+- Clamp/normalize outputs if needed
+- Risk Exposure and related sub-scores must not produce absurd values
+
+3. Full validation
+- Test all 20 Lorian shipments
+- Return a table or summary showing:
+  - shipment id
+  - pre-shipment risk score
+  - readiness %
+  - booking decision
+- Confirm there are no out-of-range or negative nonsense values remaining
+
+4. Fallback rule
+- If a full formula fix is risky or time-consuming, implement the safest demo-stable version immediately:
+  - hide the broken subcomponent temporarily OR
+  - replace with bounded deterministic values derived from existing valid risk factors
+- Demo stability is more important than theoretical purity
+
+5. Deliverables
+Return:
+- exact files changed
+- root cause of each bug
+- before/after examples
+- confirmation all Lorian shipments now show believable values
+- any remaining edge cases
