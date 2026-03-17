@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Search, Loader2, Users, Building2, MapPin, Mail, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -26,14 +26,20 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 20;
 
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
     setIsLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-    if (search) params.set("q", search);
+    if (debouncedSearch) params.set("q", debouncedSearch);
 
     fetch(`${getBaseUrl()}/api/customers?${params}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -45,7 +51,7 @@ export default function CustomersPage() {
       })
       .catch(() => setCustomers([]))
       .finally(() => setIsLoading(false));
-  }, [token, page, search]);
+  }, [token, page, debouncedSearch]);
 
   const totalPages = Math.ceil(total / limit);
 

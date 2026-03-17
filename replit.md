@@ -16,7 +16,7 @@ Do not make changes to the `tests/` folder without prior discussion.
 The core architectural principle is that AI models do not directly write to the system of record. Instead, agents produce structured JSON outputs processed by deterministic services with validation and approval mechanisms before any database writes. The system is built as a monorepo using pnpm workspaces.
 
 **UI/UX Decisions:**
-The project features an AI-native operating system design with a three-zone layout: left sidebar, central workspace, and a right context panel for agent activity and alerts. The design system uses the Inter font, a dark palette with subtle accent colors, an 8px grid system, and Framer Motion for animations.
+The project features an AI-native operating system design with a three-zone layout: left sidebar, central workspace, and a right context panel for agent activity and alerts. The design system uses the Dynasties brand: Space Grotesk for headings (`font-heading`), Inter for body text, dark infrastructure palette (BG `#080C12`, surface `#0D1219`, card `#121821`, border `#2D3440`), primary teal `#00BFA6`, warning amber `#D4A24C`, destructive red `#E05252`, text primary `#F0F2F5`, secondary `#9AA1B0`, muted `#6B7384`. 8px grid system, Framer Motion for animations.
 
 **Technical Implementations:**
 - **Backend:** Node.js 24, TypeScript 5.9, Express 5.

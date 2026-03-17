@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { entitiesTable } from "@workspace/db/schema";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, ilike, or } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
@@ -22,11 +22,25 @@ function normalizeEntityName(name: string): string {
 router.get("/customers", async (req, res) => {
   const companyId = getCompanyId(req);
   const pg = parsePagination(req);
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+
+  const conditions = [eq(entitiesTable.companyId, companyId), eq(entitiesTable.entityType, "CUSTOMER")];
+
+  if (q) {
+    conditions.push(
+      or(
+        ilike(entitiesTable.name, `%${q}%`),
+        ilike(entitiesTable.contactEmail, `%${q}%`),
+        ilike(entitiesTable.city, `%${q}%`),
+        ilike(entitiesTable.country, `%${q}%`),
+      )!,
+    );
+  }
 
   const customers = await db
     .select()
     .from(entitiesTable)
-    .where(and(eq(entitiesTable.companyId, companyId), eq(entitiesTable.entityType, "CUSTOMER")))
+    .where(and(...conditions))
     .orderBy(desc(entitiesTable.createdAt))
     .limit(pg.limit)
     .offset(pg.offset);
