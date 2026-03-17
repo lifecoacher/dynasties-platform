@@ -85,6 +85,14 @@ export function hoursAgo(hours: number): Date {
   return new Date(Date.now() - hours * 3600000);
 }
 
+export function minutesAgo(minutes: number): Date {
+  return new Date(Date.now() - minutes * 60000);
+}
+
 export function daysFromNow(days: number): Date {
   return new Date(Date.now() + days * 86400000);
+}
+
+export function spreadTime(baseDaysAgo: number, offsetMinutes: number): Date {
+  return new Date(Date.now() - baseDaysAgo * 86400000 - offsetMinutes * 60000);
 }

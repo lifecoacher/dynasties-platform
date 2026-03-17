@@ -69,6 +69,13 @@ Login (Clerk mode): Sign in with an email listed in `DEMO_CLERK_EMAILS`.
 
 Old scattered demo data (`seed-demo-data.ts`) has been retired and archived.
 
+**Demo Polish (deterministic & realistic):**
+- All `Math.random()` calls removed from seed — replaced with deterministic arrays and `deterministicValue()` helper
+- Timestamps spread using `spreadTime(baseDaysAgo, offsetMinutes)` for organic intervals (not clustered to same second)
+- Company name "Lorian Freight Solutions" displayed in sidebar, Command Center subtitle, and Settings page via `companyName` field propagated through all auth flows (Clerk demo bridge, standard login, Clerk sync, auth/me)
+- Command Center metrics show Active (of total), Compliant (of total), Risk Alerts, Compliance Alerts with skeleton loading states
+- All 20 shipments fully hydrated: risk reports, booking decisions, compliance screenings, scenario comparisons, intelligence snapshots
+
 ## External Dependencies
 - **AI Integration:** Anthropic Claude via `@workspace/integrations-anthropic-ai` orchestration layer. `callAI()` provides model routing (Sonnet for extraction/analysis, Haiku for lighter tasks), retry with exponential backoff on 429/529 errors, Zod schema validation for structured JSON output, cost estimation per call. Usage persisted to `ai_usage_logs` table via `persistUsageLog()`. Decision engine's `runAIAnalysis()` enriches deterministic recommendations with AI-generated explanations, risk narratives, and multi-factor analysis. API endpoint: `POST /api/shipments/:id/ai-analyze`. Fallback: if AI fails validation, deterministic recommendations are used as-is.
 - **Authentication:** `@clerk/clerk-react` (frontend), `@clerk/express` (backend) for production auth. JWT via `jsonwebtoken` for demo/dev mode.

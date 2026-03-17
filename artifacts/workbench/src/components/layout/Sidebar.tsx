@@ -71,7 +71,9 @@ export function Sidebar() {
             <div className="absolute -bottom-1 left-0 w-[1.3em] h-[2.5px] rounded-full bg-primary" />
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground leading-none mt-2.5">Trade Intelligence OS</p>
+        <p className="text-[11px] text-muted-foreground leading-none mt-2.5">
+          {user?.companyName || "Trade Intelligence OS"}
+        </p>
       </div>
 
       <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">

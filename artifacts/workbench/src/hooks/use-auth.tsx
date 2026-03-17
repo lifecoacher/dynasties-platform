@@ -8,6 +8,7 @@ interface User {
   name: string;
   role: string;
   companyId: string;
+  companyName?: string;
 }
 
 interface AuthContextValue {
@@ -36,7 +37,10 @@ async function validateToken(savedToken: string): Promise<User | null> {
     });
     if (!res.ok) return null;
     const { data } = await res.json();
-    return data as User;
+    return {
+      ...data,
+      companyName: data.companyName || data.company?.name || undefined,
+    } as User;
   } catch {
     return null;
   }
@@ -112,11 +116,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
             if (!res.ok) throw new Error("Clerk sync failed");
             const { data } = await res.json();
+            const userData = {
+              ...data.user,
+              companyName: data.user.companyName || data.user.company?.name || undefined,
+            };
             setToken(data.token);
-            setUser(data.user);
+            setUser(userData);
             setAuthToken(data.token);
             localStorage.setItem(TOKEN_KEY, data.token);
-            localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+            localStorage.setItem(USER_KEY, JSON.stringify(userData));
             localStorage.removeItem(MANUAL_LOGOUT_KEY);
           } catch (err) {
             console.error("[auth] Clerk sync error:", err);
@@ -178,11 +186,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const { data } = await res.json();
+    const userData = {
+      ...data.user,
+      companyName: data.user.companyName || data.user.company?.name || data.company?.name || undefined,
+    };
     setToken(data.token);
-    setUser(data.user);
+    setUser(userData);
     setAuthToken(data.token);
     localStorage.setItem(TOKEN_KEY, data.token);
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    localStorage.setItem(USER_KEY, JSON.stringify(userData));
     localStorage.removeItem(MANUAL_LOGOUT_KEY);
   }, []);
 

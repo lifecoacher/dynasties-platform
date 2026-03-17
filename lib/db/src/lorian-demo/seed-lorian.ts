@@ -59,11 +59,19 @@ import {
   lid,
   daysAgo,
   hoursAgo,
+  minutesAgo,
   daysFromNow,
+  spreadTime,
 } from "./constants.js";
 
 function normalizeEntityName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function deterministicValue(seed: number, min: number, max: number): number {
+  const x = Math.sin(seed * 9301 + 49297) * 233280;
+  const frac = x - Math.floor(x);
+  return Math.round((min + frac * (max - min)) * 100) / 100;
 }
 
 export async function seedLorian() {
@@ -239,7 +247,7 @@ export async function seedLorian() {
         ? [{ factor: "Moderate lane activity", explanation: "Lane shows moderate congestion signals" }]
         : [{ factor: "Standard risk profile", explanation: "No elevated risk factors detected" }],
       recommendedAction: r.composite > 60 ? "ESCALATE" as const : r.composite > 35 ? "OPERATOR_REVIEW" as const : "AUTO_APPROVE" as const,
-      scoredAt: daysAgo(r.i % 5),
+      scoredAt: spreadTime(r.i % 5, r.i * 31 + 45),
     })),
   );
 
@@ -264,8 +272,8 @@ export async function seedLorian() {
       ingestionMethod: s.method,
       scheduleExpression: s.schedule,
       sourceStatus: "active" as const,
-      lastSyncedAt: hoursAgo(Math.floor(Math.random() * 12)),
-      lastSuccessAt: hoursAgo(Math.floor(Math.random() * 12)),
+      lastSyncedAt: hoursAgo([2, 1, 6, 8, 3, 4, 1][s.n - 1]),
+      lastSuccessAt: hoursAgo([2, 1, 6, 8, 3, 4, 1][s.n - 1]),
     })),
   );
 
@@ -293,7 +301,7 @@ export async function seedLorian() {
       affectedPorts: d.ports,
       affectedLanes: d.lanes,
       estimatedImpactDays: d.impactDays,
-      confidence: 0.75 + Math.random() * 0.2,
+      confidence: [0.82, 0.88, 0.78, 0.91, 0.85, 0.75][d.n - 1],
       startDate: daysAgo(d.startDaysAgo),
       expectedEndDate: daysFromNow(d.impactDays - d.startDaysAgo),
       resolvedDate: d.status === "resolved" ? daysAgo(d.startDaysAgo - d.impactDays) : null,
@@ -325,7 +333,7 @@ export async function seedLorian() {
       longitude: w.lng,
       radiusKm: w.radiusKm,
       windSpeedKnots: w.windKnots,
-      confidence: 0.7 + Math.random() * 0.25,
+      confidence: [0.85, 0.78, 0.82, 0.90][w.n - 1],
       forecastDate: daysAgo(1),
       expectedStartDate: w.status === "active" ? daysAgo(1) : daysFromNow(2),
       expectedEndDate: daysFromNow(4),
@@ -467,8 +475,8 @@ export async function seedLorian() {
       previousRate: s.prevRate,
       rateUnit: "USD/TEU",
       avgTransitDays: s.transitDays,
-      capacityUtilization: 0.7 + Math.random() * 0.25,
-      confidence: 0.8 + Math.random() * 0.15,
+      capacityUtilization: [0.82, 0.78, 0.91, 0.85, 0.73, 0.88][s.n - 1],
+      confidence: [0.88, 0.85, 0.92, 0.87, 0.83, 0.90][s.n - 1],
       fingerprint: `lms_fp_lor_${s.n}`,
       signalTimestamp: hoursAgo(24),
     })),
@@ -483,16 +491,16 @@ export async function seedLorian() {
       origin: lane.origin,
       destination: lane.destination,
       carrier: CARRIERS[i % CARRIERS.length].name,
-      shipmentCount: 10 + Math.floor(Math.random() * 50),
-      avgCost: String(2000 + Math.floor(Math.random() * 3000)),
-      minCost: String(1500 + Math.floor(Math.random() * 1000)),
-      maxCost: String(4000 + Math.floor(Math.random() * 3000)),
-      avgTransitDays: 14 + Math.floor(Math.random() * 20),
-      delayCount: Math.floor(Math.random() * 10),
-      delayFrequency: Math.round(Math.random() * 30) / 100,
-      avgDocumentCount: 5 + Math.random() * 5,
-      documentComplexity: (["LOW", "MEDIUM", "HIGH"] as const)[Math.floor(Math.random() * 3)],
-      carrierPerformanceScore: 0.6 + Math.random() * 0.35,
+      shipmentCount: [42, 28, 35, 18, 52, 31, 22, 15, 38, 26][i] || 20,
+      avgCost: String([3800, 4200, 3600, 4800, 3900, 3400, 3200, 2800, 3100, 3700][i] || 3500),
+      minCost: String([2100, 2400, 2000, 2800, 2200, 1900, 1800, 1600, 1700, 2100][i] || 2000),
+      maxCost: String([5500, 6200, 5400, 6800, 5800, 5100, 4800, 4200, 4600, 5600][i] || 5000),
+      avgTransitDays: [23, 28, 35, 35, 22, 30, 18, 20, 22, 38][i] || 25,
+      delayCount: [3, 5, 4, 2, 6, 2, 1, 1, 3, 4][i] || 2,
+      delayFrequency: [0.07, 0.18, 0.11, 0.11, 0.12, 0.06, 0.05, 0.07, 0.08, 0.15][i] || 0.10,
+      avgDocumentCount: [7.2, 8.1, 7.5, 8.8, 6.9, 7.0, 6.2, 6.8, 7.1, 8.3][i] || 7.0,
+      documentComplexity: (["MEDIUM", "HIGH", "MEDIUM", "HIGH", "MEDIUM", "LOW", "LOW", "MEDIUM", "MEDIUM", "HIGH"] as const)[i] || ("MEDIUM" as const),
+      carrierPerformanceScore: [0.85, 0.78, 0.72, 0.88, 0.82, 0.80, 0.92, 0.84, 0.76, 0.68][i] || 0.80,
     })),
   );
 
@@ -504,11 +512,11 @@ export async function seedLorian() {
       companyId: LORIAN_COMPANY_ID,
       originPort: lane.origin,
       destinationPort: lane.destination,
-      congestionScore: Math.round(Math.random() * 80 * 100) / 100,
-      disruptionScore: Math.round(Math.random() * 70 * 100) / 100,
-      delayStressScore: Math.round(Math.random() * 60 * 100) / 100,
-      marketPressureScore: Math.round(Math.random() * 50 * 100) / 100,
-      compositeStressScore: Math.round((20 + Math.random() * 60) * 100) / 100,
+      congestionScore: deterministicValue(i * 5 + 1, 15, 72),
+      disruptionScore: deterministicValue(i * 5 + 2, 10, 65),
+      delayStressScore: deterministicValue(i * 5 + 3, 8, 55),
+      marketPressureScore: deterministicValue(i * 5 + 4, 5, 45),
+      compositeStressScore: deterministicValue(i * 5 + 5, 22, 75),
     })),
   );
   await db.insert(portScoresTable).values(
@@ -517,11 +525,11 @@ export async function seedLorian() {
       companyId: LORIAN_COMPANY_ID,
       portCode: port.code,
       portName: port.name,
-      congestionSeverity: Math.round(Math.random() * 80 * 100) / 100,
-      weatherExposure: Math.round(Math.random() * 60 * 100) / 100,
-      disruptionExposure: Math.round(Math.random() * 70 * 100) / 100,
-      operationalVolatility: Math.round(Math.random() * 40 * 100) / 100,
-      compositeScore: Math.round((15 + Math.random() * 65) * 100) / 100,
+      congestionSeverity: deterministicValue(i * 5 + 100, 12, 72),
+      weatherExposure: deterministicValue(i * 5 + 101, 8, 55),
+      disruptionExposure: deterministicValue(i * 5 + 102, 10, 62),
+      operationalVolatility: deterministicValue(i * 5 + 103, 5, 35),
+      compositeScore: deterministicValue(i * 5 + 104, 18, 68),
     })),
   );
   await db.insert(carrierScoresTable).values(
@@ -529,11 +537,11 @@ export async function seedLorian() {
       id: lid("csc", i + 1),
       companyId: LORIAN_COMPANY_ID,
       carrierName: carrier.name,
-      performanceScore: Math.round((50 + Math.random() * 45) * 100) / 100,
-      anomalyScore: Math.round(Math.random() * 30 * 100) / 100,
-      reliabilityScore: Math.round((60 + Math.random() * 35) * 100) / 100,
-      laneStressExposure: Math.round(Math.random() * 50 * 100) / 100,
-      compositeScore: Math.round((40 + Math.random() * 50) * 100) / 100,
+      performanceScore: deterministicValue(i * 5 + 200, 55, 92),
+      anomalyScore: deterministicValue(i * 5 + 201, 2, 25),
+      reliabilityScore: deterministicValue(i * 5 + 202, 65, 92),
+      laneStressExposure: deterministicValue(i * 5 + 203, 8, 45),
+      compositeScore: deterministicValue(i * 5 + 204, 45, 88),
     })),
   );
   await db.insert(entityScoresTable).values(
@@ -542,10 +550,10 @@ export async function seedLorian() {
       companyId: LORIAN_COMPANY_ID,
       entityId: ent.id,
       entityName: ent.name,
-      sanctionsRiskScore: Math.round(Math.random() * 15 * 100) / 100,
-      deniedPartyConfidence: Math.round(Math.random() * 10 * 100) / 100,
-      documentationIrregularity: Math.round(Math.random() * 20 * 100) / 100,
-      compositeScore: Math.round(Math.random() * 25 * 100) / 100,
+      sanctionsRiskScore: deterministicValue(i * 4 + 300, 0.5, 12),
+      deniedPartyConfidence: deterministicValue(i * 4 + 301, 0.2, 8),
+      documentationIrregularity: deterministicValue(i * 4 + 302, 1, 18),
+      compositeScore: deterministicValue(i * 4 + 303, 1, 22),
     })),
   );
 
@@ -710,12 +718,12 @@ export async function seedLorian() {
       subjectName: p.name,
       periodStart: daysAgo(90),
       periodEnd: now,
-      sampleCount: 50 + Math.floor(Math.random() * 200),
+      sampleCount: [142, 88, 205, 175, 63, 120][p.n - 1],
       avgValue: p.avg,
       minValue: p.avg * 0.6,
       maxValue: p.avg * 1.8,
       trendDirection: p.trend,
-      trendStrength: 0.3 + Math.random() * 0.5,
+      trendStrength: [0.65, 0.42, 0.38, 0.71, 0.55, 0.48][p.n - 1],
     })),
   );
 
@@ -745,18 +753,18 @@ export async function seedLorian() {
     reasonCodes: [`${r.type}_TRIGGERED`, "SIGNAL_CORRELATION"],
     confidence: r.confidence,
     urgency: r.urgency,
-    expectedDelayImpactDays: r.type.includes("DELAY") ? 2 + Math.random() * 5 : null,
-    expectedMarginImpactPct: r.type.includes("MARGIN") || r.type.includes("PRICING") ? -(2 + Math.random() * 8) : null,
-    expectedRiskReduction: 10 + Math.random() * 30,
+    expectedDelayImpactDays: r.type.includes("DELAY") ? [4.2, null, null, null, null, null, null, null, 3.8, null, null, null][r.n - 1] : null,
+    expectedMarginImpactPct: r.type.includes("MARGIN") || r.type.includes("PRICING") ? [null, null, null, null, null, null, null, -6.5, null, null, -4.2, null][r.n - 1] : null,
+    expectedRiskReduction: [22, 28, 18, 32, 15, 25, 20, 16, 24, 30, 12, 14][r.n - 1],
     recommendedAction: `Review and ${r.urgency === "CRITICAL" ? "escalate immediately" : "take action within 24 hours"}`,
     status: r.status,
     sourceAgent: r.agent,
     intelligenceEnriched: "true",
     snapshotId: lid("snap", r.shipIdx + 1),
-    respondedAt: ["ACCEPTED", "REJECTED", "IMPLEMENTED"].includes(r.status) ? daysAgo(1) : null,
+    respondedAt: ["ACCEPTED", "REJECTED", "IMPLEMENTED"].includes(r.status) ? spreadTime(1, [180, 240, 90, 320, 150][r.n % 5]) : null,
     respondedBy: ["ACCEPTED", "REJECTED", "IMPLEMENTED"].includes(r.status) ? USERS.operator.id : null,
     expiresAt: daysFromNow(7),
-    createdAt: daysAgo(2),
+    createdAt: spreadTime(2, r.n * 47 + 15),
   }));
   await db.insert(recommendationsTable).values(recommendations);
 
@@ -773,7 +781,7 @@ export async function seedLorian() {
       actorId: USERS.operator.id,
       actorType: "USER" as const,
       outcomeEvaluation: r.status === "IMPLEMENTED" ? "POSITIVE" as const : "PENDING" as const,
-      decidedAt: daysAgo(1),
+      decidedAt: spreadTime(1, i * 38 + 25),
     })),
   );
 
@@ -803,9 +811,9 @@ export async function seedLorian() {
     createdBy: USERS.admin.id,
     creationSource: t.source,
     dueAt: daysFromNow(t.priority === "CRITICAL" ? 1 : t.priority === "HIGH" ? 3 : 7),
-    completedAt: t.status === "COMPLETED" ? daysAgo(1) : null,
+    completedAt: t.status === "COMPLETED" ? spreadTime(0, 420 + t.n * 18) : null,
     escalationLevel: t.priority === "CRITICAL" ? 1 : 0,
-    createdAt: daysAgo(2),
+    createdAt: spreadTime(2, t.n * 55 + 30),
   }));
   await db.insert(workflowTasksTable).values(tasks);
 
@@ -814,13 +822,13 @@ export async function seedLorian() {
   const taskEventRows = taskDefs.flatMap((t, i) => {
     type TaskEventRow = typeof taskEventsTable.$inferInsert;
     const evts: Array<Pick<TaskEventRow, "id" | "taskId" | "eventType" | "actorId" | "notes" | "createdAt">> = [
-      { id: lid("te", i * 3 + 1), taskId: lid("task", t.n), eventType: "CREATED", actorId: USERS.admin.id, notes: "Task auto-created", createdAt: daysAgo(2) },
+      { id: lid("te", i * 3 + 1), taskId: lid("task", t.n), eventType: "CREATED", actorId: USERS.admin.id, notes: "Task auto-created", createdAt: spreadTime(2, t.n * 55 + 30) },
     ];
     if (t.status === "IN_PROGRESS" || t.status === "COMPLETED") {
-      evts.push({ id: lid("te", i * 3 + 2), taskId: lid("task", t.n), eventType: "ASSIGNED", actorId: USERS.manager.id, notes: `Assigned to ${USERS.operator.name}`, createdAt: daysAgo(1) });
+      evts.push({ id: lid("te", i * 3 + 2), taskId: lid("task", t.n), eventType: "ASSIGNED", actorId: USERS.manager.id, notes: `Assigned to ${USERS.operator.name}`, createdAt: spreadTime(1, t.n * 42 + 120) });
     }
     if (t.status === "COMPLETED") {
-      evts.push({ id: lid("te", i * 3 + 3), taskId: lid("task", t.n), eventType: "COMPLETED", actorId: USERS.operator.id, notes: "Task completed", createdAt: daysAgo(0) });
+      evts.push({ id: lid("te", i * 3 + 3), taskId: lid("task", t.n), eventType: "COMPLETED", actorId: USERS.operator.id, notes: "Task completed", createdAt: spreadTime(0, 420 + t.n * 18) });
     }
     return evts;
   });
@@ -849,7 +857,7 @@ export async function seedLorian() {
     reason: `Policy auto-created task: ${t.title}`,
     taskId: lid("task", t.n),
     applied: true,
-    createdAt: daysAgo(2),
+    createdAt: spreadTime(2, t.n * 55 + 28),
   }));
   await db.insert(policyDecisionsTable).values(policyDecisionRows);
 
@@ -874,7 +882,7 @@ export async function seedLorian() {
       relatedTaskId: n.taskId,
       relatedShipmentId: n.shipId,
       read: n.n <= 2,
-      createdAt: daysAgo(n.n <= 3 ? 2 : 1),
+      createdAt: spreadTime(n.n <= 3 ? 2 : 1, n.n * 73 + 42),
     })),
   );
 
@@ -921,7 +929,7 @@ export async function seedLorian() {
         carrierReliability: Math.round((95 - b.overall * 0.3) * 100) / 100,
         entityCompliance: Math.round((92 - b.overall * 0.15) * 100) / 100,
       },
-      decidedAt: daysAgo(j % 3),
+      decidedAt: spreadTime(j % 3, j * 35 + 90),
     })),
   );
 
@@ -946,9 +954,9 @@ export async function seedLorian() {
       policyRule: g.policy,
       requiredAction: g.action,
       resolvedBy: g.status === "RELEASED" ? USERS.operator.id : null,
-      resolvedAt: g.status === "RELEASED" ? daysAgo(1) : null,
+      resolvedAt: g.status === "RELEASED" ? spreadTime(1, 215) : null,
       resolutionNotes: g.status === "RELEASED" ? "Cleared after weather advisory lifted" : null,
-      createdAt: daysAgo(3),
+      createdAt: spreadTime(3, g.n * 62 + 18),
     })),
   );
 
@@ -984,7 +992,7 @@ export async function seedLorian() {
       totalSteps: p.steps.length,
       completedSteps: p.steps.filter((s) => s.status === "COMPLETED").length,
       priority: p.priority,
-      createdAt: daysAgo(2),
+      createdAt: spreadTime(2, p.n * 85 + 42),
     })),
   );
 
@@ -1148,7 +1156,7 @@ export async function seedLorian() {
           }))
         : [],
       listsChecked: ["OFAC SDN", "EU Consolidated", "UN Security Council", "UK Sanctions"],
-      screenedAt: daysAgo(j % 4),
+      screenedAt: spreadTime(j % 4, j * 28 + 55),
     })),
   );
 
@@ -1178,11 +1186,11 @@ export async function seedLorian() {
       delayExposure: s.delay,
       disruptionFrequency: s.disruption,
       congestionTrend: s.congestion,
-      recommendationVolume: Math.floor(Math.random() * 15),
-      taskVolume: Math.floor(Math.random() * 8),
-      exceptionCount: Math.floor(Math.random() * 5),
-      marginPressure: Math.round(Math.random() * 20 * 100) / 100,
-      shipmentCount: 5 + Math.floor(Math.random() * 30),
+      recommendationVolume: [8, 12, 5, 10, 3, 7, 4, 11, 6, 9][s.n - 1] || 5,
+      taskVolume: [4, 6, 3, 5, 2, 3, 2, 5, 3, 4][s.n - 1] || 3,
+      exceptionCount: [2, 4, 1, 3, 0, 2, 1, 3, 2, 2][s.n - 1] || 1,
+      marginPressure: [8.5, 14.2, 5.8, 12.1, 3.2, 7.4, 4.6, 11.8, 6.3, 9.7][s.n - 1] || 6.0,
+      shipmentCount: [18, 28, 12, 22, 8, 15, 10, 25, 14, 20][s.n - 1] || 12,
       factors: [
         { dimension: "disruption_frequency", score: s.disruption * 100, weight: 0.3, detail: `${s.disruption * 100}% disruption rate` },
         { dimension: "congestion_trend", score: s.congestion * 100, weight: 0.25, detail: `${s.congestion * 100}% congestion` },
@@ -1214,14 +1222,14 @@ export async function seedLorian() {
       carrierName: a.carrier,
       lane: a.lane,
       allocation: a.alloc,
-      confidence: 0.7 + Math.random() * 0.25,
+      confidence: [0.88, 0.82, 0.75, 0.91, 0.85, 0.72, 0.87, 0.78][a.n - 1],
       reliabilityScore: a.reliability,
-      recommendationTriggerRate: Math.round(Math.random() * 30) / 100,
-      switchAwayRate: Math.round(Math.random() * 20) / 100,
-      disruptionExposure: Math.round(Math.random() * 40) / 100,
-      lanePerformance: a.reliability - 0.05 + Math.random() * 0.1,
+      recommendationTriggerRate: [0.12, 0.18, 0.25, 0.08, 0.15, 0.28, 0.10, 0.22][a.n - 1],
+      switchAwayRate: [0.05, 0.12, 0.18, 0.03, 0.08, 0.20, 0.06, 0.15][a.n - 1],
+      disruptionExposure: [0.15, 0.22, 0.30, 0.12, 0.18, 0.35, 0.14, 0.28][a.n - 1],
+      lanePerformance: [0.83, 0.76, 0.68, 0.86, 0.80, 0.62, 0.82, 0.65][a.n - 1],
       riskAdjustedScore: a.riskAdj,
-      shipmentCount: 5 + Math.floor(Math.random() * 40),
+      shipmentCount: [28, 18, 15, 32, 22, 8, 25, 12][a.n - 1],
       factors: [
         { dimension: "reliability", score: a.reliability * 100, weight: 0.35, detail: `${(a.reliability * 100).toFixed(0)}% on-time` },
         { dimension: "risk_adjusted", score: a.riskAdj * 100, weight: 0.35, detail: `Risk-adjusted: ${(a.riskAdj * 100).toFixed(0)}` },
@@ -1256,7 +1264,7 @@ export async function seedLorian() {
       description: nr.desc,
       evidence: [{ signal: "composite_analysis", value: 0.75, threshold: 0.6, source: "strategic-engine" }],
       suggestedAction: nr.desc,
-      estimatedImpact: { riskReduction: 15 + Math.random() * 25, costImpact: null, delayReduction: 1 + Math.random() * 3 },
+      estimatedImpact: { riskReduction: [28, 22, 18, 35, 25][nr.n - 1], costImpact: null, delayReduction: [2.5, 1.8, 1.2, 3.2, 2.0][nr.n - 1] },
       status: "OPEN" as const,
       fingerprint: `nr_fp_lor_${nr.n}`,
     })),
@@ -1277,9 +1285,9 @@ export async function seedLorian() {
       marginAtRisk: 85000,
       mitigatedExposure: 45000,
       unmitigatedExposure: 40000,
-      exposureByLane: TRADE_LANES.slice(0, 5).map((l) => ({ lane: `${l.origin}-${l.destination}`, exposure: 5000 + Math.random() * 20000, shipmentCount: 1 + Math.floor(Math.random() * 4) })),
-      exposureByCarrier: CARRIERS.slice(0, 5).map((c) => ({ carrier: c.name, exposure: 3000 + Math.random() * 15000, shipmentCount: 1 + Math.floor(Math.random() * 5) })),
-      exposureByPort: PORTS.slice(0, 5).map((p) => ({ port: p.code, exposure: 2000 + Math.random() * 18000, shipmentCount: 1 + Math.floor(Math.random() * 6) })),
+      exposureByLane: TRADE_LANES.slice(0, 5).map((l, i) => ({ lane: `${l.origin}-${l.destination}`, exposure: [18500, 12200, 8800, 15600, 22100][i], shipmentCount: [4, 3, 2, 3, 5][i] })),
+      exposureByCarrier: CARRIERS.slice(0, 5).map((c, i) => ({ carrier: c.name, exposure: [14200, 11800, 8500, 12400, 9200][i], shipmentCount: [4, 3, 2, 3, 2][i] })),
+      exposureByPort: PORTS.slice(0, 5).map((p, i) => ({ port: p.code, exposure: [16800, 12500, 9200, 14100, 8800][i], shipmentCount: [5, 3, 2, 4, 2][i] })),
       trends: { riskTrend: "worsening", delayTrend: "worsening", complianceTrend: "stable" },
     },
     {

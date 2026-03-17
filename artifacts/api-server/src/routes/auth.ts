@@ -133,6 +133,12 @@ router.post("/auth/login", validateBody(loginSchema), async (req, res) => {
     .set({ lastLoginAt: new Date() })
     .where(eq(usersTable.id, user.id));
 
+  const [company] = await db
+    .select({ name: companiesTable.name })
+    .from(companiesTable)
+    .where(eq(companiesTable.id, user.companyId))
+    .limit(1);
+
   const token = signToken({
     userId: user.id,
     companyId: user.companyId,
@@ -149,6 +155,7 @@ router.post("/auth/login", validateBody(loginSchema), async (req, res) => {
         name: user.name,
         role: user.role,
         companyId: user.companyId,
+        companyName: company?.name || null,
       },
     },
   });
@@ -183,7 +190,7 @@ router.get("/auth/me", requireAuth, async (req, res) => {
     .where(eq(companiesTable.id, user.companyId))
     .limit(1);
 
-  res.json({ data: { ...user, company: company || null } });
+  res.json({ data: { ...user, company: company || null, companyName: company?.name || null } });
 });
 
 export default router;

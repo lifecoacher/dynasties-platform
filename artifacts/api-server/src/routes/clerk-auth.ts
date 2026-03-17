@@ -113,6 +113,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
               name: displayName || lorianAdmin.name,
               role: lorianAdmin.role,
               companyId: LORIAN_COMPANY_ID,
+              companyName: "Lorian Freight Solutions",
             },
             isNewUser: false,
             isDemoUser: true,
@@ -141,6 +142,12 @@ router.post("/auth/clerk-sync", async (req, res) => {
         .set({ lastLoginAt: new Date() })
         .where(eq(usersTable.id, existingByClerk.id));
 
+      const [clerkCompany] = await db
+        .select({ name: companiesTable.name })
+        .from(companiesTable)
+        .where(eq(companiesTable.id, existingByClerk.companyId))
+        .limit(1);
+
       const token = signToken({
         userId: existingByClerk.id,
         companyId: existingByClerk.companyId,
@@ -157,6 +164,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
             name: existingByClerk.name,
             role: existingByClerk.role,
             companyId: existingByClerk.companyId,
+            companyName: clerkCompany?.name || null,
           },
           isNewUser: false,
         },
@@ -181,6 +189,12 @@ router.post("/auth/clerk-sync", async (req, res) => {
         .set({ clerkId: clerkUserId, lastLoginAt: new Date() })
         .where(eq(usersTable.id, existingByEmail.id));
 
+      const [emailCompany] = await db
+        .select({ name: companiesTable.name })
+        .from(companiesTable)
+        .where(eq(companiesTable.id, existingByEmail.companyId))
+        .limit(1);
+
       const token = signToken({
         userId: existingByEmail.id,
         companyId: existingByEmail.companyId,
@@ -197,6 +211,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
             name: existingByEmail.name,
             role: existingByEmail.role,
             companyId: existingByEmail.companyId,
+            companyName: emailCompany?.name || null,
           },
           isNewUser: false,
         },
@@ -257,7 +272,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
     res.status(201).json({
       data: {
         token,
-        user: { id: userId, email: normalizedEmail, name: displayName, role: "ADMIN", companyId },
+        user: { id: userId, email: normalizedEmail, name: displayName, role: "ADMIN", companyId, companyName: orgName },
         company: { id: companyId, name: orgName, slug },
         isNewUser: true,
       },
