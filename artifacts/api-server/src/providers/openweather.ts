@@ -110,7 +110,7 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherSum
   }
 
   const apiKey = cfg.weather.apiKey;
-  const url = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lng}&units=metric&exclude=minutely,hourly,daily&appid=${apiKey}`;
+  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${apiKey}`;
 
   let lastError: Error | null = null;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -129,8 +129,8 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherSum
       const data = await res.json() as any;
       const elapsed2 = Date.now() - start;
 
-      const windSpeedKmh = (data.current?.wind_speed || 0) * 3.6;
-      const windGustKmh = data.current?.wind_gust ? data.current.wind_gust * 3.6 : null;
+      const windSpeedKmh = (data.wind?.speed || 0) * 3.6;
+      const windGustKmh = data.wind?.gust ? data.wind.gust * 3.6 : null;
       const beaufort = windToBeaufort(windGustKmh || windSpeedKmh);
       const seaState = beaufortToRisk(beaufort);
 
@@ -139,26 +139,20 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherSum
         location: {
           lat,
           lng,
-          name: data.timezone || undefined,
+          name: data.name || undefined,
         },
         current: {
-          tempC: Math.round(data.current?.temp ?? 0),
-          feelsLikeC: Math.round(data.current?.feels_like ?? 0),
-          humidity: data.current?.humidity ?? 0,
+          tempC: Math.round(data.main?.temp ?? 0),
+          feelsLikeC: Math.round(data.main?.feels_like ?? 0),
+          humidity: data.main?.humidity ?? 0,
           windSpeedKmh: Math.round(windSpeedKmh),
           windGustKmh: windGustKmh ? Math.round(windGustKmh) : null,
-          description: data.current?.weather?.[0]?.description || "Unknown",
-          icon: data.current?.weather?.[0]?.icon || "01d",
-          visibility: data.current?.visibility ?? 10000,
-          pressure: data.current?.pressure ?? 1013,
+          description: data.weather?.[0]?.description || "Unknown",
+          icon: data.weather?.[0]?.icon || "01d",
+          visibility: data.visibility ?? 10000,
+          pressure: data.main?.pressure ?? 1013,
         },
-        alerts: (data.alerts || []).map((a: any) => ({
-          event: a.event || "Weather Alert",
-          severity: mapAlertSeverity(a.tags?.[0] || ""),
-          description: (a.description || "").slice(0, 500),
-          start: new Date((a.start || 0) * 1000).toISOString(),
-          end: new Date((a.end || 0) * 1000).toISOString(),
-        })),
+        alerts: [],  // Free API 2.5 does not include alerts; One Call 3.0 (paid) required for weather alerts
         seaState: {
           windBeaufort: beaufort,
           operationalRisk: seaState.risk,
