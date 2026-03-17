@@ -20,7 +20,19 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
 
-const NAV_ITEMS = [
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+
+const DEMO_HIDDEN = new Set([
+  "/customers",
+  "/intelligence",
+  "/predictive",
+  "/strategy",
+  "/policy-studio",
+  "/reports",
+  "/analytics",
+]);
+
+const ALL_NAV_ITEMS = [
   { href: "/", icon: Command, label: "Command Center" },
   { href: "/shipments", icon: Ship, label: "Shipments" },
   { href: "/control-tower", icon: Radar, label: "Control Tower" },
@@ -34,6 +46,10 @@ const NAV_ITEMS = [
   { href: "/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
+
+const NAV_ITEMS = DEMO_MODE
+  ? ALL_NAV_ITEMS.filter((item) => !DEMO_HIDDEN.has(item.href))
+  : ALL_NAV_ITEMS;
 
 export function Sidebar() {
   const [location] = useLocation();
@@ -86,12 +102,14 @@ export function Sidebar() {
           );
         })}
 
-        <Link href="/demo">
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors cursor-pointer mt-2">
-            <Zap className="w-4 h-4 shrink-0" />
-            Demo Pipeline
-          </div>
-        </Link>
+        {!DEMO_MODE && (
+          <Link href="/demo">
+            <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors cursor-pointer mt-2">
+              <Zap className="w-4 h-4 shrink-0" />
+              Demo Pipeline
+            </div>
+          </Link>
+        )}
 
         {recentShipments.length > 0 && (
           <div className="mt-6 pt-4 border-t border-sidebar-border">

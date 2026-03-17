@@ -183,8 +183,8 @@ function EmptyState() {
       <h3 className="text-[15px] font-semibold text-foreground mb-1">No shipments yet</h3>
       <p className="text-[13px] text-muted-foreground mb-4">Import your shipments, connect your email, or create your first shipment.</p>
       <div className="flex items-center justify-center gap-3">
-        <Link href="/demo" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors">
-          Try Demo Pipeline
+        <Link href="/shipments" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors">
+          View Shipments
         </Link>
       </div>
     </div>

@@ -37,6 +37,7 @@ const queryClient = new QueryClient({
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const clerkEnabled = !!(CLERK_PUBLISHABLE_KEY && CLERK_PUBLISHABLE_KEY.startsWith("pk_"));
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
 function ClerkLoginPage() {
   return (
@@ -96,27 +97,37 @@ function AuthenticatedRouter() {
     return <LoginPage />;
   }
 
+  const DemoRedirect = () => { window.location.replace(import.meta.env.BASE_URL.replace(/\/$/, "") || "/"); return null; };
+
   return (
     <Switch>
       <Route path="/" component={CommandCenter} />
       <Route path="/shipments" component={ShipmentsPage} />
       <Route path="/shipments/:id/trace" component={DecisionTrace} />
       <Route path="/shipments/:id" component={ShipmentDetail} />
-      <Route path="/intelligence" component={IntelligencePage} />
       <Route path="/control-tower" component={ControlTower} />
       <Route path="/work-queue" component={WorkQueue} />
-      <Route path="/customers" component={CustomersPage} />
-      <Route path="/predictive" component={PredictiveIntelligence} />
-      <Route path="/strategy" component={StrategyIntelligence} />
-      <Route path="/policy-studio" component={PolicyStudio} />
-      <Route path="/reports" component={ReportsPage} />
-      <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/lanes/:origin/:destination" component={LaneDossier} />
       <Route path="/ports/:portCode" component={PortDossier} />
       <Route path="/carriers/:carrierId" component={CarrierDossier} />
       <Route path="/entities/:entityId" component={EntityDossier} />
       <Route path="/settings" component={SettingsPage} />
-      <Route path="/demo" component={DemoControls} />
+      {!DEMO_MODE && <Route path="/intelligence" component={IntelligencePage} />}
+      {!DEMO_MODE && <Route path="/customers" component={CustomersPage} />}
+      {!DEMO_MODE && <Route path="/predictive" component={PredictiveIntelligence} />}
+      {!DEMO_MODE && <Route path="/strategy" component={StrategyIntelligence} />}
+      {!DEMO_MODE && <Route path="/policy-studio" component={PolicyStudio} />}
+      {!DEMO_MODE && <Route path="/reports" component={ReportsPage} />}
+      {!DEMO_MODE && <Route path="/analytics" component={AnalyticsPage} />}
+      {!DEMO_MODE && <Route path="/demo" component={DemoControls} />}
+      {DEMO_MODE && <Route path="/intelligence" component={DemoRedirect} />}
+      {DEMO_MODE && <Route path="/customers" component={DemoRedirect} />}
+      {DEMO_MODE && <Route path="/predictive" component={DemoRedirect} />}
+      {DEMO_MODE && <Route path="/strategy" component={DemoRedirect} />}
+      {DEMO_MODE && <Route path="/policy-studio" component={DemoRedirect} />}
+      {DEMO_MODE && <Route path="/reports" component={DemoRedirect} />}
+      {DEMO_MODE && <Route path="/analytics" component={DemoRedirect} />}
+      {DEMO_MODE && <Route path="/demo" component={DemoRedirect} />}
       <Route component={NotFound} />
     </Switch>
   );

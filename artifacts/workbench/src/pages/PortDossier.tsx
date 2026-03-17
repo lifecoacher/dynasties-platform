@@ -54,7 +54,7 @@ export default function PortDossier() {
     <AppLayout>
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         <div className="flex items-center gap-2 text-sm text-slate-400">
-          <Link href="/analytics" className="hover:text-slate-600">Analytics</Link>
+          <Link href="/" className="hover:text-slate-600">Home</Link>
           <ChevronRight className="w-3 h-3" />
           <span className="text-slate-700">Port Dossier</span>
         </div>
