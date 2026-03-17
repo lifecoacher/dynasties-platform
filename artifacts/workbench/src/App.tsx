@@ -62,6 +62,11 @@ function ClerkLoginPage() {
               formFieldLabel: "text-muted-foreground",
               footerActionLink: "text-primary hover:text-primary/80",
               identityPreviewEditButton: "text-primary",
+              socialButtonsBlockButton: "border border-card-border bg-background hover:bg-card transition-colors min-h-[44px] px-4",
+              socialButtonsBlockButtonText: "text-foreground font-medium text-[15px]",
+              socialButtonsProviderIcon: "w-5 h-5",
+              dividerLine: "bg-card-border",
+              dividerText: "text-muted-foreground",
             },
           }}
         />
