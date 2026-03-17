@@ -16,7 +16,8 @@ export default function LoginPage() {
     setAutoLoginAttempted(true);
 
     const isDev = import.meta.env.DEV;
-    if (isDev) {
+    const manuallyLoggedOut = localStorage.getItem("dynasties_manual_logout") === "true";
+    if (isDev && !manuallyLoggedOut) {
       setIsSubmitting(true);
       login("admin@dynasties.io", "DynastiesAdmin2026!").catch(() => {
         setIsSubmitting(false);

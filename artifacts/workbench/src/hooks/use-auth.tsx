@@ -21,6 +21,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const TOKEN_KEY = "dynasties_token";
 const USER_KEY = "dynasties_user";
+const MANUAL_LOGOUT_KEY = "dynasties_manual_logout";
 
 function getBaseUrl() {
   return import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -51,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthToken(null);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.setItem(MANUAL_LOGOUT_KEY, "true");
   }, []);
 
   logoutRef.current = logout;
@@ -107,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthToken(data.token);
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    localStorage.removeItem(MANUAL_LOGOUT_KEY);
   }, []);
 
   return (
