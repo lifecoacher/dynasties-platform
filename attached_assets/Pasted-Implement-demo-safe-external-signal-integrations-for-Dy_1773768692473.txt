@@ -1,0 +1,109 @@
+Implement demo-safe external signal integrations for Dynasties using Replit Secrets.
+
+Available secrets in Replit Secrets:
+- OPENWEATHER_API_KEY
+- AISSTREAM_API_KEY
+
+Important:
+- Read secrets from Replit Secrets only
+- Never hardcode keys
+- Never expose keys to frontend
+- Backend only
+- Demo reliability is more important than perfect real-time behavior
+- Preserve current seeded Lorian demo environment
+- If any provider fails, automatically fall back to seeded/demo data without breaking the UI
+
+GOAL
+
+Wire the following providers into Dynasties in the safest, most demo-stable way:
+
+1. OpenWeather
+2. AISStream (optional / fallback-friendly)
+3. Keep routing / ETA simulated for now
+
+PART 1 — FEATURE FLAGS
+
+Add environment/config flags:
+- DEMO_EXTERNAL_SIGNALS=true/false
+- DEMO_USE_WEATHER_API=true/false
+- DEMO_USE_AIS_API=true/false
+
+Behavior:
+- If flags are false, use current seeded/simulated data only
+- If flags are true, use live providers with graceful fallback
+
+PART 2 — OPENWEATHER INTEGRATION
+
+Create a backend-only provider integration for OpenWeather.
+
+Use it to:
+- enrich weather risk in shipment detail
+- enrich pre-shipment risk
+- support delay / disruption reasoning where useful
+
+Requirements:
+- normalized weather summary object
+- strict timeout
+- retry once or twice max
+- caching for demo stability
+- fallback to seeded weather risk if API fails or key is invalid
+- logging of success/failure/latency/fallback
+
+Do not add a new page. Improve existing flows only.
+
+PART 3 — AISSTREAM INTEGRATION
+
+Create a backend integration wrapper for AISStream.
+
+Important:
+- AISStream is WebSocket-based
+- Do not build a fragile live-stream dependency into the demo
+- If practical, ingest limited vessel-position data in a controlled way
+- If not practical, keep vessel intelligence simulated and document why
+
+Use AISStream only if:
+- it can be integrated safely without destabilizing demo flows
+- it improves shipment detail or vessel context meaningfully
+
+Otherwise:
+- leave current seeded vessel intelligence in place
+- implement the provider wrapper but keep it disabled by default
+
+PART 4 — UI / DATA INTEGRATION
+
+Wire OpenWeather and optional AIS context into the strongest existing demo flows:
+- Shipment Detail
+- Pre-Shipment Risk
+- Booking Decision reasoning if useful
+- Scenario Comparison evidence if useful
+- Control Tower evidence if useful
+
+Do not create noisy or flashy UI.
+Add subtle evidence chips / labels / source references only if they strengthen credibility.
+
+PART 5 — DEMO STABILITY
+
+Ensure:
+- No visible page depends on a live provider to render
+- If a provider fails, UI still works instantly using seeded data
+- Existing demo flows remain stable and coherent
+- No broken loading states
+- No empty widgets appear if provider data is unavailable
+
+PART 6 — OBSERVABILITY
+
+Log for each provider call:
+- provider name
+- request outcome
+- latency
+- fallback triggered or not
+
+Return:
+1. exact files changed
+2. where each secret is read
+3. what features now use OpenWeather
+4. whether AISStream was fully integrated, partially integrated, or intentionally left behind a flag
+5. where fallback behavior exists
+6. exact test steps for verifying everything works without harming the demo
+
+Implement code, not just a plan.
