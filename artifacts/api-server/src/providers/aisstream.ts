@@ -26,17 +26,22 @@ function logProviderCall(outcome: "success" | "error" | "disabled" | "fallback",
 export async function fetchVesselPositions(_mmsis: string[]): Promise<VesselPosition[] | null> {
   const cfg = getExternalSignalsConfig();
 
-  if (!cfg.ais.enabled || !cfg.ais.apiKey) {
-    logProviderCall("disabled", 0, "AISStream disabled or API key missing — using seeded vessel data");
+  if (!cfg.ais.enabled) {
+    logProviderCall("disabled", 0, "AISStream disabled via DEMO_USE_AIS_API flag — using seeded vessel data");
     return null;
   }
 
-  logProviderCall("disabled", 0,
-    "AISStream integration intentionally disabled for demo stability. " +
-    "AISStream uses WebSocket streaming which creates a fragile dependency: " +
-    "connections can drop, rate limits are strict, and the streaming model " +
-    "doesn't align with request/response demo flows. " +
-    "Seeded vessel intelligence data provides a more reliable demo experience."
+  if (!cfg.ais.apiKey) {
+    logProviderCall("disabled", 0, "AISStream enabled but AISSTREAM_API_KEY missing — using seeded vessel data");
+    return null;
+  }
+
+  logProviderCall("fallback", 0,
+    "AISStream provider is enabled but WebSocket streaming is not yet implemented. " +
+    "AISStream uses WebSocket connections which require a persistent listener model " +
+    "that doesn't align with request/response demo flows. " +
+    "Production implementation would open a managed WebSocket, buffer recent positions, " +
+    "and serve them via a REST-like cache. Using seeded vessel data for now."
   );
   return null;
 }
@@ -48,9 +53,10 @@ export function getAisStreamStatus(): {
 } {
   const cfg = getExternalSignalsConfig();
   return {
-    enabled: false,
-    reason: "Intentionally disabled — WebSocket streaming is fragile for demo. " +
-      "Provider wrapper exists and can be activated for production use.",
+    enabled: cfg.ais.enabled,
+    reason: cfg.ais.enabled
+      ? "Enabled via flags — WebSocket streaming not yet implemented, falling back to seeded data"
+      : "Disabled via DEMO_USE_AIS_API flag. Set to 'true' to opt in (will still use seeded data until WebSocket ingestion is built).",
     apiKeyPresent: !!cfg.ais.apiKey,
   };
 }

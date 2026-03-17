@@ -147,6 +147,7 @@ export default function ShipmentDetail() {
   const [evaluatingBooking, setEvaluatingBooking] = useState(false);
   const [evaluatingGates, setEvaluatingGates] = useState(false);
   const [evaluatingScenarios, setEvaluatingScenarios] = useState(false);
+  const [weatherContext, setWeatherContext] = useState<any>(null);
   const qc = useQueryClient();
 
   const BASE = `${import.meta.env.BASE_URL}api`;
@@ -208,6 +209,7 @@ export default function ShipmentDetail() {
     fetch(`${BASE}/predictive/holds/${id}`, { headers: h }).then((r) => r.json()).then((j) => setGateHolds(j.data || [])).catch(() => {});
     fetch(`${BASE}/predictive/scenarios/${id}`, { headers: h }).then((r) => r.json()).then((j) => setScenarioComparison(j.data)).catch(() => {});
     fetch(`${BASE}/predictive/playbooks/${id}`, { headers: h }).then((r) => r.json()).then((j) => setPlaybooks(j.data || [])).catch(() => {});
+    fetch(`${BASE}/shipments/${id}/weather-context`, { headers: h }).then((r) => r.json()).then((j) => setWeatherContext(j.data)).catch(() => {});
   }, [id]);
 
   const runBookingDecision = async () => {
@@ -795,6 +797,79 @@ export default function ShipmentDetail() {
                 <p className="text-[11px] text-muted-foreground">Click evaluate to assess pre-shipment risk</p>
               )}
             </div>
+
+            {weatherContext && Object.keys(weatherContext.portWeather || {}).length > 0 && (
+              <div className="p-4 rounded-xl bg-card border border-card-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Radar className="w-4 h-4 text-primary" />
+                    <h3 className="text-[13px] font-semibold text-foreground">Port Weather</h3>
+                  </div>
+                  {weatherContext.hasLiveData && (
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      Live · OpenWeather
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {Object.values(weatherContext.portWeather).map((pw: any) => (
+                    <div key={pw.portCode} className="space-y-1.5">
+                      <p className="text-[11px] font-medium text-foreground">{pw.portName} ({pw.portCode})</p>
+                      {pw.live ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-muted-foreground">Conditions</span>
+                            <span className="text-foreground capitalize">{pw.live.current.description}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-muted-foreground">Temperature</span>
+                            <span className="text-foreground">{pw.live.current.tempC}°C</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-muted-foreground">Wind</span>
+                            <span className="text-foreground">{pw.live.current.windSpeedKmh} km/h (Beaufort {pw.live.seaState.windBeaufort})</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-muted-foreground">Sea State</span>
+                            <span className={`font-medium ${
+                              pw.live.seaState.operationalRisk === "critical" ? "text-[#E05252]" :
+                              pw.live.seaState.operationalRisk === "high" ? "text-[#D4A24C]" :
+                              pw.live.seaState.operationalRisk === "moderate" ? "text-[#D4A24C]/80" : "text-primary"
+                            }`}>{pw.live.seaState.description}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-muted-foreground">Visibility</span>
+                            <span className="text-foreground">{(pw.live.current.visibility / 1000).toFixed(1)} km</span>
+                          </div>
+                          {pw.live.alerts && pw.live.alerts.length > 0 && (
+                            <div className="mt-1 pt-1 border-t border-border">
+                              {pw.live.alerts.map((a: any, i: number) => (
+                                <p key={i} className="text-[10px] text-[#D4A24C]">⚠ {a.event}</p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : pw.seededEvents && pw.seededEvents.length > 0 ? (
+                        <div className="space-y-1">
+                          {pw.seededEvents.map((ev: any) => (
+                            <div key={ev.id} className="flex items-center justify-between text-[10px]">
+                              <span className="text-muted-foreground capitalize">{ev.eventType}</span>
+                              <span className={`font-medium ${
+                                ev.severity === "critical" ? "text-[#E05252]" :
+                                ev.severity === "high" ? "text-[#D4A24C]" :
+                                ev.severity === "medium" ? "text-[#D4A24C]/80" : "text-muted-foreground"
+                              }`}>{ev.severity}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground">No active weather alerts</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {readiness && readiness.shipmentId && (
               <div className="p-4 rounded-xl bg-card border border-card-border">
