@@ -60,7 +60,7 @@ Login: `admin@lorian.demo` / `LorianDemo2026!` (also manager@, ops@, viewer@).
 Old scattered demo data (`seed-demo-data.ts`) has been retired and archived.
 
 ## External Dependencies
-- **AI Integration:** Anthropic Claude via `@workspace/integrations-anthropic-ai` orchestration layer. `callAI()` provides model routing (Sonnet for extraction, Haiku for lighter tasks), retry with exponential backoff on 429s, structured logging of model/tokens/latency. `ai_usage_logs` table for usage tracking. Error responses throw explicitly in callers.
+- **AI Integration:** Anthropic Claude via `@workspace/integrations-anthropic-ai` orchestration layer. `callAI()` provides model routing (Sonnet for extraction/analysis, Haiku for lighter tasks), retry with exponential backoff on 429/529 errors, Zod schema validation for structured JSON output, cost estimation per call. Usage persisted to `ai_usage_logs` table via `persistUsageLog()`. Decision engine's `runAIAnalysis()` enriches deterministic recommendations with AI-generated explanations, risk narratives, and multi-factor analysis. API endpoint: `POST /api/shipments/:id/ai-analyze`. Fallback: if AI fails validation, deterministic recommendations are used as-is.
 - **Authentication:** `@clerk/clerk-react` (frontend), `@clerk/express` (backend) for production auth. JWT via `jsonwebtoken` for demo/dev mode.
 - **Database:** PostgreSQL.
 - **ORM:** Drizzle ORM.

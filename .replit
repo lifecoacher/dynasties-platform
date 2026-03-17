@@ -35,3 +35,4 @@ packages = ["qgit", "killall"]
 JWT_SECRET = "dynasties-dev-jwt-secret-32chars-minimum-length-ok"
 VITE_CLERK_PUBLISHABLE_KEY = "pk_test_c3RyaWtpbmctbWF5Zmx5LTMzLmNsZXJrLmFjY291bnRzLmRldiQ"
 CLERK_SECRET_KEY = "sk_test_KsSJJ7nKUvfxo5Msxz1TGmoER1y1bicixWqydysOUZ"
+ANTHROPIC_API_KEY = ""
