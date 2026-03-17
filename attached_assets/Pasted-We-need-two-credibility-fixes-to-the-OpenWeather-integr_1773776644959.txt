@@ -1,0 +1,32 @@
+We need two credibility fixes to the OpenWeather integration. Do NOT add new APIs, touch AISStream, redesign scoring, unhide pages, or break existing demo flows.
+
+== TASK 1: CLEAN UP PORT WEATHER WIDGET ==
+
+Find the Port Weather widget component. The 'visibility' field is currently hardcoded/static at exactly 10.0 km across all ports — this looks fake and staged.
+
+1. Locate the component that renders the Port Weather widget (likely in the shipment detail page)
+2. Remove the Visibility row entirely from the UI display
+3. Keep only: Conditions, Temperature, Wind, Sea State
+4. Make sure the widget still looks clean with the remaining 4 rows
+5. If the visibility field exists in the API response type/interface, leave it in the type but just don't render it
+
+== TASK 2: WEATHER AS NATIVE INTELLIGENCE INPUT ==
+
+Weather is live but feels like a standalone widget. Make it feel like a real intelligence input to Dynasties.
+
+1. In the Decision Trace page/component, add a 'Weather Intelligence' entry in the trace reasoning chain. This should:
+   - Only appear when weather data is available for the shipment's origin or destination port
+   - Show the port name, weather condition, wind speed, and a brief impact note (e.g. 'Rough seas at origin port may affect loading schedule')
+   - Use the same styling/format as existing trace entries
+   - Be labeled clearly as coming from OpenWeather (e.g. small badge 'OpenWeather signal')
+
+2. In the shipment risk context (near the Risk Score or Pre-Shipment Risk panel), add a subtle 1-line weather contribution note when weather is materially relevant (wind > Beaufort 4 or adverse conditions). Example: 'Weather signal: Rough seas at CNSHA (+2 risk pts)'
+
+== TASK 3: FALLBACK SAFETY ==
+
+1. Ensure the Port Weather widget shows a graceful fallback ('Weather data unavailable') if OpenWeather times out or returns an error
+2. The fallback must NOT break the shipment detail page layout
+3. Decision Trace weather entry should simply not render if weather data is unavailable
+4. All existing demo paths (Command Center, Shipments, Shipment Detail, Pre-Shipment Risk, Booking Decision, Decision Trace, Control Tower, Work Queue) must remain stable
+
+IMPORTANT: Keep changes minimal and demo-safe. Do not redesign any existing panels. The goal is removal of suspicious visibility field + subtle weather intelligence threading.
