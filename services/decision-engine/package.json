@@ -11,6 +11,7 @@
     "@workspace/db": "workspace:*",
     "@workspace/shared-utils": "workspace:*",
     "@workspace/config": "workspace:*",
+    "@workspace/integrations-anthropic-ai": "workspace:*",
     "@workspace/svc-workflow-orchestrator": "workspace:*",
     "@workspace/svc-predictive-intelligence": "workspace:*",
     "drizzle-orm": "catalog:",
