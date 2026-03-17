@@ -23,7 +23,8 @@ const router = Router();
 
 router.get("/dossiers/lanes/:origin/:destination", async (req: Request, res: Response) => {
   const companyId = (req as any).companyId as string;
-  const { origin, destination } = req.params;
+  const origin = String(req.params.origin);
+  const destination = String(req.params.destination);
 
   const [score] = await db
     .select()
@@ -164,7 +165,7 @@ router.get("/dossiers/lanes/:origin/:destination", async (req: Request, res: Res
 
 router.get("/dossiers/ports/:portCode", async (req: Request, res: Response) => {
   const companyId = (req as any).companyId as string;
-  const { portCode } = req.params;
+  const portCode = String(req.params.portCode);
 
   const [score] = await db
     .select()
@@ -294,8 +295,7 @@ router.get("/dossiers/ports/:portCode", async (req: Request, res: Response) => {
 
 router.get("/dossiers/carriers/:carrierId", async (req: Request, res: Response) => {
   const companyId = (req as any).companyId as string;
-  const { carrierId } = req.params;
-  const carrierName = decodeURIComponent(carrierId);
+  const carrierName = decodeURIComponent(String(req.params.carrierId));
 
   const [score] = await db
     .select()
@@ -408,8 +408,7 @@ router.get("/dossiers/carriers/:carrierId", async (req: Request, res: Response) 
 
 router.get("/dossiers/entities/:entityId", async (req: Request, res: Response) => {
   const companyId = (req as any).companyId as string;
-  const { entityId } = req.params;
-  const entityName = decodeURIComponent(entityId);
+  const entityName = decodeURIComponent(String(req.params.entityId));
 
   const [score] = await db
     .select()
@@ -539,8 +538,8 @@ router.get("/dossiers/entities/:entityId", async (req: Request, res: Response) =
 
 router.get("/dossiers/graph/:nodeType/:nodeId", async (req: Request, res: Response) => {
   const companyId = (req as any).companyId as string;
-  const { nodeType, nodeId } = req.params;
-  const decodedId = decodeURIComponent(nodeId);
+  const nodeType = String(req.params.nodeType);
+  const decodedId = decodeURIComponent(String(req.params.nodeId));
 
   const outgoing = await db
     .select()

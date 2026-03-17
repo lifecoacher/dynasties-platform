@@ -52,7 +52,7 @@ export async function automateAlertActions(
         and(
           eq(shipmentsTable.id, shipmentId),
           eq(shipmentsTable.companyId, companyId),
-          inArray(shipmentsTable.status, ["DRAFT", "PENDING_REVIEW", "APPROVED"]),
+          inArray(shipmentsTable.status, ["DRAFT", "PENDING_REVIEW", "APPROVED"] as const),
         ),
       )
       .limit(1);
@@ -75,10 +75,10 @@ export async function automateAlertActions(
         companyId,
         shipmentId,
         fingerprint: recFingerprint,
-        type: alertTypeToRecType(alert.alertType),
+        type: alertTypeToRecType(alert.alertType) as any,
         title: `[Predictive Alert] ${alert.title}`,
         explanation: alert.description,
-        urgency,
+        urgency: urgency as any,
         recommendedAction: getRecommendedAction(alert.alertType),
         status: "PENDING",
         sourceAgent: "predictive-intelligence",
@@ -102,7 +102,7 @@ export async function automateAlertActions(
             companyId,
             shipmentId,
             recommendationId: recId,
-            taskType: alertTypeToTaskType(alert.alertType),
+            taskType: alertTypeToTaskType(alert.alertType) as any,
             title: `[Urgent] ${alert.title}`,
             description: `Auto-created from critical predictive alert: ${alert.description}`,
             status: "OPEN",
@@ -126,7 +126,7 @@ export async function automateAlertActions(
             and(
               eq(releaseGateHoldsTable.shipmentId, shipmentId),
               eq(releaseGateHoldsTable.companyId, companyId),
-              eq(releaseGateHoldsTable.gateType, gateType),
+              eq(releaseGateHoldsTable.gateType, gateType as any),
               eq(releaseGateHoldsTable.status, "ACTIVE"),
             ),
           )
@@ -137,7 +137,7 @@ export async function automateAlertActions(
             id: generateId("rgh"),
             companyId,
             shipmentId,
-            gateType,
+            gateType: gateType as any,
             severity: alert.severity === "CRITICAL" ? "CRITICAL" : "HIGH",
             reason: `Triggered by predictive alert: ${alert.title}`,
             policyRule: `ALERT_${alert.alertType}`,

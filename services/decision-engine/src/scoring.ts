@@ -104,7 +104,7 @@ async function scoreLanes(companyId: string): Promise<number> {
           tenantOrGlobalFilter(laneMarketSignalsTable.companyId, companyId),
         ),
       )
-      .orderBy(desc(laneMarketSignalsTable.signalDate))
+      .orderBy(desc(laneMarketSignalsTable.signalTimestamp))
       .limit(3);
 
     let marketPressureScore = 0;
@@ -333,19 +333,19 @@ async function scoreCarriers(companyId: string): Promise<number> {
         vessel: shipmentsTable.vessel,
         portOfLoading: shipmentsTable.portOfLoading,
         portOfDischarge: shipmentsTable.portOfDischarge,
-        shipper: shipmentsTable.shipper,
+        shipperId: shipmentsTable.shipperId,
       })
       .from(shipmentsTable)
       .where(
         and(
           eq(shipmentsTable.companyId, companyId),
-          inArray(shipmentsTable.shipper, shipperIds),
+          inArray(shipmentsTable.shipperId, shipperIds),
         ),
       )
       .limit(100);
 
     const totalShipments = shipments.length;
-    const completedOk = shipments.filter((s) => s.status === "COMPLETED" || s.status === "DELIVERED").length;
+    const completedOk = shipments.filter((s) => s.status === "DELIVERED" || s.status === "CLOSED").length;
     const performanceScore = totalShipments > 0 ? Math.round((completedOk / totalShipments) * 100) : 50;
 
     const vesselNames = [...new Set(shipments.map((s) => s.vessel).filter(Boolean) as string[])];
@@ -364,7 +364,7 @@ async function scoreCarriers(companyId: string): Promise<number> {
         .limit(10);
 
       const anomalies = positions.filter(
-        (p) => p.navigationStatus === "anchored" || p.navigationStatus === "moored",
+        (p) => p.status === "anchored" || p.status === "moored",
       );
       anomalyScore = Math.min(100, anomalies.length * 25);
     }

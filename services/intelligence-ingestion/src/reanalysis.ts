@@ -46,7 +46,7 @@ export async function findImpactedShipments(
   const impacted: Array<{ shipmentId: string; reason: string }> = [];
   const seen = new Set<string>();
 
-  const activeStatuses = ["DRAFT", "SUBMITTED", "APPROVED", "IN_TRANSIT", "ARRIVED"];
+  const activeStatuses = ["DRAFT", "PENDING", "APPROVED", "IN_TRANSIT", "AT_PORT"] as const;
 
   if (portCodes.length > 0) {
     const portShipments = await db
@@ -154,8 +154,8 @@ export async function findImpactedShipments(
             eq(shipmentsTable.companyId, companyId),
             inArray(shipmentsTable.status, activeStatuses),
             or(
-              inArray(shipmentsTable.shipper, [...linkedEntityIds]),
-              inArray(shipmentsTable.consignee, [...linkedEntityIds]),
+              inArray(shipmentsTable.shipperId, [...linkedEntityIds]),
+              inArray(shipmentsTable.consigneeId, [...linkedEntityIds]),
             ),
           ),
         )

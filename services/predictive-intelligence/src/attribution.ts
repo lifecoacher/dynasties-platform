@@ -72,7 +72,7 @@ export async function computeAttribution(
 
   const completedPlaybooks = playbooks.filter((p) => p.status === "COMPLETED");
 
-  const resolvedAlerts = alerts.filter((a) => a.status === "resolved" || a.status === "acknowledged");
+  const resolvedAlerts = alerts.filter((a) => a.status === "RESOLVED" || a.status === "ACKNOWLEDGED");
 
   const AVG_DELAY_SAVED_PER_INTERVENTION = 1.5;
   const AVG_MARGIN_PROTECTED_PER_HOLD = 2500;

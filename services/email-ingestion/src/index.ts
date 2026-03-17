@@ -85,7 +85,7 @@ export async function ingestEmail(
         emailId,
         fileName: att.fileName,
         mimeType: att.mimeType,
-        documentType: att.documentType,
+        documentType: att.documentType as any,
         documentTypeConfidence: att.confidence,
         s3Key: att.s3Key,
         extractionStatus: "PENDING",

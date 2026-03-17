@@ -60,7 +60,7 @@ router.post(
   validateBody(createFromRecommendationSchema),
   async (req, res) => {
     const companyId = getCompanyId(req);
-    const recId = req.params.id;
+    const recId = String(req.params.id);
     const userId = req.user!.userId;
     const { assignedTo, dueAt, executionNotes } = req.body;
 
@@ -381,7 +381,7 @@ router.get("/tasks/summary", async (req, res) => {
 
 router.get("/tasks/:id", async (req, res) => {
   const companyId = getCompanyId(req);
-  const taskId = req.params.id;
+  const taskId = String(req.params.id);
 
   const [task] = await db
     .select()
@@ -426,7 +426,7 @@ router.patch(
   validateBody(updateTaskSchema),
   async (req, res) => {
     const companyId = getCompanyId(req);
-    const taskId = req.params.id;
+    const taskId = String(req.params.id);
     const userId = req.user!.userId;
     const body = req.body;
 
@@ -606,7 +606,7 @@ router.patch(
 
 router.get("/shipments/:id/tasks", async (req, res) => {
   const companyId = getCompanyId(req);
-  const shipmentId = req.params.id;
+  const shipmentId = String(req.params.id);
 
   const tasks = await db
     .select()

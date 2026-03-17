@@ -213,7 +213,7 @@ async function detectWeatherForecasts(companyId: string): Promise<PredictiveAler
         id: "",
         alertType: "WEATHER_FORECAST",
         severity: severity as any,
-        title: `${w.eventType} weather risk: ${w.eventName ?? "active event"}`,
+        title: `${w.eventType} weather risk: ${w.title ?? "active event"}`,
         description: `${w.eventType} event with ${w.severity} severity. ${w.description ?? ""}`.trim(),
         affectedPorts: ports,
         confidenceScore: Math.min(0.6 + sev * 0.1, 0.95),

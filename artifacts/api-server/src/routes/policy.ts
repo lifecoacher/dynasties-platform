@@ -64,41 +64,41 @@ router.get("/policy/tenant", async (req, res) => {
   }
 });
 
-router.put("/policy/tenant/:key", requireMinRole("MANAGER"), async (req, res) => {
+router.put("/policy/tenant/:key", requireMinRole("MANAGER"), async (req, res): Promise<void> => {
   try {
     const companyId = getCompanyId(req);
     const userId = (req as any).user?.userId;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const { value, reason } = req.body;
-    if (!value || typeof value !== "object") return res.status(400).json({ error: "Policy value required as object" });
-    const result = await upsertPolicy(companyId, req.params.key, value, userId, reason);
+    if (!value || typeof value !== "object") { res.status(400).json({ error: "Policy value required as object" }); return; }
+    const result = await upsertPolicy(companyId, String(req.params.key), value, userId, reason);
     res.json({ data: result });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.patch("/policy/tenant/:id/toggle", requireMinRole("MANAGER"), async (req, res) => {
+router.patch("/policy/tenant/:id/toggle", requireMinRole("MANAGER"), async (req, res): Promise<void> => {
   try {
     const companyId = getCompanyId(req);
     const userId = (req as any).user?.userId;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const { isActive } = req.body;
-    if (typeof isActive !== "boolean") return res.status(400).json({ error: "isActive required" });
-    await togglePolicy(companyId, req.params.id, isActive, userId);
+    if (typeof isActive !== "boolean") { res.status(400).json({ error: "isActive required" }); return; }
+    await togglePolicy(companyId, String(req.params.id), isActive, userId);
     res.json({ data: { toggled: true } });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.post("/policy/tenant/:key/reset", requireRole("ADMIN"), async (req, res) => {
+router.post("/policy/tenant/:key/reset", requireRole("ADMIN"), async (req, res): Promise<void> => {
   try {
     const companyId = getCompanyId(req);
     const userId = (req as any).user?.userId;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    const result = await resetPolicyToDefault(companyId, req.params.key, userId);
-    if (!result) return res.status(404).json({ error: "Unknown policy key" });
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const result = await resetPolicyToDefault(companyId, String(req.params.key), userId);
+    if (!result) { res.status(404).json({ error: "Unknown policy key" }); return; }
     res.json({ data: result });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -117,13 +117,13 @@ router.get("/policy/history", async (req, res) => {
   }
 });
 
-router.post("/policy/simulate", requireMinRole("MANAGER"), async (req, res) => {
+router.post("/policy/simulate", requireMinRole("MANAGER"), async (req, res): Promise<void> => {
   try {
     const companyId = getCompanyId(req);
     const userId = (req as any).user?.userId;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const { simulationName, policyChanges } = req.body;
-    if (!simulationName || !policyChanges) return res.status(400).json({ error: "simulationName and policyChanges required" });
+    if (!simulationName || !policyChanges) { res.status(400).json({ error: "simulationName and policyChanges required" }); return; }
     const result = await runPolicySimulation(companyId, userId, { simulationName, policyChanges });
     res.json({ data: result });
   } catch (err: any) {
@@ -171,13 +171,13 @@ router.get("/policy/modes", async (req, res) => {
   }
 });
 
-router.post("/policy/modes/activate", requireRole("ADMIN"), async (req, res) => {
+router.post("/policy/modes/activate", requireRole("ADMIN"), async (req, res): Promise<void> => {
   try {
     const companyId = getCompanyId(req);
     const userId = (req as any).user?.userId;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const { modeName, customOverrides } = req.body;
-    if (!modeName) return res.status(400).json({ error: "modeName required" });
+    if (!modeName) { res.status(400).json({ error: "modeName required" }); return; }
     const result = await activateMode(companyId, modeName, userId, customOverrides);
     res.json({ data: result });
   } catch (err: any) {
@@ -185,11 +185,11 @@ router.post("/policy/modes/activate", requireRole("ADMIN"), async (req, res) => 
   }
 });
 
-router.post("/policy/modes/deactivate", requireRole("ADMIN"), async (req, res) => {
+router.post("/policy/modes/deactivate", requireRole("ADMIN"), async (req, res): Promise<void> => {
   try {
     const companyId = getCompanyId(req);
     const userId = (req as any).user?.userId;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
     await deactivateMode(companyId, userId);
     res.json({ data: { deactivated: true } });
   } catch (err: any) {
@@ -197,12 +197,12 @@ router.post("/policy/modes/deactivate", requireRole("ADMIN"), async (req, res) =
   }
 });
 
-router.post("/reports/generate", requireMinRole("OPERATOR"), async (req, res) => {
+router.post("/reports/generate", requireMinRole("OPERATOR"), async (req, res): Promise<void> => {
   try {
     const companyId = getCompanyId(req);
     const userId = (req as any).user?.userId;
     const { reportType, periodStart, periodEnd } = req.body;
-    if (!reportType) return res.status(400).json({ error: "reportType required" });
+    if (!reportType) { res.status(400).json({ error: "reportType required" }); return; }
     const result = await generateReport(
       companyId, reportType, userId,
       periodStart ? new Date(periodStart) : undefined,
@@ -226,13 +226,13 @@ router.get("/reports/history", requireMinRole("OPERATOR"), async (req, res) => {
   }
 });
 
-router.post("/reports/:id/export", requireMinRole("OPERATOR"), async (req, res) => {
+router.post("/reports/:id/export", requireMinRole("OPERATOR"), async (req, res): Promise<void> => {
   try {
     const companyId = getCompanyId(req);
     const format = (req.body.format as "JSON" | "CSV") ?? "JSON";
     const reports = await getReportHistory(companyId);
-    const report = reports.find((r) => r.id === req.params.id);
-    if (!report) return res.status(404).json({ error: "Report not found" });
+    const report = reports.find((r) => r.id === String(req.params.id));
+    if (!report) { res.status(404).json({ error: "Report not found" }); return; }
 
     const exported = formatReportForExport(report, format);
     res.setHeader("Content-Type", exported.contentType);

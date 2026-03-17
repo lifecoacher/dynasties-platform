@@ -142,11 +142,11 @@ export async function runIngestionPipeline(
 
     await db.insert(eventsTable).values({
       id: generateId(),
-      companyId: companyId,
+      companyId,
       eventType: "INTELLIGENCE_INGESTED",
       entityType: "intelligence_source",
       entityId: sourceId,
-      actorType: "SERVICE",
+      actorType: "SERVICE" as const,
       serviceId: "intelligence-ingestion",
       metadata: {
         runId,
@@ -156,8 +156,8 @@ export async function runIngestionPipeline(
         persisted,
         deduplicated,
         failed: invalid,
-      },
-    });
+      } as Record<string, unknown>,
+    } as typeof eventsTable.$inferInsert);
 
     console.log(
       `[intelligence-ingestion] ${sourceType} completed: fetched=${rawRecords.length} persisted=${persisted} deduped=${deduplicated} failed=${invalid}`,

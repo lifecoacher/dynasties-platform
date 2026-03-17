@@ -298,7 +298,7 @@ router.get("/demo/shipment-intelligence", ...demoGuard, async (req, res) => {
         incoterms: s.incoterms,
         blNumber: s.blNumber,
         bookingNumber: s.bookingNumber,
-        extractionConfidence: s.extractionConfidence,
+        extractionConfidence: null,
         createdAt: s.createdAt,
         shipper: s.shipperId ? entityMap[s.shipperId] || null : null,
         consignee: s.consigneeId ? entityMap[s.consigneeId] || null : null,
