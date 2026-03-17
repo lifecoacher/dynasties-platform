@@ -139,11 +139,11 @@ export default function WorkQueue() {
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>("queue");
-  const userId = user?.userId;
+  const userId = user?.id;
 
   const buildQueryParams = () => {
     const params = new URLSearchParams();
-    if (activeQueue === "my" && user?.userId) params.set("assignedTo", user.userId);
+    if (activeQueue === "my" && user?.id) params.set("assignedTo", user.id);
     else if (activeQueue === "overdue") params.set("overdue", "true");
     else if (activeQueue === "attention") {
     } else if (activeQueue !== "all") params.set("queue", activeQueue);
