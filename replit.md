@@ -49,13 +49,23 @@ The system automates various freight forwarding stages, including:
 - **Policy Optimization & Productization (Phase 6B):** Tenant-configurable policy engine with 11 global defaults across 6 categories (recommendation, booking, SLA, auto-task, escalation, intelligence, risk, strategic). Policy versioning with full audit trail. What-if policy simulation engine computing deterministic impact metrics (shipment delta, block rate change, task volume, escalation changes) across historical data. 6 named operating mode presets (ADVISORY, APPROVAL_HEAVY, SEMI_AUTONOMOUS, HIGH_COMPLIANCE, MARGIN_PROTECTION, DISRUPTION_SENSITIVE) that apply coordinated policy overrides on activation. Reporting & export service with 6 report types (Executive Summary, Portfolio Risk, Lane Strategy, Carrier Allocation, Value Attribution, Recommendation Performance) and JSON/CSV export. Role-guarded API endpoints (ADMIN for mode activation/policy reset, MANAGER for policy mutation/simulation, OPERATOR for reporting). New tables: `tenant_policies`, `policy_versions`, `operating_modes`, `report_snapshots`, `policy_simulations`. 18 new API routes in `policy.ts`. UI: Policy Studio page (4 tabs: Policies, Simulation, Operating Modes, History) and Reports & Analytics page. 41 tests in `phase6b.test.ts`.
 - **Customer Management:** Customer import and directory functionalities.
 
+## Demo Mode
+Controlled by `VITE_DEMO_MODE=true` env var. When active:
+- Sidebar shows only: Command Center, Shipments, Control Tower, Work Queue, Settings
+- Hidden pages (Customers, Intelligence, Predictive, Strategy, Policy Studio, Reports, Analytics, Demo Pipeline) redirect to home if accessed directly
+- No code is deleted — set `VITE_DEMO_MODE=false` (or remove it) to restore full navigation
+- Requires Vite restart after changing the flag
+
+**Clerk → Lorian Demo Bridge:** `DEMO_CLERK_EMAILS` env var (comma-separated) maps specific Clerk emails to the Lorian admin user (`usr_lor_admin`, company `cmp_lorian_001`). Currently: `glennorgin@gmail.com`. On Clerk sign-in, the user bypasses new-company creation and lands directly in the Lorian demo workspace as ADMIN.
+
 ## Lorian Demo Environment
 A comprehensive isolated demo dataset at `lib/db/src/lorian-demo/`. Provides 20 shipments, 12 recommendations, 8 workflow tasks, 6 disruption events, 4 weather events, and full coverage across all intelligence, scoring, strategic, and policy tables. Managed via three npm scripts:
 - `pnpm --filter @workspace/db run seed:lorian` — seed (idempotent)
 - `pnpm --filter @workspace/db run reset:lorian` — destroy + re-seed
 - `pnpm --filter @workspace/db run destroy:lorian` — clean removal by company ID `cmp_lorian_001`
 
-Login: `admin@lorian.demo` / `LorianDemo2026!` (also manager@, ops@, viewer@).
+Login (JWT mode): `admin@lorian.demo` / `LorianDemo2026!` (also manager@, ops@, viewer@).
+Login (Clerk mode): Sign in with an email listed in `DEMO_CLERK_EMAILS`.
 
 Old scattered demo data (`seed-demo-data.ts`) has been retired and archived.
 
