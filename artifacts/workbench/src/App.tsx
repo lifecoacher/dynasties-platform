@@ -78,7 +78,19 @@ function ClerkLoginPage() {
 function AuthenticatedRouter() {
   const { user, isLoading, isClerkMode } = useAuth();
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="relative inline-block mb-4">
+            <span className="font-heading text-[24px] font-medium text-foreground" style={{ letterSpacing: '0.22em' }}>DYNASTIES</span>
+            <div className="absolute -bottom-1.5 left-0 w-[1.3em] h-[2.5px] rounded-full bg-primary" />
+          </div>
+          <p className="text-[14px] text-muted-foreground mt-1 animate-pulse">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   if (!user) {
     if (isClerkMode) return <ClerkLoginPage />;
     return <LoginPage />;

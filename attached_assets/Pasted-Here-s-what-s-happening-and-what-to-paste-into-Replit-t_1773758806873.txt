@@ -1,0 +1,22 @@
+Here's what's happening and what to paste into Replit to fix it: [cc165aa6-375d-437d-a7e0-09281e377229-00-3jiyeqnv8etfn.spock.replit](https://cc165aa6-375d-437d-a7e0-09281e377229-00-3jiyeqnv8etfn.spock.replit.dev/)
+
+**The Problem:**
+The app is stuck in an infinite redirect/render loop with Clerk authentication. When you visit the site, the `#root` div mounts but renders nothing — the page flashes the "DYNASTIES" splash briefly, then goes completely blank and keeps cycling. Both `/` and `/sign-up` show the same blank page behavior.
+
+**Root Cause (paste this to Replit):**
+
+> The Clerk sign-up flow is causing an infinite redirect loop. The app loads, Clerk detects the user is unauthenticated, redirects to the sign-up/sign-in page, but then that page also triggers a redirect (likely back to `/` or back to itself), creating an endless cycle. The `#root` div renders empty on every cycle.
+> 
+> This is almost certainly caused by one of these issues:
+> 
+> 1. **Clerk `afterSignUpUrl` / `afterSignInUrl` is pointing back to a protected route**, which then redirects back to sign-up, causing the loop. Make sure these point to a valid post-auth destination.
+> 
+> 2. **The sign-up/sign-in routes (`/sign-up`, `/sign-in`) are themselves wrapped inside a `<SignedOut>` redirect or a protected route check**, so Clerk redirects TO sign-up, but then the route guard redirects AWAY from sign-up — infinite loop.
+> 
+> 3. **The Clerk publishable key domain doesn't match the Replit dev preview URL**. Clerk's `CLERK_PUBLISHABLE_KEY` is tied to specific allowed origins. The Replit `.spock.replit.dev` URL may not be in the Clerk dashboard's allowed origins, causing the auth handshake to silently fail and retry.
+> 
+> **Fix steps:**
+> - In the Clerk Dashboard, add the full Replit dev URL (`https://cc165aa6-375d-437d-a7e0-09281e377229-00-3jiyeqnv8etfn.spock.replit.dev`) to the allowed origins/redirect URLs.
+> - Make sure `/sign-up` and `/sign-in` routes are placed OUTSIDE of any `<ClerkProvider>` auth protection (e.g., outside `<SignedIn>` guards or protected route wrappers).
+> - Ensure `afterSignUpUrl` and `afterSignInUrl` in `<ClerkProvider>` or `<SignUp>` component point to a route like `/dashboard` that exists and is a valid authenticated landing page, NOT back to `/`.
+> - Add a loading state check: while `clerk.loaded === false`, show a spinner instead of triggering redirects. The loop is likely happening because the auth state is being checked before Clerk finishes initializing.
