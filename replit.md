@@ -22,7 +22,7 @@ The project features an AI-native operating system design with a three-zone layo
 - **Backend:** Node.js 24, TypeScript 5.9, Express 5.
 - **Database:** PostgreSQL with Drizzle ORM.
 - **Validation:** Zod for data validation.
-- **Authentication & Authorization:** JWT-based authentication with Bearer tokens, bcryptjs for password hashing, and role-based access control (ADMIN, MANAGER, OPERATOR, VIEWER). Multi-tenancy is supported via `company_id`.
+- **Authentication & Authorization:** Dual-mode auth: JWT-based (demo/seed users) and Clerk (production sign-up/sign-in). Clerk mode activates when `VITE_CLERK_PUBLISHABLE_KEY` (starts with `pk_`) and `CLERK_SECRET_KEY` are set. `/api/auth/clerk-sync` verifies Clerk session tokens server-side, then creates or links Dynasties users with tenant bootstrap on first login. Role-based access control (ADMIN, MANAGER, OPERATOR, VIEWER). Multi-tenancy via `company_id`. Users table has `clerk_id` column for Clerk identity mapping.
 - **Security:** Rate limiting, explicit CORS origin allowlist, and a global error handler.
 - **Job Queues:** Abstraction for 12 job types (e.g., extraction, shipment-pipeline) supporting in-process EventEmitter for dev and SQS for production.
 - **File Storage:** Abstraction for file storage, defaulting to local filesystem and switching to S3 for production.
@@ -60,7 +60,8 @@ Login: `admin@lorian.demo` / `LorianDemo2026!` (also manager@, ops@, viewer@).
 Old scattered demo data (`seed-demo-data.ts`) has been retired and archived.
 
 ## External Dependencies
-- **AI Integration:** Anthropic Claude Sonnet (via Replit AI Integrations).
+- **AI Integration:** Anthropic Claude via `@workspace/integrations-anthropic-ai` orchestration layer. `callAI()` provides model routing (Sonnet for extraction, Haiku for lighter tasks), retry with exponential backoff on 429s, structured logging of model/tokens/latency. `ai_usage_logs` table for usage tracking. Error responses throw explicitly in callers.
+- **Authentication:** `@clerk/clerk-react` (frontend), `@clerk/express` (backend) for production auth. JWT via `jsonwebtoken` for demo/dev mode.
 - **Database:** PostgreSQL.
 - **ORM:** Drizzle ORM.
 - **Email Parsing:** `mailparser`.

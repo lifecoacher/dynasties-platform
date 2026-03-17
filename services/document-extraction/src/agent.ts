@@ -1,4 +1,4 @@
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { callAI } from "@workspace/integrations-anthropic-ai";
 
 export interface AgentExtractionInput {
   documentText: string;
@@ -59,20 +59,21 @@ ${input.documentText}
 
 Extract all available structured fields from this document. Return ONLY JSON.`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 8192,
-    messages: [{ role: "user", content: userPrompt }],
-    system: SYSTEM_PROMPT,
+  const response = await callAI({
+    taskType: "document-extraction",
+    systemPrompt: SYSTEM_PROMPT,
+    userMessage: userPrompt,
+    maxTokens: 8192,
   });
 
-  const textBlock = response.content.find((b: any) => b.type === "text") as { type: "text"; text: string } | undefined;
-  const raw = textBlock?.text || "{}";
+  if (response.status === "error") {
+    throw new Error(`AI extraction failed: ${response.errorMessage || "Unknown error"}`);
+  }
 
   return {
-    raw,
+    raw: response.content || "{}",
     model: response.model,
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
+    inputTokens: response.inputTokens,
+    outputTokens: response.outputTokens,
   };
 }

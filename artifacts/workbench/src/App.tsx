@@ -2,6 +2,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ClerkProvider, SignIn } from "@clerk/clerk-react";
 import NotFound from "@/pages/not-found";
 import CommandCenter from "./pages/CommandCenter";
 import ShipmentsPage from "./pages/ShipmentsPage";
@@ -34,11 +35,49 @@ const queryClient = new QueryClient({
   },
 });
 
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkEnabled = !!(CLERK_PUBLISHABLE_KEY && CLERK_PUBLISHABLE_KEY.startsWith("pk_"));
+
+function ClerkLoginPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-full max-w-sm mx-4">
+        <div className="text-center mb-8">
+          <div className="relative inline-block mb-4">
+            <span className="font-heading text-[24px] font-medium text-foreground" style={{ letterSpacing: '0.22em' }}>DYNASTIES</span>
+            <div className="absolute -bottom-1.5 left-0 w-[1.3em] h-[2.5px] rounded-full bg-primary" />
+          </div>
+          <p className="text-[14px] text-muted-foreground mt-1">The intelligence layer for global trade</p>
+        </div>
+        <SignIn
+          routing="hash"
+          appearance={{
+            elements: {
+              rootBox: "w-full",
+              card: "bg-card border border-card-border shadow-none",
+              headerTitle: "text-foreground",
+              headerSubtitle: "text-muted-foreground",
+              formButtonPrimary: "bg-primary hover:bg-primary/90 text-primary-foreground",
+              formFieldInput: "bg-background border-card-border text-foreground",
+              formFieldLabel: "text-muted-foreground",
+              footerActionLink: "text-primary hover:text-primary/80",
+              identityPreviewEditButton: "text-primary",
+            },
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function AuthenticatedRouter() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isClerkMode } = useAuth();
 
   if (isLoading) return null;
-  if (!user) return <LoginPage />;
+  if (!user) {
+    if (isClerkMode) return <ClerkLoginPage />;
+    return <LoginPage />;
+  }
 
   return (
     <Switch>
@@ -66,7 +105,7 @@ function AuthenticatedRouter() {
   );
 }
 
-function App() {
+function AppInner() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={300}>
@@ -81,6 +120,29 @@ function App() {
       </TooltipProvider>
     </QueryClientProvider>
   );
+}
+
+function App() {
+  if (clerkEnabled) {
+    return (
+      <ClerkProvider
+        publishableKey={CLERK_PUBLISHABLE_KEY}
+        appearance={{
+          variables: {
+            colorPrimary: "#00BFA6",
+            colorBackground: "#121821",
+            colorText: "#F0F2F5",
+            colorInputBackground: "#080C12",
+            colorInputText: "#F0F2F5",
+          },
+        }}
+      >
+        <AppInner />
+      </ClerkProvider>
+    );
+  }
+
+  return <AppInner />;
 }
 
 export default App;

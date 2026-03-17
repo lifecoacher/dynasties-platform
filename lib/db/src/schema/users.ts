@@ -4,6 +4,7 @@ import {
   timestamp,
   index,
   boolean,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { companiesTable } from "./companies";
 
@@ -17,6 +18,7 @@ export const usersTable = pgTable(
     email: text("email").notNull().unique(),
     name: text("name").notNull(),
     passwordHash: text("password_hash").notNull(),
+    clerkId: text("clerk_id"),
     role: text("role", {
       enum: ["ADMIN", "MANAGER", "OPERATOR", "VIEWER"],
     }).notNull(),
@@ -31,6 +33,7 @@ export const usersTable = pgTable(
   (table) => [
     index("users_company_id_idx").on(table.companyId),
     index("users_email_idx").on(table.email),
+    uniqueIndex("users_clerk_id_idx").on(table.clerkId),
   ],
 );
 
