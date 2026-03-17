@@ -6,7 +6,7 @@ Context:
 - We now need a production-grade AI orchestration layer using Anthropic
 
 Environment:
-- ANTHROPIC_API_KEY = 
+- ANTHROPIC_API_KEY = REDACTED
 
 GOAL:
 Create a centralized AI service and route real LLM calls through it for at least one core workflow (recommendations or analysis), with logging, validation, and safety.
