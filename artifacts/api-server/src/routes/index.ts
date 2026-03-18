@@ -18,6 +18,7 @@ import policyRouter from "./policy";
 import aiUsageRouter from "./ai-usage.js";
 import aiAnalysisRouter from "./ai-analysis.js";
 import externalSignalsRouter from "./external-signals.js";
+import billingRouter from "./billing.js";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant } from "../middlewares/tenant.js";
 
@@ -47,5 +48,6 @@ router.use(policyRouter);
 router.use(aiUsageRouter);
 router.use(aiAnalysisRouter);
 router.use(externalSignalsRouter);
+router.use(billingRouter);
 
 export default router;

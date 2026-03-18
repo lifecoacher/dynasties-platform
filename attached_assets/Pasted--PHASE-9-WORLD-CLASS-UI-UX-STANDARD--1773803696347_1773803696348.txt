@@ -1,0 +1,110 @@
+==================================================
+PHASE 9 — WORLD-CLASS UI / UX STANDARD
+==================================================
+
+This module must not look like an internal admin panel or a generic CRUD finance tool.
+It must feel premium, modern, clear, and enterprise-grade.
+
+Design benchmark:
+- Stripe Billing
+- Ramp
+- Linear
+- Mercury
+- modern enterprise financial control software
+
+Visual goals:
+- calm, high-trust financial UI
+- dark Dynasties design system preserved
+- information-dense but not cluttered
+- premium typography, spacing, and hierarchy
+- every screen should feel demo-ready and investor-ready
+
+UI requirements:
+
+1. BILLING OVERVIEW PAGE
+Must feel like a financial command center, not a report dump.
+Use:
+- clean KPI cards
+- intelligent grouping
+- concise supporting context
+- trend indicators where useful
+- one clear primary action path
+
+2. TABLES
+All invoice/customer/AR tables must be best-in-class:
+- sticky headers
+- clean row density
+- strong hierarchy
+- good empty states
+- sortable where appropriate
+- status pills that are elegant, not noisy
+- no ugly generic grids
+
+3. INVOICE DETAIL
+Must feel polished enough to show a client directly.
+Support:
+- clear line item grouping
+- payment options section
+- finance terms section
+- shipment provenance
+- audit trail / event history
+- visually obvious invoice status
+- professional invoice preview quality
+
+4. CUSTOMER BILLING PROFILE
+Must feel like a credit-control cockpit:
+- credit limit
+- exposure
+- terms
+- invoice history
+- risk state
+- recent activity
+All should be presented with clear hierarchy, not a long form dump.
+
+5. SETTINGS / CONFIG
+Finance settings must be understandable by a non-technical operator:
+- no raw JSON exposed in normal UI
+- no confusing config language
+- use plain English labels
+- use progressive disclosure for advanced settings
+
+6. FINANCING / BALANCE UX
+The pay-now vs pay-later experience must feel native and high-trust.
+Do not make it feel like a bolted-on third-party flow.
+Make provider-driven elements feel embedded into Dynasties.
+
+7. STATE DESIGN
+Every page must have polished handling for:
+- loading
+- empty
+- success
+- partial data
+- provider unavailable
+- finance approval pending
+- finance declined
+
+8. DEMO QUALITY
+The module must be visually strong enough to demo to:
+- clients
+- investors
+- strategic partners
+without apology.
+If a screen looks unfinished, generic, or back-office only, improve it.
+
+9. COPY / LANGUAGE
+UI copy should be:
+- concise
+- authoritative
+- plain English
+- financially literate
+Avoid:
+- engineering jargon
+- generic placeholder labels
+- verbose helper text
+
+10. CONSISTENCY
+All finance screens must clearly belong to the same product as Command Center / Shipments / Control Tower.
+No visual drift.
+No “separate mini-app” feel.
+
+Implement the UI to this standard, not just the underlying logic.

@@ -16,6 +16,7 @@ import {
   Target,
   Settings2,
   FileText,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
@@ -44,6 +45,7 @@ const ALL_NAV_ITEMS = [
   { href: "/policy-studio", icon: Settings2, label: "Policy Studio" },
   { href: "/reports", icon: FileText, label: "Reports" },
   { href: "/analytics", icon: BarChart3, label: "Analytics" },
+  { href: "/billing", icon: Receipt, label: "Billing" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 

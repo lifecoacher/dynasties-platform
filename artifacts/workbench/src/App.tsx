@@ -24,6 +24,11 @@ import PredictiveIntelligence from "./pages/PredictiveIntelligence";
 import StrategyIntelligence from "./pages/StrategyIntelligence";
 import PolicyStudio from "./pages/PolicyStudio";
 import ReportsPage from "./pages/Reports";
+import BillingOverview from "./pages/BillingOverview";
+import BillingInvoices from "./pages/BillingInvoices";
+import BillingInvoiceDetail from "./pages/BillingInvoiceDetail";
+import BillingCustomers from "./pages/BillingCustomers";
+import BillingSettings from "./pages/BillingSettings";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -111,6 +116,12 @@ function AuthenticatedRouter() {
       <Route path="/ports/:portCode" component={PortDossier} />
       <Route path="/carriers/:carrierId" component={CarrierDossier} />
       <Route path="/entities/:entityId" component={EntityDossier} />
+      <Route path="/billing" component={BillingOverview} />
+      <Route path="/billing/invoices/:id" component={BillingInvoiceDetail} />
+      <Route path="/billing/invoices" component={BillingInvoices} />
+      <Route path="/billing/customers/:id" component={BillingCustomers} />
+      <Route path="/billing/customers" component={BillingCustomers} />
+      <Route path="/billing/settings" component={BillingSettings} />
       <Route path="/settings" component={SettingsPage} />
       {!DEMO_MODE && <Route path="/intelligence" component={IntelligencePage} />}
       {!DEMO_MODE && <Route path="/customers" component={CustomersPage} />}

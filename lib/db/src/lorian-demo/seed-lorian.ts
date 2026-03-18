@@ -43,6 +43,15 @@ import {
   tenantPoliciesTable,
   operatingModesTable,
   reportSnapshotsTable,
+  billingAccountsTable,
+  customerBillingProfilesTable,
+  chargeRulesTable,
+  invoicesTable,
+  invoiceLineItemsTable,
+  receivablesTable,
+  paymentOptionConfigsTable,
+  balanceFinancingRecordsTable,
+  commercialEventsTable,
 } from "../schema/index.js";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
@@ -1475,6 +1484,326 @@ export async function seedLorian() {
       periodEnd: now,
     },
   ]);
+
+  // ─── BILLING & RECEIVABLES ───────────────────────────────────────
+  console.log("\n--- Seeding Billing & Receivables ---");
+
+  const BILLING_ACCOUNT_ID = "ba_lor_001";
+  const PAY_CONFIG_ID = "poc_lor_001";
+
+  await db.insert(billingAccountsTable).values({
+    id: BILLING_ACCOUNT_ID,
+    companyId: LORIAN_COMPANY_ID,
+    legalEntityName: "Lorian Freight Forwarding Ltd",
+    billingEmail: "billing@lorian.demo",
+    currency: "USD",
+    invoicePrefix: "LOR-INV",
+    defaultPaymentTerms: "NET_30",
+    collectionsContactName: "James Thornton",
+    collectionsContactEmail: "collections@lorian.demo",
+    collectionsContactPhone: "+1-555-0142",
+    paymentProviderStatus: "ACTIVE",
+    balanceProviderStatus: "ACTIVE",
+    financeEnabled: true,
+    spreadModel: "MARKUP",
+    spreadBps: 75,
+    platformFeeAmount: "0",
+    platformFeeCurrency: "USD",
+    branding: { accentColor: "#00BFA6", companyName: "Lorian" },
+    status: "ACTIVE",
+  }).onConflictDoNothing();
+
+  await db.insert(paymentOptionConfigsTable).values({
+    id: PAY_CONFIG_ID,
+    companyId: LORIAN_COMPANY_ID,
+    billingAccountId: BILLING_ACCOUNT_ID,
+    payNowEnabled: true,
+    payLaterEnabled: true,
+    net30Enabled: true,
+    net60Enabled: true,
+    achEnabled: true,
+    cardEnabled: true,
+    wireEnabled: true,
+    balanceOfferVisible: true,
+    feeHandling: "PASS_THROUGH",
+  }).onConflictDoNothing();
+
+  const customerProfiles = [
+    { id: "cbp_lor_001", entityId: CONSIGNEES[0].id, name: CONSIGNEES[0].name, email: "ap@pacificcoast.com", country: "United States", city: "Los Angeles", terms: "NET_30" as const, credit: "500000", exposure: "142500", risk: "LOW" as const, eligibility: "ELIGIBLE" as const, method: "ACH" as const },
+    { id: "cbp_lor_002", entityId: CONSIGNEES[1].id, name: CONSIGNEES[1].name, email: "finance@eurodist.nl", country: "Netherlands", city: "Rotterdam", terms: "NET_60" as const, credit: "750000", exposure: "385200", risk: "LOW" as const, eligibility: "ELIGIBLE" as const, method: "WIRE" as const },
+    { id: "cbp_lor_003", entityId: CONSIGNEES[2].id, name: CONSIGNEES[2].name, email: "billing@atlantictrade.com", country: "United States", city: "New York", terms: "NET_30" as const, credit: "300000", exposure: "98700", risk: "MEDIUM" as const, eligibility: "ELIGIBLE" as const, method: "ACH" as const },
+    { id: "cbp_lor_004", entityId: CONSIGNEES[3].id, name: CONSIGNEES[3].name, email: "accounts@gulflogistics.ae", country: "UAE", city: "Dubai", terms: "NET_30" as const, credit: "400000", exposure: "215000", risk: "LOW" as const, eligibility: "ELIGIBLE" as const, method: "WIRE" as const },
+    { id: "cbp_lor_005", entityId: CONSIGNEES[4].id, name: CONSIGNEES[4].name, email: "payments@londonimport.co.uk", country: "United Kingdom", city: "London", terms: "NET_60" as const, credit: "600000", exposure: "278500", risk: "LOW" as const, eligibility: "ELIGIBLE" as const, method: "WIRE" as const },
+    { id: "cbp_lor_006", entityId: CONSIGNEES[5].id, name: CONSIGNEES[5].name, email: "rechnung@bavaria-supplies.de", country: "Germany", city: "Munich", terms: "NET_30" as const, credit: "350000", exposure: "189300", risk: "MEDIUM" as const, eligibility: "PENDING_REVIEW" as const, method: "WIRE" as const },
+  ];
+
+  await db.insert(customerBillingProfilesTable).values(
+    customerProfiles.map((c) => ({
+      id: c.id,
+      companyId: LORIAN_COMPANY_ID,
+      billingAccountId: BILLING_ACCOUNT_ID,
+      customerName: c.name,
+      customerExternalId: c.entityId,
+      billingEmail: c.email,
+      billingAddress: `${c.city} Business District`,
+      billingCity: c.city,
+      billingCountry: c.country,
+      paymentTerms: c.terms,
+      creditLimit: c.credit,
+      currentExposure: c.exposure,
+      riskStatus: c.risk,
+      balanceEligibility: c.eligibility,
+      preferredPaymentMethod: c.method,
+      defaultCurrency: "USD",
+      entityId: c.entityId,
+      status: "ACTIVE" as const,
+    })),
+  ).onConflictDoNothing();
+
+  const chargeRulesDefs = [
+    { id: "cr_lor_001", name: "Ocean Freight - Base Rate", type: "BASE_FREIGHT" as const, method: "FLAT" as const, amount: "4500.00", auto: true, priority: 10 },
+    { id: "cr_lor_002", name: "Cargo Insurance (0.35%)", type: "INSURANCE" as const, method: "PERCENTAGE" as const, amount: null, pct: 0.35, auto: true, priority: 20 },
+    { id: "cr_lor_003", name: "Customs Brokerage Fee", type: "CUSTOMS_HANDLING" as const, method: "FLAT" as const, amount: "350.00", auto: true, priority: 30 },
+    { id: "cr_lor_004", name: "Documentation Fee", type: "DOCUMENTATION" as const, method: "FLAT" as const, amount: "150.00", auto: true, priority: 40 },
+    { id: "cr_lor_005", name: "Fuel Surcharge (BAF)", type: "FUEL_SURCHARGE" as const, method: "PER_UNIT" as const, amount: null, rate: "12.50", auto: true, priority: 50 },
+    { id: "cr_lor_006", name: "Congestion Surcharge", type: "DISRUPTION_SURCHARGE" as const, method: "FLAT" as const, amount: "275.00", auto: false, priority: 60 },
+    { id: "cr_lor_007", name: "Storage/Demurrage", type: "STORAGE" as const, method: "PER_UNIT" as const, amount: null, rate: "85.00", auto: false, priority: 70 },
+  ];
+
+  await db.insert(chargeRulesTable).values(
+    chargeRulesDefs.map((r) => ({
+      id: r.id,
+      companyId: LORIAN_COMPANY_ID,
+      billingAccountId: BILLING_ACCOUNT_ID,
+      name: r.name,
+      chargeType: r.type,
+      calculationMethod: r.method,
+      baseAmount: r.amount,
+      ratePerUnit: (r as any).rate || null,
+      percentageBasis: (r as any).pct || null,
+      currency: "USD",
+      autoApply: r.auto,
+      priority: r.priority,
+      isActive: true,
+    })),
+  ).onConflictDoNothing();
+
+  const invoiceDefs = [
+    { id: "inv_lor_001", num: "LOR-INV-2026-0001", status: "PAID" as const, cust: 0, shp: 7, subtotal: "18250.00", tax: "0", fee: "0", spread: "0", grand: "18250.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: 15, issuedAgo: 45, paidAgo: 12, finEligible: true, finStatus: "NONE" as const },
+    { id: "inv_lor_002", num: "LOR-INV-2026-0002", status: "PAID" as const, cust: 1, shp: 6, subtotal: "12800.00", tax: "0", fee: "0", spread: "0", grand: "12800.00", terms: "NET_60" as const, source: "SHIPMENT" as const, dueAgo: 5, issuedAgo: 55, paidAgo: 8, finEligible: true, finStatus: "NONE" as const },
+    { id: "inv_lor_003", num: "LOR-INV-2026-0003", status: "PAID" as const, cust: 5, shp: 17, subtotal: "32500.00", tax: "1625.00", fee: "0", spread: "0", grand: "34125.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: 20, issuedAgo: 50, paidAgo: 22, finEligible: false, finStatus: "NONE" as const },
+    { id: "inv_lor_004", num: "LOR-INV-2026-0004", status: "SENT" as const, cust: 0, shp: 1, subtotal: "9750.00", tax: "0", fee: "0", spread: "0", grand: "9750.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: -12, issuedAgo: 18, paidAgo: null, finEligible: true, finStatus: "OFFERED" as const },
+    { id: "inv_lor_005", num: "LOR-INV-2026-0005", status: "SENT" as const, cust: 1, shp: 2, subtotal: "21400.00", tax: "1070.00", fee: "0", spread: "0", grand: "22470.00", terms: "NET_60" as const, source: "SHIPMENT" as const, dueAgo: -30, issuedAgo: 20, paidAgo: null, finEligible: true, finStatus: "NONE" as const },
+    { id: "inv_lor_006", num: "LOR-INV-2026-0006", status: "OVERDUE" as const, cust: 2, shp: 4, subtotal: "15200.00", tax: "760.00", fee: "0", spread: "0", grand: "15960.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: 8, issuedAgo: 38, paidAgo: null, finEligible: true, finStatus: "NONE" as const },
+    { id: "inv_lor_007", num: "LOR-INV-2026-0007", status: "DISPUTED" as const, cust: 3, shp: 8, subtotal: "28900.00", tax: "1445.00", fee: "0", spread: "0", grand: "30345.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: 3, issuedAgo: 33, paidAgo: null, finEligible: true, finStatus: "NONE" as const },
+    { id: "inv_lor_008", num: "LOR-INV-2026-0008", status: "DRAFT" as const, cust: 4, shp: 11, subtotal: "11500.00", tax: "575.00", fee: "0", spread: "0", grand: "12075.00", terms: "NET_60" as const, source: "SHIPMENT" as const, dueAgo: -45, issuedAgo: null, paidAgo: null, finEligible: false, finStatus: "NONE" as const },
+    { id: "inv_lor_009", num: "LOR-INV-2026-0009", status: "PARTIALLY_PAID" as const, cust: 4, shp: 14, subtotal: "19800.00", tax: "990.00", fee: "245.00", spread: "52.00", grand: "21087.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: -2, issuedAgo: 28, paidAgo: null, finEligible: true, finStatus: "FUNDED" as const },
+  ];
+
+  for (const inv of invoiceDefs) {
+    const shipNum = inv.shp;
+    await db.insert(invoicesTable).values({
+      id: inv.id,
+      companyId: LORIAN_COMPANY_ID,
+      shipmentId: lid("shp", shipNum),
+      customerBillingProfileId: customerProfiles[inv.cust].id,
+      invoiceNumber: inv.num,
+      status: inv.status,
+      billToEntityId: customerProfiles[inv.cust].entityId,
+      billToName: customerProfiles[inv.cust].name,
+      billToEmail: customerProfiles[inv.cust].email,
+      subtotal: inv.subtotal,
+      discountTotal: "0",
+      taxTotal: inv.tax,
+      financeFee: inv.fee,
+      dynastiesSpread: inv.spread,
+      grandTotal: inv.grand,
+      currency: "USD",
+      lineItems: [],
+      paymentTerms: inv.terms,
+      financeEligible: inv.finEligible,
+      financeStatus: inv.finStatus,
+      paymentMethod: inv.status === "PAID" ? "PAY_NOW" as const : inv.finStatus === "FUNDED" ? "FINANCED" as const : "PENDING" as const,
+      dueDate: inv.dueAgo !== null ? daysAgo(-inv.dueAgo) : null,
+      issuedAt: inv.issuedAgo !== null ? daysAgo(inv.issuedAgo) : null,
+      sentAt: ["SENT", "PAID", "OVERDUE", "DISPUTED", "PARTIALLY_PAID"].includes(inv.status) && inv.issuedAgo ? daysAgo(inv.issuedAgo - 1) : null,
+      paidAt: inv.paidAgo !== null ? daysAgo(inv.paidAgo) : null,
+      invoiceSource: inv.source,
+    }).onConflictDoNothing();
+  }
+
+  const lineItemDefs = [
+    { inv: "inv_lor_001", items: [
+      { id: "ili_lor_001a", type: "FREIGHT" as const, desc: "Ocean Freight - Hamburg → Shanghai (Industrial Machinery)", qty: 1, unit: "15000.00", amt: "15000.00" },
+      { id: "ili_lor_001b", type: "INSURANCE" as const, desc: "Cargo Insurance (Industrial Machinery)", qty: 1, unit: "2380.00", amt: "2380.00" },
+      { id: "ili_lor_001c", type: "CUSTOMS" as const, desc: "Customs Brokerage", qty: 1, unit: "350.00", amt: "350.00" },
+      { id: "ili_lor_001d", type: "FEE" as const, desc: "Documentation Fee", qty: 1, unit: "150.00", amt: "150.00" },
+      { id: "ili_lor_001e", type: "SURCHARGE" as const, desc: "Fuel Surcharge (BAF)", qty: 1, unit: "370.00", amt: "370.00" },
+    ]},
+    { inv: "inv_lor_002", items: [
+      { id: "ili_lor_002a", type: "FREIGHT" as const, desc: "Ocean Freight - Shenzhen → Rotterdam (Textile Fabrics)", qty: 1, unit: "9500.00", amt: "9500.00" },
+      { id: "ili_lor_002b", type: "INSURANCE" as const, desc: "Cargo Insurance (Textiles)", qty: 1, unit: "322.00", amt: "322.00" },
+      { id: "ili_lor_002c", type: "CUSTOMS" as const, desc: "EU Customs Processing", qty: 1, unit: "2628.00", amt: "2628.00" },
+      { id: "ili_lor_002d", type: "FEE" as const, desc: "Documentation", qty: 1, unit: "350.00", amt: "350.00" },
+    ]},
+    { inv: "inv_lor_004", items: [
+      { id: "ili_lor_004a", type: "FREIGHT" as const, desc: "Ocean Freight - Shanghai → Los Angeles (Consumer Electronics)", qty: 1, unit: "7200.00", amt: "7200.00" },
+      { id: "ili_lor_004b", type: "INSURANCE" as const, desc: "Cargo Insurance (Electronics)", qty: 1, unit: "997.50", amt: "997.50" },
+      { id: "ili_lor_004c", type: "CUSTOMS" as const, desc: "US Customs Clearance", qty: 1, unit: "350.00", amt: "350.00" },
+      { id: "ili_lor_004d", type: "FEE" as const, desc: "Documentation Fee", qty: 1, unit: "150.00", amt: "150.00" },
+      { id: "ili_lor_004e", type: "SURCHARGE" as const, desc: "Peak Season Surcharge", qty: 1, unit: "1052.50", amt: "1052.50" },
+    ]},
+    { inv: "inv_lor_006", items: [
+      { id: "ili_lor_006a", type: "FREIGHT" as const, desc: "Ocean Freight - Singapore → New York (Polymer Resins)", qty: 1, unit: "11500.00", amt: "11500.00" },
+      { id: "ili_lor_006b", type: "INSURANCE" as const, desc: "Cargo Insurance (Chemicals)", qty: 1, unit: "1820.00", amt: "1820.00" },
+      { id: "ili_lor_006c", type: "CUSTOMS" as const, desc: "Customs Handling", qty: 1, unit: "350.00", amt: "350.00" },
+      { id: "ili_lor_006d", type: "SURCHARGE" as const, desc: "Hazmat Documentation Fee", qty: 1, unit: "1530.00", amt: "1530.00" },
+    ]},
+    { inv: "inv_lor_007", items: [
+      { id: "ili_lor_007a", type: "FREIGHT" as const, desc: "Ocean Freight - Shanghai → Jebel Ali (Precision Lenses)", qty: 1, unit: "8200.00", amt: "8200.00" },
+      { id: "ili_lor_007b", type: "INSURANCE" as const, desc: "High-Value Cargo Insurance", qty: 1, unit: "1102.50", amt: "1102.50" },
+      { id: "ili_lor_007c", type: "CUSTOMS" as const, desc: "UAE Customs Clearance", qty: 1, unit: "350.00", amt: "350.00" },
+      { id: "ili_lor_007d", type: "STORAGE" as const, desc: "Warehouse Storage (3 days)", qty: 3, unit: "85.00", amt: "255.00" },
+      { id: "ili_lor_007e", type: "SURCHARGE" as const, desc: "Congestion Surcharge + BAF", qty: 1, unit: "18992.50", amt: "18992.50" },
+    ]},
+    { inv: "inv_lor_009", items: [
+      { id: "ili_lor_009a", type: "FREIGHT" as const, desc: "Ocean Freight - Shanghai → Rotterdam (Solar Panels)", qty: 1, unit: "14500.00", amt: "14500.00" },
+      { id: "ili_lor_009b", type: "INSURANCE" as const, desc: "Cargo Insurance (Solar Equipment)", qty: 1, unit: "1365.00", amt: "1365.00" },
+      { id: "ili_lor_009c", type: "CUSTOMS" as const, desc: "EU Customs Processing", qty: 1, unit: "350.00", amt: "350.00" },
+      { id: "ili_lor_009d", type: "FEE" as const, desc: "Documentation", qty: 1, unit: "150.00", amt: "150.00" },
+      { id: "ili_lor_009e", type: "SURCHARGE" as const, desc: "Fuel Surcharge", qty: 1, unit: "3435.00", amt: "3435.00" },
+      { id: "ili_lor_009f", type: "FINANCE_FEE" as const, desc: "Balance Finance Fee (30-day)", qty: 1, unit: "245.00", amt: "245.00" },
+    ]},
+  ];
+
+  for (const group of lineItemDefs) {
+    await db.insert(invoiceLineItemsTable).values(
+      group.items.map((li) => ({
+        id: li.id,
+        invoiceId: group.inv,
+        lineType: li.type,
+        description: li.desc,
+        quantity: li.qty,
+        unitPrice: li.unit,
+        amount: li.amt,
+        editable: true,
+      })),
+    ).onConflictDoNothing();
+  }
+
+  const receivableDefs = [
+    { id: "rcv_lor_001", inv: "inv_lor_001", cust: "cbp_lor_001", orig: "18250.00", out: "0", due: 15, overdue: 0, coll: "CURRENT" as const, disp: "NONE" as const, fin: "NONE" as const, settle: "SETTLED" as const },
+    { id: "rcv_lor_002", inv: "inv_lor_002", cust: "cbp_lor_002", orig: "12800.00", out: "0", due: 5, overdue: 0, coll: "CURRENT" as const, disp: "NONE" as const, fin: "NONE" as const, settle: "SETTLED" as const },
+    { id: "rcv_lor_003", inv: "inv_lor_003", cust: "cbp_lor_006", orig: "34125.00", out: "0", due: 20, overdue: 0, coll: "CURRENT" as const, disp: "NONE" as const, fin: "NONE" as const, settle: "SETTLED" as const },
+    { id: "rcv_lor_004", inv: "inv_lor_004", cust: "cbp_lor_001", orig: "9750.00", out: "9750.00", due: -12, overdue: 0, coll: "CURRENT" as const, disp: "NONE" as const, fin: "NONE" as const, settle: "UNSETTLED" as const },
+    { id: "rcv_lor_005", inv: "inv_lor_005", cust: "cbp_lor_002", orig: "22470.00", out: "22470.00", due: -30, overdue: 0, coll: "CURRENT" as const, disp: "NONE" as const, fin: "NONE" as const, settle: "UNSETTLED" as const },
+    { id: "rcv_lor_006", inv: "inv_lor_006", cust: "cbp_lor_003", orig: "15960.00", out: "15960.00", due: 8, overdue: 8, coll: "FOLLOW_UP" as const, disp: "NONE" as const, fin: "NONE" as const, settle: "UNSETTLED" as const },
+    { id: "rcv_lor_007", inv: "inv_lor_007", cust: "cbp_lor_004", orig: "30345.00", out: "30345.00", due: 3, overdue: 3, coll: "ESCALATED" as const, disp: "OPEN" as const, fin: "NONE" as const, settle: "UNSETTLED" as const },
+    { id: "rcv_lor_009", inv: "inv_lor_009", cust: "cbp_lor_005", orig: "21087.00", out: "10543.50", due: -2, overdue: 0, coll: "CURRENT" as const, disp: "NONE" as const, fin: "FUNDED" as const, settle: "PARTIALLY_SETTLED" as const },
+  ];
+
+  await db.insert(receivablesTable).values(
+    receivableDefs.map((r) => ({
+      id: r.id,
+      companyId: LORIAN_COMPANY_ID,
+      invoiceId: r.inv,
+      customerBillingProfileId: r.cust,
+      originalAmount: r.orig,
+      outstandingAmount: r.out,
+      currency: "USD",
+      dueDate: daysAgo(r.due),
+      daysOverdue: r.overdue,
+      collectionsStatus: r.coll,
+      disputeStatus: r.disp,
+      disputeReason: r.disp === "OPEN" ? "Customer disputes congestion surcharge amount on Gulf Logistics shipment" : null,
+      financeStatus: r.fin,
+      settlementStatus: r.settle,
+      payments: r.settle === "SETTLED" ? [{ amount: r.orig, method: "ACH", date: daysAgo(r.due > 0 ? r.due - 2 : 2).toISOString(), reference: `PAY-${r.id}` }] : r.settle === "PARTIALLY_SETTLED" ? [{ amount: "10543.50", method: "WIRE", date: daysAgo(5).toISOString(), reference: `PAY-${r.id}-PARTIAL` }] : null,
+    })),
+  ).onConflictDoNothing();
+
+  await db.insert(balanceFinancingRecordsTable).values([
+    {
+      id: "bfr_lor_001",
+      companyId: LORIAN_COMPANY_ID,
+      invoiceId: "inv_lor_009",
+      customerBillingProfileId: "cbp_lor_005",
+      applicationStatus: "FUNDED" as const,
+      termDays: 30,
+      financedAmount: "21087.00",
+      providerFeeRate: 0.018,
+      providerFeeAmount: "379.57",
+      clientFacingFeeRate: 0.0255,
+      clientFacingFeeAmount: "245.00",
+      dynastiesSpreadAmount: "52.00",
+      providerExternalRef: "BAL-SBX-20260215-001",
+      providerName: "balance",
+      settlementStatus: "PENDING" as const,
+      requestedAt: daysAgo(28),
+      decidedAt: daysAgo(27),
+      fundedAt: daysAgo(26),
+    },
+    {
+      id: "bfr_lor_002",
+      companyId: LORIAN_COMPANY_ID,
+      invoiceId: "inv_lor_004",
+      customerBillingProfileId: "cbp_lor_001",
+      applicationStatus: "APPROVED" as const,
+      termDays: 30,
+      financedAmount: "9750.00",
+      providerFeeRate: 0.018,
+      providerFeeAmount: "175.50",
+      clientFacingFeeRate: 0.025,
+      clientFacingFeeAmount: "243.75",
+      dynastiesSpreadAmount: "68.25",
+      providerExternalRef: "BAL-SBX-20260310-002",
+      providerName: "balance",
+      settlementStatus: "PENDING" as const,
+      requestedAt: daysAgo(5),
+      decidedAt: daysAgo(4),
+    },
+  ]).onConflictDoNothing();
+
+  const commercialEventDefs = [
+    { id: "ce_lor_001", type: "INVOICE_CREATED" as const, entity: "INVOICE" as const, entityId: "inv_lor_001", actor: "USER" as const, actorId: USERS.admin.id, amt: "18250.00", desc: "Invoice LOR-INV-2026-0001 created for shipment", ago: 45 },
+    { id: "ce_lor_002", type: "INVOICE_SENT" as const, entity: "INVOICE" as const, entityId: "inv_lor_001", actor: "SYSTEM" as const, actorId: null, amt: "18250.00", desc: "Invoice sent to Pacific Coast Importers", ago: 44 },
+    { id: "ce_lor_003", type: "PAYMENT_RECEIVED" as const, entity: "INVOICE" as const, entityId: "inv_lor_001", actor: "SYSTEM" as const, actorId: null, amt: "18250.00", desc: "Full payment received via ACH", ago: 12 },
+    { id: "ce_lor_004", type: "INVOICE_PAID" as const, entity: "INVOICE" as const, entityId: "inv_lor_001", actor: "SYSTEM" as const, actorId: null, amt: "18250.00", desc: "Invoice marked as paid", ago: 12 },
+    { id: "ce_lor_005", type: "INVOICE_CREATED" as const, entity: "INVOICE" as const, entityId: "inv_lor_006", actor: "USER" as const, actorId: USERS.manager.id, amt: "15960.00", desc: "Invoice LOR-INV-2026-0006 created", ago: 38 },
+    { id: "ce_lor_006", type: "INVOICE_SENT" as const, entity: "INVOICE" as const, entityId: "inv_lor_006", actor: "SYSTEM" as const, actorId: null, amt: "15960.00", desc: "Invoice sent to Atlantic Trade Partners", ago: 37 },
+    { id: "ce_lor_007", type: "INVOICE_OVERDUE" as const, entity: "INVOICE" as const, entityId: "inv_lor_006", actor: "SYSTEM" as const, actorId: null, amt: "15960.00", desc: "Invoice is now overdue (8 days past due)", ago: 0 },
+    { id: "ce_lor_008", type: "INVOICE_DISPUTED" as const, entity: "INVOICE" as const, entityId: "inv_lor_007", actor: "USER" as const, actorId: null, amt: "30345.00", desc: "Customer disputes congestion surcharge", ago: 3 },
+    { id: "ce_lor_009", type: "BALANCE_REQUESTED" as const, entity: "FINANCING" as const, entityId: "bfr_lor_001", actor: "USER" as const, actorId: USERS.admin.id, amt: "21087.00", desc: "Balance financing requested for INV-2026-0009", ago: 28 },
+    { id: "ce_lor_010", type: "BALANCE_APPROVED" as const, entity: "FINANCING" as const, entityId: "bfr_lor_001", actor: "PROVIDER" as const, actorId: null, amt: "21087.00", desc: "Balance approved 30-day financing", ago: 27 },
+    { id: "ce_lor_011", type: "BALANCE_FUNDED" as const, entity: "FINANCING" as const, entityId: "bfr_lor_001", actor: "PROVIDER" as const, actorId: null, amt: "21087.00", desc: "Funds disbursed to Lorian account", ago: 26 },
+    { id: "ce_lor_012", type: "SPREAD_RECORDED" as const, entity: "FINANCING" as const, entityId: "bfr_lor_001", actor: "SYSTEM" as const, actorId: null, amt: "52.00", desc: "Dynasties spread recorded: 75bps markup", ago: 26 },
+    { id: "ce_lor_013", type: "CUSTOMER_CREATED" as const, entity: "CUSTOMER" as const, entityId: "cbp_lor_001", actor: "USER" as const, actorId: USERS.admin.id, amt: null, desc: "Customer billing profile created for Pacific Coast Importers", ago: 60 },
+    { id: "ce_lor_014", type: "INVOICE_PARTIALLY_PAID" as const, entity: "INVOICE" as const, entityId: "inv_lor_009", actor: "SYSTEM" as const, actorId: null, amt: "10543.50", desc: "Partial payment received ($10,543.50 of $21,087.00)", ago: 5 },
+  ];
+
+  await db.insert(commercialEventsTable).values(
+    commercialEventDefs.map((e) => ({
+      id: e.id,
+      companyId: LORIAN_COMPANY_ID,
+      eventType: e.type,
+      entityType: e.entity,
+      entityId: e.entityId,
+      actorType: e.actor,
+      actorId: e.actorId,
+      amount: e.amt,
+      currency: e.amt ? "USD" : null,
+      description: e.desc,
+      createdAt: daysAgo(e.ago),
+    })),
+  ).onConflictDoNothing();
+
+  console.log(`  Billing account: ${BILLING_ACCOUNT_ID}`);
+  console.log(`  Customer profiles: ${customerProfiles.length}`);
+  console.log(`  Charge rules: ${chargeRulesDefs.length}`);
+  console.log(`  Invoices: ${invoiceDefs.length}`);
+  console.log(`  Receivables: ${receivableDefs.length}`);
+  console.log(`  Financing records: 2`);
+  console.log(`  Commercial events: ${commercialEventDefs.length}`);
 
   console.log("\n=== LORIAN DEMO SEED COMPLETE ===");
   console.log(`Company: ${LORIAN_COMPANY_ID}`);
