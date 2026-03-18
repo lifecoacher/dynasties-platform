@@ -141,6 +141,12 @@ export default function BillingOverview() {
     );
   }
 
+  const overdueCount = overview?.countOverdueInvoices || 0;
+  const disputedCount = overview?.countDisputed || 0;
+  const paidCount = overview?.countPaid || 0;
+  const totalInvoiced = overview?.totalInvoiced || 0;
+  const totalInvoiceCount = overview?.totalInvoiceCount || 0;
+
   const statusOrder: Record<string, number> = {
     OVERDUE: 0, DISPUTED: 1, PARTIALLY_PAID: 2, SENT: 3, DRAFT: 4, FINANCED: 5, PAID: 6, CANCELLED: 7,
   };
@@ -148,11 +154,6 @@ export default function BillingOverview() {
     (a: any, b: any) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99)
   );
   const recentInvoices = sortedInvoices.slice(0, 8);
-  const totalInvoiced = (invoices || []).reduce((s: number, i: any) => s + Number(i.grandTotal || 0), 0);
-  const paidInvoices = (invoices || []).filter((i: any) => i.status === "PAID");
-  const overdueInvoices = (invoices || []).filter((i: any) => i.status === "OVERDUE");
-  const disputedInvoices = (invoices || []).filter((i: any) => i.status === "DISPUTED");
-  const overdueCount = overview?.countOverdue || overdueInvoices.length;
 
   return (
     <AppLayout hideRightPanel>
@@ -161,7 +162,7 @@ export default function BillingOverview() {
           <div>
             <h1 className="text-[22px] font-semibold text-foreground">Billing & Receivables</h1>
             <p className="text-[13px] text-muted-foreground mt-1">
-              {account?.legalEntityName || "Revenue management"} — {(invoices || []).length} invoices
+              {account?.legalEntityName || "Revenue management"} — {totalInvoiceCount} invoices
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -194,7 +195,7 @@ export default function BillingOverview() {
           <KpiCard
             label="Disputed"
             value={formatCurrency(overview?.totalDisputed || 0)}
-            subtitle={`${disputedInvoices.length} active ${pluralize(disputedInvoices.length, "dispute", "disputes")}`}
+            subtitle={`${disputedCount} active ${pluralize(disputedCount, "dispute", "disputes")}`}
             icon={AlertTriangle}
             color="amber"
           />
@@ -208,10 +209,10 @@ export default function BillingOverview() {
           <KpiCard
             label="Collected This Month"
             value={formatCurrency(overview?.paidThisMonth || 0)}
-            subtitle={`${paidInvoices.length} ${pluralize(paidInvoices.length, "invoice", "invoices")} paid`}
+            subtitle={`${paidCount} ${pluralize(paidCount, "invoice", "invoices")} paid`}
             icon={TrendingUp}
             color="green"
-            trend={paidInvoices.length > 0 ? `${paidInvoices.length} paid` : undefined}
+            trend={paidCount > 0 ? `${paidCount} paid` : undefined}
           />
         </div>
 
@@ -234,7 +235,7 @@ export default function BillingOverview() {
           <KpiCard
             label="Total Invoiced"
             value={formatCurrency(totalInvoiced)}
-            subtitle={`${(invoices || []).length} ${pluralize((invoices || []).length, "invoice", "invoices")} total`}
+            subtitle={`${totalInvoiceCount} ${pluralize(totalInvoiceCount, "invoice", "invoices")} total`}
             icon={Receipt}
             color="blue"
           />

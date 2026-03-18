@@ -793,11 +793,19 @@ router.post("/billing/invoices/:id/mark-repaid", requireMinRole("OPERATOR"), asy
 
 router.get("/billing/receivables/overview", async (req, res) => {
   const companyId = getCompanyId(req);
+
   const receivables = await db
     .select()
     .from(receivablesTable)
     .where(eq(receivablesTable.companyId, companyId));
+
+  const allInvoices = await db
+    .select()
+    .from(invoicesTable)
+    .where(eq(invoicesTable.companyId, companyId));
+
   const now = new Date();
+
   let totalOutstanding = 0;
   let totalOverdue = 0;
   let totalCurrent = 0;
@@ -805,36 +813,27 @@ router.get("/billing/receivables/overview", async (req, res) => {
   let countOverdue = 0;
   for (const r of receivables) {
     const amt = Number(r.outstandingAmount);
+    if (r.receivableTransferred) continue;
     totalOutstanding += amt;
     if (r.disputeStatus === "OPEN") totalDisputed += amt;
-    if (r.dueDate < now && amt > 0) {
+    if (r.dueDate < now && amt > 0 && r.financeStatus !== "FUNDED" && r.financeStatus !== "REPAID") {
       totalOverdue += amt;
       countOverdue++;
-    } else {
+    } else if (amt > 0) {
       totalCurrent += amt;
     }
   }
-  const invoices = await db
-    .select()
-    .from(invoicesTable)
-    .where(
-      and(
-        eq(invoicesTable.companyId, companyId),
-        eq(invoicesTable.status, "PAID"),
-      ),
-    );
-  const paidThisMonth = invoices
+
+  const overdueInvoices = allInvoices.filter(
+    (i) => i.status === "OVERDUE" && i.financeStatus !== "FUNDED" && i.financeStatus !== "REPAID",
+  );
+  const disputedInvoices = allInvoices.filter((i) => i.status === "DISPUTED");
+  const paidInvoices = allInvoices.filter((i) => i.status === "PAID");
+  const paidThisMonth = paidInvoices
     .filter((i) => i.paidAt && i.paidAt.getMonth() === now.getMonth() && i.paidAt.getFullYear() === now.getFullYear())
     .reduce((s, i) => s + Number(i.grandTotal), 0);
-  const sentCount = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(invoicesTable)
-    .where(
-      and(
-        eq(invoicesTable.companyId, companyId),
-        inArray(invoicesTable.status, ["SENT", "PARTIALLY_PAID", "PAID", "OVERDUE"]),
-      ),
-    );
+  const totalInvoiced = allInvoices.reduce((s, i) => s + Number(i.grandTotal || 0), 0);
+
   const financedRecords = await db
     .select()
     .from(balanceFinancingRecordsTable)
@@ -845,8 +844,12 @@ router.get("/billing/receivables/overview", async (req, res) => {
       ),
     );
   const totalFinanced = financedRecords.reduce((s, r) => s + Number(r.financedAmount || 0), 0);
+  const totalFinancingFees = financedRecords.reduce((s, r) => s + Number(r.clientFacingFeeAmount || 0), 0);
   const totalSpread = financedRecords.reduce((s, r) => s + Number(r.dynastiesSpreadAmount || 0), 0);
-  const openReceivables = receivables.filter((r) => Number(r.outstandingAmount) > 0);
+
+  const openReceivables = receivables.filter(
+    (r) => Number(r.outstandingAmount) > 0 && !r.receivableTransferred,
+  );
   const aging: Record<string, number> = { current: 0, days1to30: 0, days31to60: 0, days61to90: 0, days90plus: 0 };
   for (const r of openReceivables) {
     const amt = Number(r.outstandingAmount);
@@ -860,6 +863,7 @@ router.get("/billing/receivables/overview", async (req, res) => {
       else aging.days90plus += amt;
     }
   }
+
   res.json({
     data: {
       totalOutstanding,
@@ -867,9 +871,14 @@ router.get("/billing/receivables/overview", async (req, res) => {
       totalCurrent,
       totalDisputed,
       countOverdue,
+      countDisputed: disputedInvoices.length,
+      countPaid: paidInvoices.length,
+      countOverdueInvoices: overdueInvoices.length,
       paidThisMonth,
-      invoicesSent: Number(sentCount[0]?.count || 0),
+      totalInvoiced,
+      totalInvoiceCount: allInvoices.length,
       totalFinanced,
+      totalFinancingFees,
       totalSpread,
       platformRevenue: totalSpread,
       financedCount: financedRecords.length,
