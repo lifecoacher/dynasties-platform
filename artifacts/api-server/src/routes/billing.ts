@@ -879,6 +879,113 @@ router.post("/billing/invoices/:id/mark-repaid", requireMinRole("OPERATOR"), asy
   }
 });
 
+router.post("/billing/invoices/:id/resolve-dispute", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [invoice] = await tx
+        .select()
+        .from(invoicesTable)
+        .where(and(eq(invoicesTable.id, req.params.id as string), eq(invoicesTable.companyId, companyId)))
+        .limit(1);
+      if (!invoice) throw Object.assign(new Error("Invoice not found"), { status: 404 });
+      if (invoice.status !== "DISPUTED") throw Object.assign(new Error(`Invoice is not disputed (status: ${invoice.status})`), { status: 400 });
+
+      const dueDate = invoice.dueDate ? new Date(invoice.dueDate) : null;
+      const isOverdue = dueDate && dueDate < new Date();
+      const newStatus = isOverdue ? "OVERDUE" : "SENT";
+
+      await tx.update(invoicesTable)
+        .set({ status: newStatus })
+        .where(eq(invoicesTable.id, invoice.id));
+      await tx.update(receivablesTable)
+        .set({ disputeStatus: "NONE", disputeReason: null, collectionsStatus: isOverdue ? "FOLLOW_UP" : "CURRENT" })
+        .where(eq(receivablesTable.invoiceId, invoice.id));
+      await logCommercialEvent({
+        tx, companyId, eventType: "DISPUTE_RESOLVED", entityType: "INVOICE", entityId: invoice.id,
+        actorType: "USER", actorId: req.user?.userId,
+        description: `Dispute resolved for ${invoice.invoiceNumber} — status set to ${newStatus}`,
+      });
+      const [updated] = await tx.select().from(invoicesTable).where(eq(invoicesTable.id, invoice.id)).limit(1);
+      return updated;
+    });
+    res.json({ data: result });
+  } catch (err: any) {
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message || "Internal error" });
+  }
+});
+
+router.post("/billing/invoices/:id/demo-reset", requireMinRole("ADMIN"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [invoice] = await tx
+        .select()
+        .from(invoicesTable)
+        .where(and(eq(invoicesTable.id, req.params.id as string), eq(invoicesTable.companyId, companyId)))
+        .limit(1);
+      if (!invoice) throw Object.assign(new Error("Invoice not found"), { status: 404 });
+
+      const dueDate = invoice.dueDate ? new Date(invoice.dueDate) : null;
+      const isOverdue = dueDate && dueDate < new Date();
+      const isDraft = invoice.status === "DRAFT";
+      const originalStatus = isDraft ? "DRAFT" : (isOverdue ? "OVERDUE" : "SENT");
+
+      await tx.delete(balanceFinancingRecordsTable).where(eq(balanceFinancingRecordsTable.invoiceId, invoice.id));
+
+      await tx.delete(commercialEventsTable).where(
+        and(
+          eq(commercialEventsTable.entityId, invoice.id),
+          eq(commercialEventsTable.companyId, companyId),
+          inArray(commercialEventsTable.eventType, [
+            "BALANCE_REQUESTED", "BALANCE_ACCEPTED", "BALANCE_FUNDED",
+            "BALANCE_DECLINED", "SPREAD_RECORDED", "BALANCE_REPAID",
+            "DISPUTE_RESOLVED", "INVOICE_DISPUTED",
+            "INVOICE_PAID", "INVOICE_PARTIALLY_PAID",
+            "DEMO_RESET",
+          ]),
+        ),
+      );
+
+      await tx.update(invoicesTable).set({
+        status: originalStatus,
+        financeStatus: "NONE",
+        paidAt: null,
+        paymentMethod: null,
+        financeFee: "0",
+        dynastiesSpread: "0",
+      }).where(eq(invoicesTable.id, invoice.id));
+
+      const [receivable] = await tx.select().from(receivablesTable).where(eq(receivablesTable.invoiceId, invoice.id)).limit(1);
+      if (receivable) {
+        await tx.update(receivablesTable).set({
+          outstandingAmount: receivable.originalAmount,
+          collectionsStatus: isOverdue ? "FOLLOW_UP" : "CURRENT",
+          financeStatus: "NONE",
+          disputeStatus: "NONE",
+          disputeReason: null,
+          receivableTransferred: false,
+          settlementStatus: "UNSETTLED",
+        }).where(eq(receivablesTable.id, receivable.id));
+      }
+
+      await logCommercialEvent({
+        tx, companyId, eventType: "DEMO_RESET", entityType: "INVOICE", entityId: invoice.id,
+        actorType: "SYSTEM",
+        description: `Demo reset: ${invoice.invoiceNumber} restored to ${originalStatus}`,
+      });
+
+      const [updated] = await tx.select().from(invoicesTable).where(eq(invoicesTable.id, invoice.id)).limit(1);
+      return { invoice: updated, restoredTo: originalStatus };
+    });
+    res.json({ data: result });
+  } catch (err: any) {
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message || "Internal error" });
+  }
+});
+
 router.get("/billing/receivables/overview", async (req, res) => {
   const companyId = getCompanyId(req);
 

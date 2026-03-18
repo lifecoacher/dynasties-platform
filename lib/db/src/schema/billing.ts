@@ -458,6 +458,8 @@ export const commercialEventsTable = pgTable(
         "CUSTOMER_SUSPENDED",
         "CHARGE_GENERATED",
         "PAYMENT_RECEIVED",
+        "DISPUTE_RESOLVED",
+        "DEMO_RESET",
       ],
     }).notNull(),
     entityType: text("entity_type", {
