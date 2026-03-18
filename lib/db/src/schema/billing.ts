@@ -267,6 +267,7 @@ export const receivablesTable = pgTable(
         "ESCALATED",
         "COLLECTIONS",
         "WRITTEN_OFF",
+        "FINANCED",
       ],
     })
       .notNull()
@@ -282,6 +283,7 @@ export const receivablesTable = pgTable(
     })
       .notNull()
       .default("NONE"),
+    receivableTransferred: boolean("receivable_transferred").notNull().default(false),
     settlementStatus: text("settlement_status", {
       enum: ["UNSETTLED", "PARTIALLY_SETTLED", "SETTLED"],
     })

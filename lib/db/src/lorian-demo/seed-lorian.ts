@@ -1706,7 +1706,7 @@ export async function seedLorian() {
     { id: "rcv_lor_005", inv: "inv_lor_005", cust: "cbp_lor_002", orig: "22470.00", out: "22470.00", due: -30, overdue: 0, coll: "CURRENT" as const, disp: "NONE" as const, fin: "NONE" as const, settle: "UNSETTLED" as const },
     { id: "rcv_lor_006", inv: "inv_lor_006", cust: "cbp_lor_003", orig: "15960.00", out: "15960.00", due: 8, overdue: 8, coll: "FOLLOW_UP" as const, disp: "NONE" as const, fin: "NONE" as const, settle: "UNSETTLED" as const },
     { id: "rcv_lor_007", inv: "inv_lor_007", cust: "cbp_lor_004", orig: "30345.00", out: "30345.00", due: 3, overdue: 3, coll: "ESCALATED" as const, disp: "OPEN" as const, fin: "NONE" as const, settle: "UNSETTLED" as const },
-    { id: "rcv_lor_009", inv: "inv_lor_009", cust: "cbp_lor_005", orig: "21087.00", out: "10543.50", due: -2, overdue: 0, coll: "CURRENT" as const, disp: "NONE" as const, fin: "FUNDED" as const, settle: "PARTIALLY_SETTLED" as const },
+    { id: "rcv_lor_009", inv: "inv_lor_009", cust: "cbp_lor_005", orig: "21087.00", out: "0", due: -2, overdue: 0, coll: "FINANCED" as const, disp: "NONE" as const, fin: "FUNDED" as const, settle: "SETTLED" as const, transferred: true },
   ];
 
   await db.insert(receivablesTable).values(
@@ -1724,8 +1724,9 @@ export async function seedLorian() {
       disputeStatus: r.disp,
       disputeReason: r.disp === "OPEN" ? "Customer disputes congestion surcharge amount on Gulf Logistics shipment" : null,
       financeStatus: r.fin,
+      receivableTransferred: (r as any).transferred || false,
       settlementStatus: r.settle,
-      payments: r.settle === "SETTLED" ? [{ amount: r.orig, method: "ACH", date: daysAgo(r.due > 0 ? r.due - 2 : 2).toISOString(), reference: `PAY-${r.id}` }] : r.settle === "PARTIALLY_SETTLED" ? [{ amount: "10543.50", method: "WIRE", date: daysAgo(5).toISOString(), reference: `PAY-${r.id}-PARTIAL` }] : null,
+      payments: r.settle === "SETTLED" && !(r as any).transferred ? [{ amount: r.orig, method: "ACH", date: daysAgo(r.due > 0 ? r.due - 2 : 2).toISOString(), reference: `PAY-${r.id}` }] : null,
     })),
   ).onConflictDoNothing();
 
