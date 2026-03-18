@@ -1,0 +1,511 @@
+Act as the lead architect, staff engineer, fintech product designer, and billing systems specialist for Dynasties.
+
+Your task is to design and implement the full commercial billing architecture for Dynasties so that Dynasties clients can bill their own customers, collect payments, offer credit terms through Balance, and allow Dynasties to capture a spread where appropriate.
+
+This is NOT about Dynasties billing its own SaaS customers.
+This IS about Dynasties providing a billing and receivables platform for its logistics clients so they can bill their customers from shipment activity.
+
+You must build this correctly from first principles and preserve the long-term architecture.
+
+==================================================
+HIGH-LEVEL GOAL
+==================================================
+
+Build the full Dynasties billing stack with these layers:
+
+1. Billing Brain inside Dynasties
+2. Money movement layer
+3. Embedded finance / net terms via Balance
+4. Optional accounting sync readiness
+5. Dynasties spread / margin layer
+6. UI, workflows, permissions, and auditability
+
+The result should allow a Dynasties client to:
+
+- create customers / billing accounts
+- define pricing and charge rules
+- generate invoice drafts from shipment events
+- send invoices to their own customers
+- accept pay-now or pay-later options
+- offer net 30 / net 60 through Balance
+- track AR state
+- see credit exposure and payment status
+- allow Dynasties to charge a spread or platform fee on embedded finance where appropriate
+
+==================================================
+STRATEGIC PRODUCT MODEL
+==================================================
+
+Treat Dynasties as:
+- the operational billing brain
+- the source of invoice logic
+- the source of AR and collections state
+- the UI through which clients manage customer billing
+
+Do NOT build:
+- full general ledger
+- tax engine
+- payroll
+- full accounting suite
+
+Dynasties should own:
+- what gets billed
+- when it gets billed
+- why it gets billed
+- who owes what
+- what payment/terms options are offered
+- what spread Dynasties earns
+
+Balance should handle:
+- underwriting
+- pay-later approval
+- credit risk
+- funding / settlement for financed invoices where supported
+
+==================================================
+PHASE 1 — SYSTEM DESIGN
+==================================================
+
+First, design the architecture and data model before writing the implementation.
+
+Create the full system design for these objects:
+
+1. BILLING ACCOUNTS
+A client’s billing profile for invoicing their customers.
+
+Fields should include:
+- companyId
+- legalEntityName
+- billingEmail
+- paymentProviderStatus
+- balanceProviderStatus
+- currency
+- invoicePrefix
+- defaultPaymentTerms
+- collectionsContact
+- branding settings
+- account status
+
+2. CUSTOMER BILLING PROFILES
+The client’s customers who receive invoices.
+
+Fields should include:
+- companyId
+- customerName
+- customerExternalId
+- billingEmail
+- billingAddress
+- paymentTerms
+- creditLimit
+- riskStatus
+- balanceEligibilityStatus
+- preferredPaymentMethod
+- defaultCurrency
+- notes
+- status
+
+3. CHARGE RULES
+Rules that turn shipment activity into line items.
+
+Must support:
+- freight charges
+- insurance charges
+- customs / handling fees
+- storage / delay fees
+- fuel / disruption surcharges
+- manual adjustments
+- customer-specific overrides
+- lane-specific pricing
+- shipment-type pricing
+
+4. INVOICE OBJECTS
+Must support:
+- draft
+- sent
+- partially paid
+- paid
+- overdue
+- disputed
+- cancelled
+
+Invoice fields:
+- companyId
+- customerBillingProfileId
+- shipmentId(s)
+- line items
+- subtotal
+- taxes placeholder if needed
+- discounts
+- finance fee
+- dynasties spread
+- total
+- due date
+- payment option configuration
+- invoice source
+- status
+- provider references
+- audit trail metadata
+
+5. INVOICE LINE ITEMS
+Fields:
+- invoiceId
+- type
+- description
+- quantity
+- unit price
+- amount
+- source event
+- shipment reference
+- editable flag
+- provider metadata
+
+6. AR / RECEIVABLE STATE
+Track:
+- outstanding balance
+- due date
+- days overdue
+- collections status
+- partial payments
+- dispute status
+- finance term status
+- settlement status
+
+7. PAYMENT OPTION CONFIGURATION
+Per client and per invoice:
+- pay now enabled
+- pay later enabled
+- net 30 enabled
+- net 60 enabled
+- ACH/card eligibility
+- balance offer visibility
+- fee pass-through or absorbed
+- dynasties spread model
+
+8. BALANCE FINANCING RECORDS
+Track:
+- invoiceId
+- customerBillingProfileId
+- balance application state
+- approval / decline
+- approved term length
+- financed amount
+- provider fee
+- dynasties spread
+- settlement status
+- provider external reference
+- timestamps
+
+9. COMMERCIAL EVENTS / AUDIT LOG
+Track every material event:
+- invoice created
+- invoice sent
+- pay-now selected
+- pay-later selected
+- balance approved
+- balance declined
+- invoice paid
+- invoice overdue
+- invoice disputed
+- spread recorded
+
+Return the proposed data model before implementation and then implement it.
+
+==================================================
+PHASE 2 — BILLING BRAIN IMPLEMENTATION
+==================================================
+
+Implement the billing brain inside Dynasties.
+
+Core capabilities required:
+
+1. CUSTOMER BILLING MANAGEMENT
+- create / edit / archive billing customers
+- assign terms
+- assign credit limits
+- assign risk states
+- link customers to shipments
+
+2. CHARGE GENERATION ENGINE
+Generate charges from shipment state and operational events.
+
+At minimum support:
+- base freight
+- insurance
+- disruptions / reroute fees
+- storage / delay fees
+- manual fees
+- credits / discounts
+
+3. INVOICE DRAFT CREATION
+Invoices should be creatable:
+- manually
+- from shipment detail
+- from workflow event completion
+- from shipment delivered / approved states
+- from accepted recommendations if relevant
+
+4. BASIC AR MANAGEMENT
+Implement:
+- invoice list
+- invoice detail
+- status changes
+- overdue calculation
+- partial payment tracking
+- dispute state
+- outstanding balance
+
+5. CREDIT CONTROL
+Implement:
+- customer credit limit
+- current exposure
+- available credit
+- warnings / holds
+- restrictions on new billable activity if terms are violated
+
+==================================================
+PHASE 3 — BALANCE INTEGRATION ARCHITECTURE
+==================================================
+
+Implement the Dynasties side of the Balance integration architecture.
+
+Important:
+If live Balance API credentials or docs are not yet available, build the provider abstraction and integration scaffolding cleanly with:
+- typed provider client
+- provider interfaces
+- mock / sandbox adapter
+- clear TODO boundaries for live credential insertion
+- no fake “it works” claims
+
+Create:
+- provider abstraction layer for embedded finance
+- Balance provider implementation
+- request / response normalization
+- webhook handling design
+- invoice-to-financing eligibility logic
+
+Required behaviors:
+
+1. OFFER TERMS ON ELIGIBLE INVOICES
+For a billable invoice, Dynasties should be able to present:
+- pay now
+- pay in 30 days
+- pay in 60 days
+Only where allowed by client config and invoice eligibility
+
+2. FINANCE ELIGIBILITY LOGIC
+Implement rules for:
+- invoice minimum / maximum
+- customer profile completeness
+- supported currency
+- client enabled / disabled state
+- shipment / customer risk holds
+
+3. BALANCE APPLICATION FLOW
+Support:
+- request financing offer
+- store result
+- surface approval / decline
+- track selected term
+- track provider fees
+- track settlement state
+
+4. WEBHOOK / STATUS FLOW
+Design for:
+- approved
+- declined
+- funded
+- repaid
+- failed
+- cancelled
+
+5. DEMO / SANDBOX MODE
+If no live Balance setup exists yet:
+- implement a mock provider with realistic approval/decline flows
+- clearly mark provider mode in config
+- preserve the production-ready architecture so live integration can replace mock later without rewrites
+
+==================================================
+PHASE 4 — DYNASTIES SPREAD / REVENUE LAYER
+==================================================
+
+Implement the commercial logic for Dynasties to earn revenue from embedded finance.
+
+Support these models:
+
+1. PASS-THROUGH
+Client or end customer bears the full provider fee.
+Dynasties earns nothing.
+
+2. INCLUDED / ABSORBED
+Client absorbs fee.
+Dynasties earns nothing.
+
+3. MARKUP / SPREAD
+Example:
+- provider fee = 2.0%
+- client-facing fee = 2.5%
+- dynasties spread = 0.5%
+
+4. PLATFORM FEE
+Flat fee per financed invoice or per financing event.
+
+Implement:
+- per-company finance pricing settings
+- finance fee configuration
+- dynasties spread calculation
+- display of provider fee vs client-facing fee vs dynasties spread
+- commercial event logging
+- future-ready hooks for revenue reporting
+
+Do NOT hardcode one model. Make it configurable.
+
+==================================================
+PHASE 5 — UI / UX
+==================================================
+
+Build the billing and finance UI inside Dynasties.
+
+Add these sections/pages in a coherent module, likely under a new sidebar item such as:
+- Billing
+or
+- Revenue
+or
+- Finance Ops
+
+Required UI surfaces:
+
+1. BILLING OVERVIEW
+Show:
+- total open receivables
+- overdue
+- paid this month
+- invoices sent
+- financed invoices
+- dynasties spread generated
+- customer risk / credit summary
+
+2. CUSTOMERS / BILLING ACCOUNTS
+Show:
+- customer list
+- billing terms
+- exposure
+- risk state
+- actions
+
+3. INVOICES LIST
+Show:
+- invoice number
+- customer
+- shipment reference
+- amount
+- due date
+- status
+- payment method / finance state
+
+4. INVOICE DETAIL
+Show:
+- line items
+- shipment links
+- notes
+- send invoice action
+- mark paid
+- dispute
+- financing offer state
+- payment options
+
+5. CLIENT CONFIG / BILLING SETTINGS
+Show:
+- invoice prefix
+- default terms
+- finance enable/disable
+- fee handling
+- dynasties spread settings
+- provider connection status
+
+6. SHIPMENT DETAIL INTEGRATION
+Allow invoice creation from shipment detail.
+Show:
+- billable events
+- charges preview
+- invoice link if already created
+
+7. TASK / WORKFLOW INTEGRATION
+Allow workflow tasks to be created when:
+- invoice overdue
+- balance application declined
+- dispute opened
+- credit limit exceeded
+
+==================================================
+PHASE 6 — PERMISSIONS / ROLES
+==================================================
+
+Implement role-aware access for billing.
+
+Suggested roles:
+- admin
+- finance manager
+- operator
+- viewer
+
+Permissions should control:
+- customer billing edits
+- invoice creation
+- invoice sending
+- finance settings
+- spread settings
+- dispute handling
+- payment status updates
+
+==================================================
+PHASE 7 — DEMO / PILOT READINESS
+==================================================
+
+Ensure the module is usable in a pilot/demo context.
+
+Requirements:
+- works with seeded Lorian demo data
+- at least a few demo customers
+- at least a few invoices
+- at least one financed invoice example
+- at least one overdue invoice example
+- at least one declined finance example
+- coherent money story tied to shipments
+
+Do NOT create a fake fantasy bank.
+Make the demo feel operationally plausible.
+
+==================================================
+PHASE 8 — IMPLEMENTATION CONSTRAINTS
+==================================================
+
+Rules:
+- production-grade architecture
+- modular provider abstraction
+- no hardcoded secrets
+- use environment variables / Replit Secrets only
+- no direct frontend access to finance provider secrets
+- preserve tenant safety
+- preserve current working demo flows
+- do not break the Lorian demo
+- if live provider setup is not possible, implement clean sandbox/mock mode
+
+==================================================
+DELIVERABLES
+==================================================
+
+At the end return:
+
+1. exact files changed
+2. data model / migrations added
+3. routes / services / components added
+4. billing brain architecture summary
+5. Balance integration architecture summary
+6. where Dynasties spread is configured and calculated
+7. what is live vs mocked
+8. what still needs provider credentials or docs
+9. how to test the end-to-end billing flow
+10. any risks or shortcuts used
+
+Do not just give a plan.
+Implement the architecture and code in the safest correct order.

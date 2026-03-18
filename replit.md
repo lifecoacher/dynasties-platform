@@ -48,6 +48,7 @@ The system automates various freight forwarding stages:
 - **Strategic Intelligence & Network Optimization:** Portfolio-level intelligence, lane strategy, carrier allocation, network optimization recommendations, portfolio risk/margin views, and intervention attribution.
 - **Policy Optimization & Productization:** Tenant-configurable policy engine, policy versioning, what-if policy simulation, operating mode presets, and reporting/export service.
 - **Customer Management:** Customer import and directory functionalities.
+- **Billing & Receivables:** Full commercial billing module with billing accounts, customer billing profiles (6 seeded), charge rules (7 types), invoice lifecycle (DRAFT→ISSUED→SENT→PAID/OVERDUE/DISPUTED/CANCELLED), receivables tracking with aging, Balance financing integration (spread calculation, provider abstraction), and commercial event audit trail. UI includes Overview dashboard with KPI cards and aging chart, Invoices list with status filters, Invoice detail with action buttons (send/pay/dispute/cancel) + line items + receivable + financing data + audit trail, Customers list + detail with exposure/credit/risk, and Settings page showing account config, finance settings, payment options, and charge rules.
 
 ## External Signal Integrations
 Backend-only provider integrations for enriching demo with live external data. Controlled by feature flags:

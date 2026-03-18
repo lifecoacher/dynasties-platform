@@ -1,0 +1,366 @@
+import { useState } from "react";
+import { useRoute, Link } from "wouter";
+import { motion } from "framer-motion";
+import {
+  ChevronLeft,
+  FileText,
+  Loader2,
+  Send,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Clock,
+  DollarSign,
+  Building2,
+  CreditCard,
+  Banknote,
+  History,
+} from "lucide-react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useBillingInvoice, useBillingAction } from "@/hooks/use-billing";
+
+function formatCurrency(val: number | string, currency = "USD") {
+  const n = typeof val === "string" ? parseFloat(val) : val;
+  if (isNaN(n)) return "$0.00";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { bg: string; text: string; icon: any }> = {
+    DRAFT: { bg: "bg-zinc-500/10 border-zinc-500/20", text: "text-zinc-400", icon: FileText },
+    ISSUED: { bg: "bg-blue-500/10 border-blue-500/20", text: "text-blue-400", icon: FileText },
+    SENT: { bg: "bg-sky-500/10 border-sky-500/20", text: "text-sky-400", icon: Send },
+    PARTIALLY_PAID: { bg: "bg-amber-500/10 border-amber-500/20", text: "text-amber-400", icon: DollarSign },
+    PAID: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", icon: CheckCircle2 },
+    OVERDUE: { bg: "bg-red-500/10 border-red-500/20", text: "text-red-400", icon: Clock },
+    DISPUTED: { bg: "bg-orange-500/10 border-orange-500/20", text: "text-orange-400", icon: AlertTriangle },
+    CANCELLED: { bg: "bg-zinc-500/10 border-zinc-500/20", text: "text-zinc-500", icon: XCircle },
+  };
+  const s = map[status] || map.DRAFT;
+  const Icon = s.icon;
+  return (
+    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-medium border ${s.bg} ${s.text}`}>
+      <Icon className="w-4 h-4" />
+      {status.replace(/_/g, " ")}
+    </span>
+  );
+}
+
+export default function BillingInvoiceDetail() {
+  const [, params] = useRoute("/billing/invoices/:id");
+  const invoiceId = params?.id || "";
+  const { data: invoice, isLoading, refetch } = useBillingInvoice(invoiceId);
+  const action = useBillingAction();
+  const [acting, setActing] = useState<string | null>(null);
+
+  const handleAction = async (path: string, body?: any) => {
+    setActing(path);
+    try {
+      await action(`invoices/${invoiceId}/${path}`, "POST", body);
+      refetch();
+    } catch (e: any) {
+      console.error(e);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  if (isLoading || !invoice) {
+    return (
+      <AppLayout hideRightPanel>
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const lineItems = invoice.lineItemsDetail || [];
+  const events = invoice.auditTrail || [];
+  const receivable = invoice.receivable;
+  const financing = invoice.financing;
+  const customer = invoice.customer;
+
+  return (
+    <AppLayout hideRightPanel>
+      <div className="px-8 py-8 max-w-[1200px] mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <Link href="/billing/invoices">
+            <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </Link>
+          <div className="flex-1">
+            <div className="flex items-center gap-4">
+              <h1 className="text-[22px] font-mono font-semibold text-foreground">{invoice.invoiceNumber}</h1>
+              <StatusBadge status={invoice.status} />
+            </div>
+            <p className="text-[13px] text-muted-foreground mt-0.5">
+              Created {new Date(invoice.createdAt).toLocaleDateString()}
+              {invoice.shipmentId && " · Linked to shipment"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {["DRAFT", "ISSUED"].includes(invoice.status) && (
+              <button
+                onClick={() => handleAction("send")}
+                disabled={!!acting}
+                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {acting === "send" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 inline mr-1.5 -mt-0.5" />Send Invoice</>}
+              </button>
+            )}
+            {["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status) && (
+              <button
+                onClick={() => handleAction("mark-paid")}
+                disabled={!!acting}
+                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+              >
+                {acting === "mark-paid" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 inline mr-1.5 -mt-0.5" />Mark Paid</>}
+              </button>
+            )}
+            {["SENT", "PARTIALLY_PAID"].includes(invoice.status) && (
+              <button
+                onClick={() => handleAction("dispute", { reason: "Customer dispute" })}
+                disabled={!!acting}
+                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 transition-colors disabled:opacity-50"
+              >
+                <AlertTriangle className="w-4 h-4 inline mr-1.5 -mt-0.5" />Dispute
+              </button>
+            )}
+            {["DRAFT", "ISSUED"].includes(invoice.status) && (
+              <button
+                onClick={() => handleAction("cancel")}
+                disabled={!!acting}
+                className="px-4 py-2 rounded-lg text-[13px] font-medium text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-card border border-card-border rounded-xl p-5"
+          >
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Amount</p>
+            <p className="text-[28px] font-bold text-foreground">{formatCurrency(invoice.grandTotal, invoice.currency)}</p>
+            <div className="mt-3 space-y-1.5 text-[12px]">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Subtotal</span>
+                <span>{formatCurrency(invoice.subtotal)}</span>
+              </div>
+              {Number(invoice.taxTotal) > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Tax</span>
+                  <span>{formatCurrency(invoice.taxTotal)}</span>
+                </div>
+              )}
+              {Number(invoice.financeFee) > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Finance Fee</span>
+                  <span>{formatCurrency(invoice.financeFee)}</span>
+                </div>
+              )}
+              {Number(invoice.discountTotal) > 0 && (
+                <div className="flex justify-between text-emerald-400">
+                  <span>Discount</span>
+                  <span>-{formatCurrency(invoice.discountTotal)}</span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-card border border-card-border rounded-xl p-5"
+          >
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Customer</p>
+            {customer ? (
+              <div>
+                <p className="text-[15px] font-semibold text-foreground">{customer.customerName}</p>
+                <p className="text-[12px] text-muted-foreground mt-1">{customer.billingEmail}</p>
+                {customer.billingAddress && (
+                  <p className="text-[12px] text-muted-foreground">{customer.billingAddress}</p>
+                )}
+                <div className="mt-3 flex items-center gap-2">
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+                    customer.riskStatus === "LOW" ? "bg-emerald-500/10 text-emerald-400" :
+                    customer.riskStatus === "MEDIUM" ? "bg-amber-500/10 text-amber-400" :
+                    "bg-red-500/10 text-red-400"
+                  }`}>
+                    {customer.riskStatus} Risk
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">{customer.paymentTerms}</span>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-[15px] font-semibold text-foreground">{invoice.billToName || "—"}</p>
+                <p className="text-[12px] text-muted-foreground mt-1">{invoice.billToEmail || "No email"}</p>
+              </div>
+            )}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-card border border-card-border rounded-xl p-5"
+          >
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Details</p>
+            <div className="space-y-2.5 text-[12px]">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Payment Terms</span>
+                <span className="text-foreground font-medium">{invoice.paymentTerms || "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Due Date</span>
+                <span className="text-foreground font-medium">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Source</span>
+                <span className="text-foreground font-medium">{invoice.invoiceSource}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Finance Eligible</span>
+                <span className={`font-medium ${invoice.financeEligible ? "text-emerald-400" : "text-muted-foreground"}`}>
+                  {invoice.financeEligible ? "Yes" : "No"}
+                </span>
+              </div>
+              {invoice.financeStatus !== "NONE" && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Finance Status</span>
+                  <span className="text-primary font-medium">{invoice.financeStatus}</span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+
+        {lineItems.length > 0 && (
+          <div className="bg-card border border-card-border rounded-xl overflow-hidden mb-8">
+            <div className="px-6 py-4 border-b border-card-border">
+              <h3 className="text-[14px] font-semibold text-foreground">Line Items</h3>
+            </div>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-card-border">
+                  <th className="text-left px-5 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Description</th>
+                  <th className="text-left px-5 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                  <th className="text-right px-5 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Qty</th>
+                  <th className="text-right px-5 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Unit Price</th>
+                  <th className="text-right px-5 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-card-border">
+                {lineItems.map((li: any, idx: number) => (
+                  <tr key={li.id || idx}>
+                    <td className="px-5 py-3 text-[13px] text-foreground">{li.description}</td>
+                    <td className="px-5 py-3">
+                      <span className="text-[11px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded">{li.lineType}</span>
+                    </td>
+                    <td className="px-5 py-3 text-right text-[13px] text-muted-foreground">{li.quantity}</td>
+                    <td className="px-5 py-3 text-right text-[13px] text-muted-foreground">{formatCurrency(li.unitPrice)}</td>
+                    <td className="px-5 py-3 text-right text-[13px] font-semibold text-foreground">{formatCurrency(li.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {receivable && (
+          <div className="bg-card border border-card-border rounded-xl p-6 mb-8">
+            <h3 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-primary" />
+              Receivable
+            </h3>
+            <div className="grid grid-cols-4 gap-6">
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1">Original Amount</p>
+                <p className="text-[16px] font-semibold text-foreground">{formatCurrency(receivable.originalAmount)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1">Outstanding</p>
+                <p className={`text-[16px] font-semibold ${Number(receivable.outstandingAmount) > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+                  {formatCurrency(receivable.outstandingAmount)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1">Collections Status</p>
+                <p className="text-[13px] font-medium text-foreground">{receivable.collectionsStatus}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1">Settlement</p>
+                <p className="text-[13px] font-medium text-foreground">{receivable.settlementStatus}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {financing && (
+          <div className="bg-card border border-primary/20 rounded-xl p-6 mb-8">
+            <h3 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Banknote className="w-4 h-4 text-primary" />
+              Financing Record
+            </h3>
+            <div className="grid grid-cols-4 gap-6">
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1">Status</p>
+                <p className={`text-[13px] font-semibold ${
+                  financing.applicationStatus === "FUNDED" ? "text-emerald-400" :
+                  financing.applicationStatus === "APPROVED" ? "text-primary" :
+                  "text-foreground"
+                }`}>{financing.applicationStatus}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1">Financed Amount</p>
+                <p className="text-[16px] font-semibold text-foreground">{formatCurrency(financing.financedAmount || 0)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1">Term</p>
+                <p className="text-[13px] font-medium text-foreground">{financing.termDays} days</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1">Provider Fee</p>
+                <p className="text-[13px] font-medium text-foreground">{formatCurrency(financing.providerFeeAmount || 0)}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {events.length > 0 && (
+          <div className="bg-card border border-card-border rounded-xl p-6">
+            <h3 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
+              <History className="w-4 h-4 text-muted-foreground" />
+              Audit Trail
+            </h3>
+            <div className="space-y-3">
+              {events.map((ev: any) => (
+                <div key={ev.id} className="flex items-start gap-3">
+                  <div className="w-2 h-2 rounded-full bg-primary/50 mt-1.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] text-foreground">{ev.description || ev.eventType.replace(/_/g, " ")}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {new Date(ev.createdAt).toLocaleString()}
+                      {ev.actorType === "USER" && " · User action"}
+                    </p>
+                  </div>
+                  {ev.amount && (
+                    <span className="text-[12px] font-mono text-muted-foreground">{formatCurrency(ev.amount)}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </AppLayout>
+  );
+}
