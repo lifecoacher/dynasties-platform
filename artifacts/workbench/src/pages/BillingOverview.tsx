@@ -85,6 +85,7 @@ function StatusPill({ status }: { status: string }) {
     OVERDUE: { bg: "bg-red-500/10", text: "text-red-400", dot: "bg-red-400" },
     DISPUTED: { bg: "bg-orange-500/10", text: "text-orange-400", dot: "bg-orange-400" },
     CANCELLED: { bg: "bg-zinc-500/10", text: "text-zinc-500", dot: "bg-zinc-500" },
+    FINANCED: { bg: "bg-primary/10", text: "text-primary", dot: "bg-primary" },
   };
   const s = map[status] || map.DRAFT;
   return (
@@ -177,7 +178,7 @@ export default function BillingOverview() {
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-4 gap-4 mb-8">
           <KpiCard
             label="Total Invoiced"
             value={formatCurrency(totalInvoiced)}
@@ -196,6 +197,14 @@ export default function BillingOverview() {
             subtitle={`${overview?.financedCount || 0} records`}
             icon={Banknote}
             color="green"
+          />
+          <KpiCard
+            label="Platform Revenue"
+            value={formatCurrency(overview?.platformRevenue || 0)}
+            subtitle={overview?.averageFinancingRate ? `${(overview.averageFinancingRate * 100).toFixed(1)}% avg rate` : "From financing spreads"}
+            icon={TrendingUp}
+            color="teal"
+            trend={Number(overview?.platformRevenue || 0) > 0 ? "Earning" : undefined}
           />
         </div>
 

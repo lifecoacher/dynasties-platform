@@ -18,6 +18,7 @@ import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
 import { generateId } from "@workspace/shared-utils";
 import { getBalanceProvider, calculateSpread } from "../providers/balance-provider.js";
+import { computeFinancingTerms, validateFinanceTransition } from "../services/financing-engine.js";
 
 const router = Router();
 
@@ -336,6 +337,11 @@ router.get("/billing/invoices/:id", async (req, res) => {
       ),
     )
     .orderBy(desc(commercialEventsTable.createdAt));
+  const financingTerms = computeFinancingTerms({
+    invoiceStatus: invoice.status,
+    outstandingAmount: receivable ? Number(receivable.outstandingAmount) : Number(invoice.grandTotal),
+    financeEligible: invoice.financeEligible,
+  });
   res.json({
     data: {
       ...invoice,
@@ -343,6 +349,7 @@ router.get("/billing/invoices/:id", async (req, res) => {
       customer,
       receivable,
       financing,
+      financingTerms: financingTerms.eligible ? financingTerms : null,
       auditTrail: events,
     },
   });
@@ -614,6 +621,139 @@ router.post("/billing/invoices/:id/cancel", requireMinRole("MANAGER"), async (re
   res.json({ data: updated });
 });
 
+router.post("/billing/invoices/:id/offer-financing", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const [invoice] = await db
+    .select()
+    .from(invoicesTable)
+    .where(and(eq(invoicesTable.id, req.params.id as string), eq(invoicesTable.companyId, companyId)))
+    .limit(1);
+  if (!invoice) { res.status(404).json({ error: "Invoice not found" }); return; }
+  const transition = validateFinanceTransition(invoice.financeStatus, "OFFERED");
+  if (!transition.valid) { res.status(400).json({ error: transition.error }); return; }
+  if (invoice.status !== "OVERDUE") {
+    res.status(400).json({ error: "Only overdue invoices can receive financing offers" }); return;
+  }
+  const [receivable] = await db.select().from(receivablesTable).where(eq(receivablesTable.invoiceId, invoice.id)).limit(1);
+  const outstanding = receivable ? Number(receivable.outstandingAmount) : Number(invoice.grandTotal);
+  const terms = computeFinancingTerms({ invoiceStatus: invoice.status, outstandingAmount: outstanding, financeEligible: invoice.financeEligible });
+  if (!terms.eligible) { res.status(400).json({ error: "Invoice is not eligible for financing" }); return; }
+  await db.update(invoicesTable).set({ financeStatus: "OFFERED" }).where(eq(invoicesTable.id, invoice.id));
+  await logCommercialEvent({
+    companyId,
+    eventType: "BALANCE_REQUESTED",
+    entityType: "INVOICE",
+    entityId: invoice.id,
+    actorType: "SYSTEM",
+    amount: outstanding,
+    currency: invoice.currency,
+    description: `Financing offer generated: ${invoice.currency} ${terms.advanceAmount.toFixed(2)} advance at ${(terms.customerRate * 100).toFixed(1)}% fee`,
+    metadata: { providerRate: terms.providerRate, platformSpread: terms.platformSpread, customerRate: terms.customerRate, financingFee: terms.financingFee, advanceAmount: terms.advanceAmount, platformRevenue: terms.platformRevenue },
+  });
+  const [updated] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, invoice.id)).limit(1);
+  res.json({ data: { ...updated, financingTerms: terms } });
+});
+
+router.post("/billing/invoices/:id/accept-financing", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const [invoice] = await db
+    .select()
+    .from(invoicesTable)
+    .where(and(eq(invoicesTable.id, req.params.id as string), eq(invoicesTable.companyId, companyId)))
+    .limit(1);
+  if (!invoice) { res.status(404).json({ error: "Invoice not found" }); return; }
+  const transition = validateFinanceTransition(invoice.financeStatus, "FUNDED");
+  if (!transition.valid) { res.status(400).json({ error: transition.error }); return; }
+  const [receivable] = await db.select().from(receivablesTable).where(eq(receivablesTable.invoiceId, invoice.id)).limit(1);
+  const outstanding = receivable ? Number(receivable.outstandingAmount) : Number(invoice.grandTotal);
+  if (outstanding <= 0) { res.status(400).json({ error: "No outstanding amount to finance" }); return; }
+  const terms = computeFinancingTerms({ invoiceStatus: invoice.status, outstandingAmount: outstanding, financeEligible: invoice.financeEligible });
+  if (!terms.eligible) { res.status(400).json({ error: "Invoice is not eligible for financing" }); return; }
+  if (!invoice.customerBillingProfileId) { res.status(400).json({ error: "Invoice must have a customer billing profile" }); return; }
+  const now = new Date();
+  const providerFeeAmount = Math.round(outstanding * terms.providerRate * 100) / 100;
+  const [financingRecord] = await db.insert(balanceFinancingRecordsTable).values({
+    id: generateId("bfr"),
+    companyId,
+    invoiceId: invoice.id,
+    customerBillingProfileId: invoice.customerBillingProfileId,
+    applicationStatus: "FUNDED",
+    termDays: 30,
+    financedAmount: terms.advanceAmount.toFixed(2),
+    providerFeeRate: terms.providerRate,
+    providerFeeAmount: providerFeeAmount.toFixed(2),
+    clientFacingFeeRate: terms.customerRate,
+    clientFacingFeeAmount: terms.financingFee.toFixed(2),
+    dynastiesSpreadAmount: terms.platformRevenue.toFixed(2),
+    providerName: "balance",
+    settlementStatus: "SETTLED",
+    requestedAt: now,
+    decidedAt: now,
+    fundedAt: now,
+  }).returning();
+  await db.update(invoicesTable).set({
+    status: "FINANCED",
+    financeStatus: "FUNDED",
+    paymentMethod: "FINANCED",
+    financeFee: terms.financingFee.toFixed(2),
+    dynastiesSpread: terms.platformRevenue.toFixed(2),
+    paidAt: now,
+  }).where(eq(invoicesTable.id, invoice.id));
+  if (receivable) {
+    await db.update(receivablesTable).set({
+      outstandingAmount: "0",
+      settlementStatus: "SETTLED",
+      financeStatus: "FUNDED",
+    }).where(eq(receivablesTable.id, receivable.id));
+  }
+  await logCommercialEvent({
+    companyId, eventType: "BALANCE_APPROVED", entityType: "FINANCING", entityId: financingRecord.id,
+    actorType: "USER", actorId: req.user?.userId, amount: terms.advanceAmount, currency: invoice.currency,
+    description: `Financing accepted: ${invoice.currency} ${terms.advanceAmount.toFixed(2)} advanced for ${invoice.invoiceNumber}`,
+  });
+  await logCommercialEvent({
+    companyId, eventType: "BALANCE_FUNDED", entityType: "FINANCING", entityId: financingRecord.id,
+    actorType: "PROVIDER", amount: terms.advanceAmount, currency: invoice.currency,
+    description: `Funds advanced to account — fee: ${invoice.currency} ${terms.financingFee.toFixed(2)}`,
+  });
+  await logCommercialEvent({
+    companyId, eventType: "SPREAD_RECORDED", entityType: "FINANCING", entityId: financingRecord.id,
+    actorType: "SYSTEM", amount: terms.platformRevenue, currency: invoice.currency,
+    description: `Platform revenue recorded: ${invoice.currency} ${terms.platformRevenue.toFixed(2)} (${(terms.platformSpread * 100).toFixed(1)}% spread)`,
+  });
+  const [updated] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, invoice.id)).limit(1);
+  const [updatedReceivable] = await db.select().from(receivablesTable).where(eq(receivablesTable.invoiceId, invoice.id)).limit(1);
+  res.json({ data: { ...updated, financing: financingRecord, receivable: updatedReceivable, financingTerms: null } });
+});
+
+router.post("/billing/invoices/:id/mark-repaid", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const [invoice] = await db
+    .select()
+    .from(invoicesTable)
+    .where(and(eq(invoicesTable.id, req.params.id as string), eq(invoicesTable.companyId, companyId)))
+    .limit(1);
+  if (!invoice) { res.status(404).json({ error: "Invoice not found" }); return; }
+  const transition = validateFinanceTransition(invoice.financeStatus, "REPAID");
+  if (!transition.valid) { res.status(400).json({ error: transition.error }); return; }
+  const now = new Date();
+  await db.update(invoicesTable).set({ financeStatus: "REPAID" }).where(eq(invoicesTable.id, invoice.id));
+  const [financing] = await db.select().from(balanceFinancingRecordsTable).where(eq(balanceFinancingRecordsTable.invoiceId, invoice.id)).limit(1);
+  if (financing) {
+    await db.update(balanceFinancingRecordsTable).set({ applicationStatus: "REPAID", repaidAt: now, settlementStatus: "SETTLED" }).where(eq(balanceFinancingRecordsTable.id, financing.id));
+  }
+  if (invoice.customerBillingProfileId) {
+    await db.update(receivablesTable).set({ financeStatus: "REPAID" }).where(eq(receivablesTable.invoiceId, invoice.id));
+  }
+  await logCommercialEvent({
+    companyId, eventType: "BALANCE_REPAID", entityType: "FINANCING", entityId: financing?.id || invoice.id,
+    actorType: "SYSTEM", amount: Number(financing?.financedAmount || 0), currency: invoice.currency,
+    description: `Financing repaid for ${invoice.invoiceNumber}`,
+  });
+  const [updated] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, invoice.id)).limit(1);
+  res.json({ data: updated });
+});
+
 router.get("/billing/receivables/overview", async (req, res) => {
   const companyId = getCompanyId(req);
   const receivables = await db
@@ -694,8 +834,12 @@ router.get("/billing/receivables/overview", async (req, res) => {
       invoicesSent: Number(sentCount[0]?.count || 0),
       totalFinanced,
       totalSpread,
+      platformRevenue: totalSpread,
       financedCount: financedRecords.length,
       receivableCount: openReceivables.length,
+      averageFinancingRate: financedRecords.length > 0
+        ? financedRecords.reduce((s, r) => s + (r.clientFacingFeeRate || 0), 0) / financedRecords.length
+        : 0,
       aging,
       currency: "USD",
     },

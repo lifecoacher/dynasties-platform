@@ -14,7 +14,7 @@ export const invoicesTable = pgTable(
     customerBillingProfileId: text("customer_billing_profile_id"),
     invoiceNumber: text("invoice_number").notNull().unique(),
     status: text("status", {
-      enum: ["DRAFT", "ISSUED", "SENT", "PARTIALLY_PAID", "PAID", "OVERDUE", "DISPUTED", "CANCELLED"],
+      enum: ["DRAFT", "ISSUED", "SENT", "PARTIALLY_PAID", "PAID", "OVERDUE", "DISPUTED", "CANCELLED", "FINANCED"],
     }).notNull(),
     billToEntityId: text("bill_to_entity_id"),
     billToName: text("bill_to_name"),
@@ -32,7 +32,7 @@ export const invoicesTable = pgTable(
     }),
     financeEligible: boolean("finance_eligible").notNull().default(false),
     financeStatus: text("finance_status", {
-      enum: ["NONE", "OFFERED", "REQUESTED", "APPROVED", "FUNDED", "DECLINED"],
+      enum: ["NONE", "OFFERED", "REQUESTED", "APPROVED", "FUNDED", "DECLINED", "REPAID"],
     }).notNull().default("NONE"),
     paymentMethod: text("payment_method", {
       enum: ["PAY_NOW", "PAY_LATER", "FINANCED", "PENDING"],
