@@ -84,6 +84,18 @@ export default function BillingInvoiceDetail() {
     }
   };
 
+  const handleFundFinancing = async () => {
+    setActing("fund-financing");
+    try {
+      await action(`invoices/${invoiceId}/fund-financing`, "POST");
+      refetch();
+    } catch (e: any) {
+      console.error(e);
+    } finally {
+      setActing(null);
+    }
+  };
+
   if (isLoading || !invoice) {
     return (
       <AppLayout hideRightPanel>
@@ -100,9 +112,10 @@ export default function BillingInvoiceDetail() {
   const financing = invoice.financing;
   const customer = invoice.customer;
   const terms = invoice.financingTerms;
+  const isAccepted = invoice.financeStatus === "ACCEPTED";
   const isFinanced = invoice.status === "FINANCED" || invoice.financeStatus === "FUNDED";
   const isRepaid = invoice.financeStatus === "REPAID";
-  const showFinancingPanel = terms && terms.eligible && !isFinanced && !isRepaid;
+  const showFinancingPanel = terms && terms.eligible && !isAccepted && !isFinanced && !isRepaid;
 
   const dueDate = invoice.dueDate ? new Date(invoice.dueDate) : null;
   const now = new Date();
@@ -144,7 +157,7 @@ export default function BillingInvoiceDetail() {
                 {acting === "send" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 inline mr-1.5 -mt-0.5" />Send Invoice</>}
               </button>
             )}
-            {["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status) && !showFinancingPanel && (
+            {["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status) && !showFinancingPanel && !isAccepted && (
               <button
                 onClick={() => handleAction("mark-paid")}
                 disabled={!!acting}
@@ -258,6 +271,55 @@ export default function BillingInvoiceDetail() {
                   </button>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {isAccepted && (
+            <motion.div
+              key="financing-accepted"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="mb-8 bg-gradient-to-br from-amber-500/[0.08] via-amber-500/[0.03] to-transparent border-2 border-amber-500/30 rounded-2xl p-8"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-[20px] font-bold text-amber-400">Financing Accepted</h3>
+                  <p className="text-[13px] text-muted-foreground">Awaiting funds disbursement from provider</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-6 mb-6">
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Amount to Receive</p>
+                  <p className="text-[20px] font-bold text-amber-400">{formatCurrency(financing?.financedAmount || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Financing Fee</p>
+                  <p className="text-[16px] font-semibold text-foreground">{formatCurrency(financing?.clientFacingFeeAmount || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Provider</p>
+                  <p className="text-[16px] font-semibold text-foreground capitalize">{financing?.providerName || "Balance"}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Status</p>
+                  <p className="text-[16px] font-semibold text-amber-400">Pending Disbursement</p>
+                </div>
+              </div>
+              <button
+                onClick={handleFundFinancing}
+                disabled={!!acting}
+                className="px-8 py-3.5 rounded-xl text-[15px] font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-amber-500/20"
+              >
+                {acting === "fund-financing" ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>Disburse Funds<ArrowRight className="w-5 h-5" /></>
+                )}
+              </button>
             </motion.div>
           )}
 

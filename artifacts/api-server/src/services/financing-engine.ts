@@ -20,10 +20,10 @@ export function computeFinancingTerms(params: {
   financeStatus?: string;
 }): FinancingTerms {
   const statusAllowsFinancing = ["OVERDUE", "SENT", "PARTIALLY_PAID"].includes(params.invoiceStatus);
-  const alreadyFinanced = ["FUNDED", "REPAID"].includes(params.financeStatus || "");
+  const terminalFinanceState = ["ACCEPTED", "FUNDED", "REPAID"].includes(params.financeStatus || "");
 
   const eligible =
-    !alreadyFinanced &&
+    !terminalFinanceState &&
     params.outstandingAmount > 0 &&
     (
       (params.financeEligible && statusAllowsFinancing) ||
@@ -62,7 +62,8 @@ export function computeFinancingTerms(params: {
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   NONE: ["OFFERED"],
-  OFFERED: ["FUNDED", "DECLINED"],
+  OFFERED: ["ACCEPTED", "DECLINED"],
+  ACCEPTED: ["FUNDED"],
   FUNDED: ["REPAID"],
 };
 

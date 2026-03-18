@@ -663,22 +663,26 @@ router.post("/billing/invoices/:id/accept-financing", requireMinRole("OPERATOR")
     .where(and(eq(invoicesTable.id, req.params.id as string), eq(invoicesTable.companyId, companyId)))
     .limit(1);
   if (!invoice) { res.status(404).json({ error: "Invoice not found" }); return; }
-  const transition = validateFinanceTransition(invoice.financeStatus, "FUNDED");
+  const transition = validateFinanceTransition(invoice.financeStatus, "ACCEPTED");
   if (!transition.valid) { res.status(400).json({ error: transition.error }); return; }
+  if (!invoice.customerBillingProfileId) { res.status(400).json({ error: "Invoice must have a customer billing profile" }); return; }
+  const now = new Date();
   const [receivable] = await db.select().from(receivablesTable).where(eq(receivablesTable.invoiceId, invoice.id)).limit(1);
   const outstanding = receivable ? Number(receivable.outstandingAmount) : Number(invoice.grandTotal);
   if (outstanding <= 0) { res.status(400).json({ error: "No outstanding amount to finance" }); return; }
   const terms = computeFinancingTerms({ invoiceStatus: invoice.status, outstandingAmount: outstanding, financeEligible: invoice.financeEligible, financeStatus: invoice.financeStatus });
   if (!terms.eligible) { res.status(400).json({ error: "Invoice is not eligible for financing" }); return; }
-  if (!invoice.customerBillingProfileId) { res.status(400).json({ error: "Invoice must have a customer billing profile" }); return; }
-  const now = new Date();
+  await db.update(invoicesTable).set({ financeStatus: "ACCEPTED" }).where(eq(invoicesTable.id, invoice.id));
+  if (receivable) {
+    await db.update(receivablesTable).set({ financeStatus: "ACCEPTED" }).where(eq(receivablesTable.id, receivable.id));
+  }
   const providerFeeAmount = Math.round(outstanding * terms.providerRate * 100) / 100;
   const [financingRecord] = await db.insert(balanceFinancingRecordsTable).values({
     id: generateId("bfr"),
     companyId,
     invoiceId: invoice.id,
     customerBillingProfileId: invoice.customerBillingProfileId,
-    applicationStatus: "FUNDED",
+    applicationStatus: "ACCEPTED",
     termDays: 30,
     financedAmount: terms.advanceAmount.toFixed(2),
     providerFeeRate: terms.providerRate,
@@ -687,17 +691,50 @@ router.post("/billing/invoices/:id/accept-financing", requireMinRole("OPERATOR")
     clientFacingFeeAmount: terms.financingFee.toFixed(2),
     dynastiesSpreadAmount: terms.platformRevenue.toFixed(2),
     providerName: "balance",
-    settlementStatus: "SETTLED",
+    settlementStatus: "PENDING",
     requestedAt: now,
+    acceptedAt: now,
+  }).returning();
+  await logCommercialEvent({
+    companyId, eventType: "BALANCE_ACCEPTED", entityType: "INVOICE", entityId: invoice.id,
+    actorType: "USER", actorId: req.user?.userId, amount: terms.advanceAmount, currency: invoice.currency,
+    description: `Financing accepted by operator for ${invoice.invoiceNumber}`,
+  });
+  const [updated] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, invoice.id)).limit(1);
+  const [updatedReceivable] = await db.select().from(receivablesTable).where(eq(receivablesTable.invoiceId, invoice.id)).limit(1);
+  res.json({ data: { ...updated, financing: financingRecord, receivable: updatedReceivable, financingTerms: terms } });
+});
+
+router.post("/billing/invoices/:id/fund-financing", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const [invoice] = await db
+    .select()
+    .from(invoicesTable)
+    .where(and(eq(invoicesTable.id, req.params.id as string), eq(invoicesTable.companyId, companyId)))
+    .limit(1);
+  if (!invoice) { res.status(404).json({ error: "Invoice not found" }); return; }
+  const transition = validateFinanceTransition(invoice.financeStatus, "FUNDED");
+  if (!transition.valid) { res.status(400).json({ error: transition.error }); return; }
+  const [financingRecord] = await db.select().from(balanceFinancingRecordsTable).where(eq(balanceFinancingRecordsTable.invoiceId, invoice.id)).limit(1);
+  if (!financingRecord) { res.status(400).json({ error: "No financing record found — must accept financing first" }); return; }
+  const [receivable] = await db.select().from(receivablesTable).where(eq(receivablesTable.invoiceId, invoice.id)).limit(1);
+  const now = new Date();
+  const advanceAmount = Number(financingRecord.financedAmount || 0);
+  const financingFee = Number(financingRecord.clientFacingFeeAmount || 0);
+  const platformRevenue = Number(financingRecord.dynastiesSpreadAmount || 0);
+  const platformSpread = Number(financingRecord.providerFeeRate || 0);
+  await db.update(balanceFinancingRecordsTable).set({
+    applicationStatus: "FUNDED",
+    settlementStatus: "SETTLED",
     decidedAt: now,
     fundedAt: now,
-  }).returning();
+  }).where(eq(balanceFinancingRecordsTable.id, financingRecord.id));
   await db.update(invoicesTable).set({
     status: "FINANCED",
     financeStatus: "FUNDED",
     paymentMethod: "FINANCED",
-    financeFee: terms.financingFee.toFixed(2),
-    dynastiesSpread: terms.platformRevenue.toFixed(2),
+    financeFee: financingFee.toFixed(2),
+    dynastiesSpread: platformRevenue.toFixed(2),
     paidAt: now,
   }).where(eq(invoicesTable.id, invoice.id));
   if (receivable) {
@@ -710,23 +747,19 @@ router.post("/billing/invoices/:id/accept-financing", requireMinRole("OPERATOR")
     }).where(eq(receivablesTable.id, receivable.id));
   }
   await logCommercialEvent({
-    companyId, eventType: "BALANCE_APPROVED", entityType: "INVOICE", entityId: invoice.id,
-    actorType: "USER", actorId: req.user?.userId, amount: terms.advanceAmount, currency: invoice.currency,
-    description: `Financing accepted: ${invoice.currency} ${terms.advanceAmount.toFixed(2)} advanced for ${invoice.invoiceNumber}`,
-  });
-  await logCommercialEvent({
     companyId, eventType: "BALANCE_FUNDED", entityType: "INVOICE", entityId: invoice.id,
-    actorType: "PROVIDER", amount: terms.advanceAmount, currency: invoice.currency,
-    description: `Funds advanced to account — fee: ${invoice.currency} ${terms.financingFee.toFixed(2)}`,
+    actorType: "PROVIDER", amount: advanceAmount, currency: invoice.currency,
+    description: `Funds disbursed to account — fee: ${invoice.currency} ${financingFee.toFixed(2)}`,
   });
   await logCommercialEvent({
     companyId, eventType: "SPREAD_RECORDED", entityType: "INVOICE", entityId: invoice.id,
-    actorType: "SYSTEM", amount: terms.platformRevenue, currency: invoice.currency,
-    description: `Platform revenue recorded: ${invoice.currency} ${terms.platformRevenue.toFixed(2)} (${(terms.platformSpread * 100).toFixed(1)}% spread)`,
+    actorType: "SYSTEM", amount: platformRevenue, currency: invoice.currency,
+    description: `Platform revenue recorded: ${invoice.currency} ${platformRevenue.toFixed(2)}`,
   });
   const [updated] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, invoice.id)).limit(1);
   const [updatedReceivable] = await db.select().from(receivablesTable).where(eq(receivablesTable.invoiceId, invoice.id)).limit(1);
-  res.json({ data: { ...updated, financing: financingRecord, receivable: updatedReceivable, financingTerms: null } });
+  const [updatedFinancing] = await db.select().from(balanceFinancingRecordsTable).where(eq(balanceFinancingRecordsTable.id, financingRecord.id)).limit(1);
+  res.json({ data: { ...updated, financing: updatedFinancing, receivable: updatedReceivable, financingTerms: null } });
 });
 
 router.post("/billing/invoices/:id/mark-repaid", requireMinRole("OPERATOR"), async (req, res) => {
@@ -807,7 +840,7 @@ router.get("/billing/receivables/overview", async (req, res) => {
     .where(
       and(
         eq(balanceFinancingRecordsTable.companyId, companyId),
-        inArray(balanceFinancingRecordsTable.applicationStatus, ["APPROVED", "FUNDED", "REPAID"]),
+        inArray(balanceFinancingRecordsTable.applicationStatus, ["ACCEPTED", "APPROVED", "FUNDED", "REPAID"]),
       ),
     );
   const totalFinanced = financedRecords.reduce((s, r) => s + Number(r.financedAmount || 0), 0);
@@ -860,6 +893,8 @@ router.get("/billing/receivables", async (req, res) => {
 });
 
 router.post("/billing/invoices/:id/request-financing", requireMinRole("OPERATOR"), async (req, res) => {
+  res.status(410).json({ error: "Deprecated — use /offer-financing, /accept-financing, /fund-financing lifecycle" });
+  return;
   const companyId = getCompanyId(req);
   const body = req.body;
   const [invoice] = await db

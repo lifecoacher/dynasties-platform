@@ -278,7 +278,7 @@ export const receivablesTable = pgTable(
       .default("NONE"),
     disputeReason: text("dispute_reason"),
     financeStatus: text("finance_status", {
-      enum: ["NONE", "PENDING", "APPROVED", "FUNDED", "REPAID", "DECLINED"],
+      enum: ["NONE", "PENDING", "ACCEPTED", "APPROVED", "FUNDED", "REPAID", "DECLINED"],
     })
       .notNull()
       .default("NONE"),
@@ -369,6 +369,7 @@ export const balanceFinancingRecordsTable = pgTable(
     applicationStatus: text("application_status", {
       enum: [
         "REQUESTED",
+        "ACCEPTED",
         "APPROVED",
         "DECLINED",
         "FUNDED",
@@ -405,6 +406,7 @@ export const balanceFinancingRecordsTable = pgTable(
       .default("PENDING"),
     declineReason: text("decline_reason"),
     requestedAt: timestamp("requested_at").notNull().defaultNow(),
+    acceptedAt: timestamp("accepted_at"),
     decidedAt: timestamp("decided_at"),
     fundedAt: timestamp("funded_at"),
     repaidAt: timestamp("repaid_at"),
@@ -444,6 +446,7 @@ export const commercialEventsTable = pgTable(
         "PAY_NOW_SELECTED",
         "PAY_LATER_SELECTED",
         "BALANCE_REQUESTED",
+        "BALANCE_ACCEPTED",
         "BALANCE_APPROVED",
         "BALANCE_DECLINED",
         "BALANCE_FUNDED",
