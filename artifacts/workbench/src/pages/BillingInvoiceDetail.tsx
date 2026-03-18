@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
   FileText,
@@ -11,10 +11,13 @@ import {
   XCircle,
   Clock,
   DollarSign,
-  Building2,
   CreditCard,
   Banknote,
   History,
+  Zap,
+  ArrowRight,
+  TrendingUp,
+  ShieldCheck,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useBillingInvoice, useBillingAction } from "@/hooks/use-billing";
@@ -35,6 +38,7 @@ function StatusBadge({ status }: { status: string }) {
     OVERDUE: { bg: "bg-red-500/10 border-red-500/20", text: "text-red-400", icon: Clock },
     DISPUTED: { bg: "bg-orange-500/10 border-orange-500/20", text: "text-orange-400", icon: AlertTriangle },
     CANCELLED: { bg: "bg-zinc-500/10 border-zinc-500/20", text: "text-zinc-500", icon: XCircle },
+    FINANCED: { bg: "bg-primary/10 border-primary/20", text: "text-primary", icon: Banknote },
   };
   const s = map[status] || map.DRAFT;
   const Icon = s.icon;
@@ -65,6 +69,21 @@ export default function BillingInvoiceDetail() {
     }
   };
 
+  const handleAcceptFinancing = async () => {
+    setActing("accept-financing");
+    try {
+      if (invoice.financeStatus === "NONE") {
+        await action(`invoices/${invoiceId}/offer-financing`, "POST");
+      }
+      await action(`invoices/${invoiceId}/accept-financing`, "POST");
+      refetch();
+    } catch (e: any) {
+      console.error(e);
+    } finally {
+      setActing(null);
+    }
+  };
+
   if (isLoading || !invoice) {
     return (
       <AppLayout hideRightPanel>
@@ -80,6 +99,8 @@ export default function BillingInvoiceDetail() {
   const receivable = invoice.receivable;
   const financing = invoice.financing;
   const customer = invoice.customer;
+  const terms = invoice.financingTerms;
+  const isFinanced = invoice.status === "FINANCED" || invoice.financeStatus === "FUNDED";
 
   return (
     <AppLayout hideRightPanel>
@@ -110,7 +131,7 @@ export default function BillingInvoiceDetail() {
                 {acting === "send" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 inline mr-1.5 -mt-0.5" />Send Invoice</>}
               </button>
             )}
-            {["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status) && (
+            {["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status) && !terms && (
               <button
                 onClick={() => handleAction("mark-paid")}
                 disabled={!!acting}
@@ -137,8 +158,128 @@ export default function BillingInvoiceDetail() {
                 Cancel
               </button>
             )}
+            {invoice.financeStatus === "FUNDED" && invoice.status === "FINANCED" && (
+              <button
+                onClick={() => handleAction("mark-repaid")}
+                disabled={!!acting}
+                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors disabled:opacity-50"
+              >
+                {acting === "mark-repaid" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ShieldCheck className="w-4 h-4 inline mr-1.5 -mt-0.5" />Mark Repaid</>}
+              </button>
+            )}
           </div>
         </div>
+
+        <AnimatePresence mode="wait">
+          {terms && !isFinanced && (
+            <motion.div
+              key="financing-offer"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12, scale: 0.98 }}
+              transition={{ duration: 0.3 }}
+              className="mb-8 bg-gradient-to-br from-primary/[0.08] via-primary/[0.04] to-transparent border-2 border-primary/30 rounded-2xl p-8 relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/[0.03] rounded-full -translate-y-1/2 translate-x-1/3" />
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <Zap className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-[20px] font-bold text-foreground">Get Paid Now</h3>
+                    <p className="text-[13px] text-muted-foreground">Receive funds instantly instead of waiting for payment</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-5 gap-6 mb-8">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Outstanding</p>
+                    <p className="text-[22px] font-bold text-foreground">{formatCurrency(terms.outstandingAmount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">You Receive</p>
+                    <p className="text-[22px] font-bold text-emerald-400">{formatCurrency(terms.advanceAmount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Financing Fee</p>
+                    <p className="text-[18px] font-semibold text-foreground">{formatCurrency(terms.financingFee)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Rate</p>
+                    <p className="text-[18px] font-semibold text-foreground">{(terms.customerRate * 100).toFixed(1)}%</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Time to Funds</p>
+                    <p className="text-[18px] font-semibold text-primary">Instant</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={handleAcceptFinancing}
+                    disabled={!!acting}
+                    className="px-8 py-3.5 rounded-xl text-[15px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-primary/20"
+                  >
+                    {acting === "accept-financing" ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        Accept Financing
+                        <ArrowRight className="w-5 h-5" />
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleAction("mark-paid")}
+                    disabled={!!acting}
+                    className="px-6 py-3.5 rounded-xl text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+                  >
+                    Pay Manually Instead
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {isFinanced && (
+            <motion.div
+              key="financing-complete"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.4 }}
+              className="mb-8 bg-gradient-to-br from-emerald-500/[0.08] via-emerald-500/[0.03] to-transparent border-2 border-emerald-500/30 rounded-2xl p-8"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-[20px] font-bold text-emerald-400">Invoice Financed</h3>
+                  <p className="text-[13px] text-muted-foreground">Funds have been advanced to your account</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-6">
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Amount Advanced</p>
+                  <p className="text-[20px] font-bold text-emerald-400">{formatCurrency(financing?.financedAmount || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Financing Fee</p>
+                  <p className="text-[16px] font-semibold text-foreground">{formatCurrency(invoice.financeFee)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Platform Earned</p>
+                  <p className="text-[16px] font-semibold text-primary">{formatCurrency(invoice.dynastiesSpread)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Outstanding</p>
+                  <p className="text-[16px] font-semibold text-emerald-400">$0.00</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="grid grid-cols-3 gap-6 mb-8">
           <motion.div
@@ -163,6 +304,12 @@ export default function BillingInvoiceDetail() {
                 <div className="flex justify-between text-muted-foreground">
                   <span>Finance Fee</span>
                   <span>{formatCurrency(invoice.financeFee)}</span>
+                </div>
+              )}
+              {Number(invoice.dynastiesSpread) > 0 && (
+                <div className="flex justify-between text-primary">
+                  <span>Platform Earned</span>
+                  <span>{formatCurrency(invoice.dynastiesSpread)}</span>
                 </div>
               )}
               {Number(invoice.discountTotal) > 0 && (
@@ -227,16 +374,16 @@ export default function BillingInvoiceDetail() {
                 <span className="text-muted-foreground">Source</span>
                 <span className="text-foreground font-medium">{invoice.invoiceSource}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Finance Eligible</span>
-                <span className={`font-medium ${invoice.financeEligible ? "text-emerald-400" : "text-muted-foreground"}`}>
-                  {invoice.financeEligible ? "Yes" : "No"}
-                </span>
-              </div>
               {invoice.financeStatus !== "NONE" && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Finance Status</span>
                   <span className="text-primary font-medium">{invoice.financeStatus}</span>
+                </div>
+              )}
+              {invoice.paidAt && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{isFinanced ? "Financed On" : "Paid On"}</span>
+                  <span className="text-emerald-400 font-medium">{new Date(invoice.paidAt).toLocaleDateString()}</span>
                 </div>
               )}
             </div>
@@ -304,7 +451,7 @@ export default function BillingInvoiceDetail() {
           </div>
         )}
 
-        {financing && (
+        {financing && !isFinanced && (
           <div className="bg-card border border-primary/20 rounded-xl p-6 mb-8">
             <h3 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
               <Banknote className="w-4 h-4 text-primary" />

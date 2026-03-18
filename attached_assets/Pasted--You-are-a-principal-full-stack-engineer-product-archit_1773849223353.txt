@@ -1,0 +1,270 @@
+
+You are a principal full-stack engineer, product architect, and systems designer working on a SaaS billing + receivables platform.
+
+Your objective is to transform the system from a passive billing dashboard into a revenue-generating financing platform with a complete, demo-ready flow.
+
+This must be implemented fully, coherently, and without placeholders.
+
+⸻
+
+CORE OBJECTIVE
+
+Enable this end-to-end loop:
+
+Invoice → Overdue → Financing Offer → Accept Financing → Funds Advanced → Platform Revenue → Reflected in Dashboard
+
+This loop must be:
+	•	technically correct
+	•	visually clear
+	•	instantly understandable
+	•	fully consistent across backend + frontend
+
+⸻
+
+SECTION 1 — DATA MODEL EXTENSION
+
+Extend all relevant models (invoice, receivable, etc.) with:
+	•	financingStatus: (“NONE” | “ELIGIBLE” | “OFFERED” | “ACCEPTED” | “FINANCED” | “REPAID”)
+	•	eligibleForFinancing: boolean
+	•	financingOfferedAt: timestamp
+	•	financingAcceptedAt: timestamp
+	•	financedAmount: number
+	•	financingFee: number
+	•	platformRevenue: number
+	•	providerRate: number
+	•	platformSpread: number
+	•	customerRate: number
+
+Ensure:
+	•	persistence in database
+	•	correct typing across backend and frontend
+	•	no undefined/null issues
+
+⸻
+
+SECTION 2 — FINANCING RULE ENGINE
+
+Implement a deterministic rule engine:
+
+IF:
+	•	invoice.status === “OVERDUE”
+	•	outstandingAmount > 0
+
+THEN:
+	•	eligibleForFinancing = true
+	•	providerRate = 0.025
+	•	platformSpread = 0.005
+	•	customerRate = 0.03
+
+CALCULATIONS:
+	•	financingFee = outstandingAmount * customerRate
+	•	financedAmount = outstandingAmount - financingFee
+	•	platformRevenue = outstandingAmount * platformSpread
+
+This logic must run:
+	•	on invoice fetch
+	•	on receivables computation
+	•	consistently across API + UI
+
+No duplication. Centralize logic.
+
+⸻
+
+SECTION 3 — STATE MACHINE
+
+Implement strict lifecycle:
+
+OVERDUE → ELIGIBLE → OFFERED → ACCEPTED → FINANCED → REPAID
+
+Requirements:
+	•	enforce valid transitions only
+	•	persist state changes
+	•	update invoice status where applicable
+	•	no silent state changes
+
+⸻
+
+SECTION 4 — BACKEND ENDPOINTS
+
+Create endpoints:
+
+POST /billing/invoices/:id/offer-financing
+POST /billing/invoices/:id/accept-financing
+POST /billing/invoices/:id/mark-repaid
+
+Each must:
+	•	validate state
+	•	apply rule engine
+	•	update DB
+	•	write audit events
+	•	return updated entity
+
+⸻
+
+SECTION 5 — AUDIT TRAIL
+
+Add events:
+	•	“Financing offer generated”
+	•	“Financing accepted”
+	•	“Funds advanced”
+	•	“Financing repaid”
+
+Include:
+	•	timestamps
+	•	amounts
+	•	rates
+	•	user/system source
+
+Also fix any existing inconsistencies in audit logs (e.g. mismatched customer names).
+
+⸻
+
+SECTION 6 — UI: FINANCING PANEL (CORE MOMENT)
+
+On invoice detail page:
+
+Condition:
+	•	invoice.status === “OVERDUE”
+
+Add a visually dominant card:
+
+Title: “Get Paid Now”
+
+Display:
+	•	Outstanding Amount
+	•	Advance Amount
+	•	Financing Fee
+	•	Rate (%)
+	•	Time to Funds: “Instant”
+
+Primary Button:
+
+“Accept Financing”
+
+On click:
+	•	call backend endpoint
+	•	update UI instantly (no refresh)
+
+⸻
+
+SECTION 7 — POST-ACTION TRANSFORMATION
+
+After acceptance:
+	•	status → FINANCED
+	•	outstanding → 0
+	•	settlement → SETTLED
+
+Replace panel with:
+
+“Invoice Financed”
+“Funds have been advanced”
+
+⸻
+
+SECTION 8 — PLATFORM REVENUE VISIBILITY
+
+Add:
+
+Dashboard KPI
+	•	“Platform Revenue” = sum(platformRevenue)
+
+Invoice Level
+	•	“Platform Earned: $X”
+
+Additional Metrics
+	•	total financed volume
+	•	average financing rate
+
+All values must match backend exactly.
+
+⸻
+
+SECTION 9 — DEMO FLOW OPTIMIZATION
+
+Ensure perfect flow:
+	1.	/billing → KPIs visible
+	2.	/billing/invoices → status variety
+	3.	click OVERDUE invoice
+	4.	show financing panel
+	5.	accept financing
+	6.	show transformation (FINANCED)
+	7.	return to dashboard
+	8.	revenue updated
+
+Requirements:
+	•	no broken routes
+	•	no empty states
+	•	no flicker
+	•	no console errors
+
+Do NOT expose:
+	•	/billing/receivables if broken
+	•	/billing/financing if not implemented
+
+⸻
+
+SECTION 10 — PAYMENT + FINANCING SIMULATION
+
+Implement:
+	•	“Mark Paid” functionality (existing or improved)
+	•	financing lifecycle completion:
+	•	financed → repaid
+
+Ensure:
+	•	consistent accounting logic
+	•	clean resolution of invoice lifecycle
+
+⸻
+
+SECTION 11 — CODE QUALITY + ARCHITECTURE
+
+Ensure:
+	•	no duplicated logic
+	•	no hardcoded UI-only calculations
+	•	clean separation of:
+	•	rules engine
+	•	API layer
+	•	UI layer
+	•	consistent naming
+	•	type safety
+
+⸻
+
+SECTION 12 — VALIDATION REQUIREMENTS
+
+After implementation:
+
+Product Validation (Comet-style)
+	•	verify full flow
+	•	verify UI clarity
+	•	identify confusion points
+	•	confirm trustworthiness
+
+Code Validation (Perplexity-style)
+	•	audit financing logic
+	•	audit state transitions
+	•	check for inconsistencies
+	•	flag risks and scalability issues
+
+⸻
+
+FINAL REQUIREMENTS
+	•	No placeholders
+	•	No fake UI-only logic
+	•	No inconsistencies between backend and frontend
+	•	All calculations must reconcile
+	•	System must feel real and operational
+
+⸻
+
+SUCCESS CRITERIA
+
+The system must clearly demonstrate:
+	1.	An overdue invoice
+	2.	A financing decision
+	3.	Immediate resolution of cash flow
+	4.	Visible platform revenue
+
+If this is not obvious within 30 seconds of use, the implementation is incomplete.
+
+⸻
