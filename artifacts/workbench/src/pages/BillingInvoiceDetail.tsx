@@ -18,6 +18,7 @@ import {
   ArrowRight,
   TrendingUp,
   ShieldCheck,
+  RotateCcw,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useBillingInvoice, useBillingAction } from "@/hooks/use-billing";
@@ -184,6 +185,15 @@ export default function BillingInvoiceDetail() {
                 Cancel
               </button>
             )}
+            {invoice.status === "DISPUTED" && (
+              <button
+                onClick={() => handleAction("resolve-dispute")}
+                disabled={!!acting}
+                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+              >
+                {acting === "resolve-dispute" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 inline mr-1.5 -mt-0.5" />Resolve Dispute</>}
+              </button>
+            )}
             {isFinanced && !isRepaid && (
               <button
                 onClick={() => handleAction("mark-repaid")}
@@ -193,6 +203,14 @@ export default function BillingInvoiceDetail() {
                 {acting === "mark-repaid" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ShieldCheck className="w-4 h-4 inline mr-1.5 -mt-0.5" />Mark Repaid</>}
               </button>
             )}
+            <button
+              onClick={() => { if (window.confirm("Reset this invoice to its original state? This clears all financing, dispute, and payment data added during this demo session.")) handleAction("demo-reset"); }}
+              disabled={!!acting}
+              className="px-3 py-2 rounded-lg text-[11px] font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-500/10 border border-transparent hover:border-zinc-500/20 transition-colors disabled:opacity-50"
+              title="Reset invoice to original state for demo"
+            >
+              {acting === "demo-reset" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><RotateCcw className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />Reset (Demo)</>}
+            </button>
           </div>
         </div>
 
