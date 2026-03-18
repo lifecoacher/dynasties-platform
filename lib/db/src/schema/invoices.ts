@@ -32,7 +32,7 @@ export const invoicesTable = pgTable(
     }),
     financeEligible: boolean("finance_eligible").notNull().default(false),
     financeStatus: text("finance_status", {
-      enum: ["NONE", "OFFERED", "ACCEPTED", "REQUESTED", "APPROVED", "FUNDED", "DECLINED", "REPAID"],
+      enum: ["NONE", "OFFERED", "ACCEPTED", "FUNDED", "DECLINED", "REPAID"],
     }).notNull().default("NONE"),
     paymentMethod: text("payment_method", {
       enum: ["PAY_NOW", "PAY_LATER", "FINANCED", "PENDING"],

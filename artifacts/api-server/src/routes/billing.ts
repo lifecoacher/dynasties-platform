@@ -17,7 +17,7 @@ import { eq, and, desc, sql, inArray, gte, lte, or } from "drizzle-orm";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
 import { generateId } from "@workspace/shared-utils";
-import { getBalanceProvider, calculateSpread } from "../providers/balance-provider.js";
+import { getBalanceProvider } from "../providers/balance-provider.js";
 import { computeFinancingTerms, validateFinanceTransition } from "../services/financing-engine.js";
 
 const router = Router();
@@ -928,7 +928,7 @@ router.get("/billing/receivables/overview", async (req, res) => {
     .where(
       and(
         eq(balanceFinancingRecordsTable.companyId, companyId),
-        inArray(balanceFinancingRecordsTable.applicationStatus, ["ACCEPTED", "APPROVED", "FUNDED", "REPAID"]),
+        inArray(balanceFinancingRecordsTable.applicationStatus, ["ACCEPTED", "FUNDED", "REPAID"]),
       ),
     );
   const totalFinanced = financedRecords.reduce((s, r) => s + Number(r.financedAmount || 0), 0);
@@ -990,110 +990,8 @@ router.get("/billing/receivables", async (req, res) => {
   res.json({ data: receivables });
 });
 
-router.post("/billing/invoices/:id/request-financing", requireMinRole("OPERATOR"), async (req, res) => {
+router.post("/billing/invoices/:id/request-financing", requireMinRole("OPERATOR"), async (_req, res) => {
   res.status(410).json({ error: "Deprecated — use /offer-financing, /accept-financing, /fund-financing lifecycle" });
-  return;
-  const companyId = getCompanyId(req);
-  const body = req.body;
-  const [invoice] = await db
-    .select()
-    .from(invoicesTable)
-    .where(
-      and(eq(invoicesTable.id, req.params.id as string), eq(invoicesTable.companyId, companyId)),
-    )
-    .limit(1);
-  if (!invoice) { res.status(404).json({ error: "Invoice not found" }); return; }
-  if (!invoice.financeEligible) {
-    res.status(400).json({ error: "Invoice is not eligible for financing" });
-    return;
-  }
-  const [account] = await db
-    .select()
-    .from(billingAccountsTable)
-    .where(eq(billingAccountsTable.companyId, companyId))
-    .limit(1);
-  const provider = getBalanceProvider();
-  const result = await provider.applyForFinancing({
-    offerId: body.offerId || `offer_${body.termDays || 30}_${invoice.id.slice(-8)}`,
-    invoiceId: invoice.id,
-    termDays: body.termDays || 30,
-  });
-  let spread = null;
-  if (result.status === "APPROVED" && account) {
-    spread = calculateSpread({
-      financedAmount: result.financedAmount || Number(invoice.grandTotal),
-      providerFeeRate: result.providerFeeRate || 0.02,
-      spreadModel: account.spreadModel as any,
-      spreadBps: account.spreadBps,
-      platformFeeAmount: Number(account.platformFeeAmount || 0),
-    });
-  }
-  const [record] = await db
-    .insert(balanceFinancingRecordsTable)
-    .values({
-      id: generateId("bfr"),
-      companyId,
-      invoiceId: invoice.id,
-      customerBillingProfileId: invoice.customerBillingProfileId || "",
-      applicationStatus: result.status === "APPROVED" ? "FUNDED" : result.status === "DECLINED" ? "DECLINED" : "REQUESTED",
-      termDays: result.termDays,
-      financedAmount: result.financedAmount?.toFixed(2),
-      providerFeeRate: result.providerFeeRate,
-      providerFeeAmount: result.providerFeeAmount?.toFixed(2),
-      clientFacingFeeRate: spread?.clientFacingFeeRate,
-      clientFacingFeeAmount: spread?.clientFacingFeeAmount.toFixed(2),
-      dynastiesSpreadAmount: spread?.dynastiesSpreadAmount.toFixed(2),
-      providerExternalRef: result.externalRef,
-      declineReason: result.declineReason,
-      decidedAt: new Date(),
-    })
-    .returning();
-  if (result.status === "APPROVED") {
-    await db
-      .update(invoicesTable)
-      .set({
-        financeStatus: "FUNDED",
-        status: "FINANCED",
-        paymentMethod: "FINANCED",
-        financeFee: spread?.clientFacingFeeAmount.toFixed(2) || "0",
-        dynastiesSpread: spread?.dynastiesSpreadAmount.toFixed(2) || "0",
-        paidAt: new Date(),
-      })
-      .where(eq(invoicesTable.id, invoice.id));
-    await logCommercialEvent({
-      companyId,
-      eventType: "BALANCE_APPROVED",
-      entityType: "INVOICE",
-      entityId: invoice.id,
-      amount: result.financedAmount,
-      currency: invoice.currency,
-      description: `Financing approved: ${result.termDays} day terms for ${invoice.invoiceNumber}`,
-    });
-    if (spread && spread.dynastiesSpreadAmount > 0) {
-      await logCommercialEvent({
-        companyId,
-        eventType: "SPREAD_RECORDED",
-        entityType: "INVOICE",
-        entityId: invoice.id,
-        amount: spread.dynastiesSpreadAmount,
-        currency: invoice.currency,
-        description: `Dynasties spread recorded: ${invoice.currency} ${spread.dynastiesSpreadAmount.toFixed(2)}`,
-      });
-    }
-  } else {
-    await db
-      .update(invoicesTable)
-      .set({ financeStatus: "DECLINED" })
-      .where(eq(invoicesTable.id, invoice.id));
-    await logCommercialEvent({
-      companyId,
-      eventType: "BALANCE_DECLINED",
-      entityType: "INVOICE",
-      entityId: invoice.id,
-      description: `Financing declined for ${invoice.invoiceNumber}: ${result.declineReason}`,
-    });
-  }
-  res.json({ data: record });
 });
 
 router.get("/billing/finance-offers/:invoiceId", async (req, res) => {
