@@ -1,6 +1,16 @@
 import { db } from "../index.js";
-import { eq } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { LORIAN_COMPANY_ID } from "./constants.js";
+import {
+  commercialEventsTable,
+  balanceFinancingRecordsTable,
+  paymentOptionConfigsTable,
+  receivablesTable,
+  invoiceLineItemsTable,
+  chargeRulesTable,
+  customerBillingProfilesTable,
+  billingAccountsTable,
+} from "../schema/billing.js";
 import {
   aiUsageLogsTable,
   reportSnapshotsTable,
@@ -63,6 +73,14 @@ import {
 } from "../schema/index.js";
 
 const TABLES_IN_ORDER = [
+  { table: commercialEventsTable, name: "commercial_events" },
+  { table: balanceFinancingRecordsTable, name: "balance_financing_records" },
+  { table: paymentOptionConfigsTable, name: "payment_option_configs" },
+  { table: receivablesTable, name: "receivables" },
+  { table: invoiceLineItemsTable, name: "invoice_line_items", fkDelete: true },
+  { table: chargeRulesTable, name: "charge_rules" },
+  { table: customerBillingProfilesTable, name: "customer_billing_profiles" },
+  { table: billingAccountsTable, name: "billing_accounts" },
   { table: aiUsageLogsTable, name: "ai_usage_logs" },
   { table: reportSnapshotsTable, name: "report_snapshots" },
   { table: policySimulationsTable, name: "policy_simulations" },
@@ -126,7 +144,17 @@ const TABLES_IN_ORDER = [
 export async function destroyLorian() {
   console.log("=== DESTROYING LORIAN DEMO DATA ===\n");
 
-  for (const { table, name } of TABLES_IN_ORDER) {
+  for (const { table, name, fkDelete } of TABLES_IN_ORDER as Array<{ table: any; name: string; fkDelete?: boolean }>) {
+    if (fkDelete && name === "invoice_line_items") {
+      await db.delete(table).where(
+        inArray(
+          (table as any).invoiceId,
+          sql`(SELECT id FROM invoices WHERE company_id = ${LORIAN_COMPANY_ID})`,
+        ),
+      );
+      console.log(`  Deleted from ${name} (via FK)`);
+      continue;
+    }
     const companyIdCol = (table as any).companyId ?? (table as any).company_id;
     if (companyIdCol) {
       await db.delete(table).where(eq(companyIdCol, LORIAN_COMPANY_ID));

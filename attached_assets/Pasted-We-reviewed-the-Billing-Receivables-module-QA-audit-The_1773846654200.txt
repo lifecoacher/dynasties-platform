@@ -1,0 +1,126 @@
+We reviewed the Billing & Receivables module QA audit. The module is strong, but there are 4 credibility issues. Fix the top 3 immediately and make sure the 4th cannot be reached during demo.
+
+Do NOT add new features beyond what is necessary.
+Do NOT refactor unrelated logic.
+Do NOT expand scope.
+
+==================================================
+TASK 1 — FIX BILLING OVERVIEW KPI CONTRADICTION
+==================================================
+
+Problem:
+Billing Overview shows a non-zero Financed Amount but the sub-label says "0 records".
+
+Requirement:
+The Financed Amount KPI must display a record count that matches the actual financed records behind the amount.
+
+Implement:
+1. Audit how Financed Amount is calculated
+2. Audit how the sub-label record count is calculated
+3. Make both values derive from the same underlying financing dataset
+4. Confirm the dollar amount and count reconcile correctly
+
+Return:
+- root cause
+- files changed
+- before/after values
+
+==================================================
+TASK 2 — MAKE PAID INVOICES FEEL COMPLETE
+==================================================
+
+Problem:
+Paid invoices currently show weak detail pages with missing line items and missing audit trail.
+This destroys credibility when someone clicks into a paid invoice.
+
+Requirement:
+Paid invoices must be as complete and coherent as disputed / overdue / partially paid invoices.
+
+Implement:
+1. Ensure paid invoices have line items rendered
+2. Ensure paid invoices have audit trail entries rendered
+3. Ensure the invoice detail page for PAID status feels complete and final, not empty
+
+Return:
+- files changed
+- which paid invoices were fixed
+- confirmation that paid invoices now show full detail
+
+==================================================
+TASK 3 — FIX PAID INVOICE DATE LOGIC
+==================================================
+
+Problem:
+At least one PAID invoice has a due date in the future, which is financially confusing and trust-breaking.
+
+Requirement:
+Paid invoices must have coherent date logic.
+
+Implement one of these approaches cleanly:
+Option A
+- adjust seeded dates so paid invoices have believable created/sent/due/paid chronology
+
+Option B
+- if a paid invoice was paid before due date, display a clear "Paid early on [date]" treatment so the state is understandable
+
+Requirements:
+- no finance-literate user should question the date logic
+- invoice status, due date, and paid state must tell a coherent story
+
+Return:
+- which option you used
+- files changed
+- before/after example for the affected invoice(s)
+
+==================================================
+TASK 4 — REMOVE DEMO LANDMINES
+==================================================
+
+Problem:
+The receivables route currently 404s.
+
+Requirement:
+No visible demo path or billing navigation may lead to a 404.
+
+Implement:
+1. If /billing/receivables exists in nav, remove or hide it
+2. If any buttons/cards/links route there, remove or redirect safely
+3. If the route is meant to exist, either add a safe placeholder page or redirect cleanly
+4. Ensure no billing demo route can crash or 404
+
+Return:
+- files changed
+- whether the route was hidden, redirected, or implemented
+
+==================================================
+VALIDATION
+==================================================
+
+After fixes, verify this exact billing demo path:
+
+1. /billing
+2. /billing/invoices
+3. /billing/invoices/inv_lor_009
+4. /billing/invoices/inv_lor_007
+5. /billing/invoices/inv_lor_006
+6. /billing/customers
+7. /billing/customers/cbp_lor_002
+8. /billing/settings
+
+Confirm:
+- no contradictions
+- no weak invoice states
+- no broken links
+- no 404s
+- no visibly fake or incomplete pages on this path
+
+==================================================
+DELIVERABLES
+==================================================
+
+Return:
+1. exact files changed
+2. root cause of each issue
+3. before/after examples
+4. confirmation billing demo path is safe
+5. any remaining weak spots that should not be shown in the billing demo

@@ -669,6 +669,20 @@ router.get("/billing/receivables/overview", async (req, res) => {
     );
   const totalFinanced = financedRecords.reduce((s, r) => s + Number(r.financedAmount || 0), 0);
   const totalSpread = financedRecords.reduce((s, r) => s + Number(r.dynastiesSpreadAmount || 0), 0);
+  const openReceivables = receivables.filter((r) => Number(r.outstandingAmount) > 0);
+  const aging: Record<string, number> = { current: 0, days1to30: 0, days31to60: 0, days61to90: 0, days90plus: 0 };
+  for (const r of openReceivables) {
+    const amt = Number(r.outstandingAmount);
+    if (!r.dueDate || r.dueDate >= now) {
+      aging.current += amt;
+    } else {
+      const overdueDays = Math.floor((now.getTime() - r.dueDate.getTime()) / 86400000);
+      if (overdueDays <= 30) aging.days1to30 += amt;
+      else if (overdueDays <= 60) aging.days31to60 += amt;
+      else if (overdueDays <= 90) aging.days61to90 += amt;
+      else aging.days90plus += amt;
+    }
+  }
   res.json({
     data: {
       totalOutstanding,
@@ -680,6 +694,9 @@ router.get("/billing/receivables/overview", async (req, res) => {
       invoicesSent: Number(sentCount[0]?.count || 0),
       totalFinanced,
       totalSpread,
+      financedCount: financedRecords.length,
+      receivableCount: openReceivables.length,
+      aging,
       currency: "USD",
     },
   });
