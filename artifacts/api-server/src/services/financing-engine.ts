@@ -17,11 +17,18 @@ export function computeFinancingTerms(params: {
   invoiceStatus: string;
   outstandingAmount: number;
   financeEligible: boolean;
+  financeStatus?: string;
 }): FinancingTerms {
+  const statusAllowsFinancing = ["OVERDUE", "SENT", "PARTIALLY_PAID"].includes(params.invoiceStatus);
+  const alreadyFinanced = ["FUNDED", "REPAID"].includes(params.financeStatus || "");
+
   const eligible =
-    params.financeEligible &&
-    params.invoiceStatus === "OVERDUE" &&
-    params.outstandingAmount > 0;
+    !alreadyFinanced &&
+    params.outstandingAmount > 0 &&
+    (
+      (params.financeEligible && statusAllowsFinancing) ||
+      params.financeStatus === "OFFERED"
+    );
 
   if (!eligible) {
     return {

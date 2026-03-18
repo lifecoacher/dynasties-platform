@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import {
   FileText,
   Search,
@@ -28,6 +28,7 @@ function StatusPill({ status }: { status: string }) {
     OVERDUE: { bg: "bg-red-500/10", text: "text-red-400", dot: "bg-red-400" },
     DISPUTED: { bg: "bg-orange-500/10", text: "text-orange-400", dot: "bg-orange-400" },
     CANCELLED: { bg: "bg-zinc-500/10", text: "text-zinc-500", dot: "bg-zinc-500" },
+    FINANCED: { bg: "bg-emerald-500/10", text: "text-emerald-400", dot: "bg-emerald-400" },
   };
   const s = map[status] || map.DRAFT;
   return (
@@ -40,27 +41,79 @@ function StatusPill({ status }: { status: string }) {
 
 const TABS = [
   { label: "All", value: "" },
-  { label: "Draft", value: "DRAFT" },
-  { label: "Sent", value: "SENT" },
-  { label: "Paid", value: "PAID" },
   { label: "Overdue", value: "OVERDUE" },
   { label: "Disputed", value: "DISPUTED" },
+  { label: "Sent", value: "SENT" },
+  { label: "Draft", value: "DRAFT" },
+  { label: "Paid", value: "PAID" },
+  { label: "Financed", value: "FINANCED" },
 ];
 
+const STATUS_SORT_ORDER: Record<string, number> = {
+  OVERDUE: 0,
+  DISPUTED: 1,
+  PARTIALLY_PAID: 2,
+  SENT: 3,
+  DRAFT: 4,
+  FINANCED: 5,
+  PAID: 6,
+  CANCELLED: 7,
+};
+
+function getDaysInfo(inv: any): { label: string; color: string } | null {
+  if (!inv.dueDate) return null;
+  const due = new Date(inv.dueDate);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - due.getTime()) / 86400000);
+  if (inv.status === "OVERDUE" && diffDays > 0) {
+    return { label: `${diffDays}d overdue`, color: "text-red-400" };
+  }
+  if (inv.status === "PAID" || inv.status === "FINANCED" || inv.status === "CANCELLED") {
+    return null;
+  }
+  if (diffDays < 0) {
+    const abs = Math.abs(diffDays);
+    return { label: `${abs}d left`, color: abs <= 7 ? "text-amber-400" : "text-muted-foreground" };
+  }
+  if (diffDays === 0) {
+    return { label: "Due today", color: "text-amber-400" };
+  }
+  return { label: `${diffDays}d overdue`, color: "text-red-400" };
+}
+
+function formatDueDate(dueDate: string, status: string) {
+  const due = new Date(dueDate);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - due.getTime()) / 86400000);
+  if (status === "OVERDUE" && diffDays > 0) {
+    return `${diffDays} ${diffDays === 1 ? "day" : "days"} ago`;
+  }
+  return due.toLocaleDateString();
+}
+
 export default function BillingInvoices() {
-  const [activeTab, setActiveTab] = useState("");
+  const queryString = typeof window !== "undefined" ? window.location.search : "";
+  const urlParams = new URLSearchParams(queryString);
+  const initialStatus = urlParams.get("status") || "";
+  const [activeTab, setActiveTab] = useState(initialStatus);
   const [search, setSearch] = useState("");
   const { data: invoices, isLoading } = useBillingInvoices(activeTab || undefined);
 
-  const filtered = (invoices || []).filter((inv: any) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      inv.invoiceNumber?.toLowerCase().includes(q) ||
-      inv.customer?.customerName?.toLowerCase().includes(q) ||
-      inv.billToName?.toLowerCase().includes(q)
+  const filtered = useMemo(() => {
+    let result = (invoices || []).filter((inv: any) => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (
+        inv.invoiceNumber?.toLowerCase().includes(q) ||
+        inv.customer?.customerName?.toLowerCase().includes(q) ||
+        inv.billToName?.toLowerCase().includes(q)
+      );
+    });
+    result.sort(
+      (a: any, b: any) => (STATUS_SORT_ORDER[a.status] ?? 99) - (STATUS_SORT_ORDER[b.status] ?? 99)
     );
-  });
+    return result;
+  }, [invoices, search]);
 
   return (
     <AppLayout hideRightPanel>
@@ -126,56 +179,64 @@ export default function BillingInvoices() {
                   <th className="text-left px-5 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                   <th className="text-right px-5 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Amount</th>
                   <th className="text-left px-5 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Due Date</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Source</th>
+                  <th className="text-center px-5 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Days</th>
                   <th className="w-8"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-card-border">
                 <AnimatePresence>
-                  {filtered.map((inv: any, idx: number) => (
-                    <motion.tr
-                      key={inv.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: idx * 0.03 }}
-                    >
-                      <td className="px-5 py-3.5">
-                        <Link href={`/billing/invoices/${inv.id}`}>
-                          <span className="text-[13px] font-mono font-medium text-primary hover:text-primary/80 cursor-pointer">
-                            {inv.invoiceNumber}
+                  {filtered.map((inv: any, idx: number) => {
+                    const daysInfo = getDaysInfo(inv);
+                    return (
+                      <motion.tr
+                        key={inv.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: idx * 0.03 }}
+                        className={inv.status === "OVERDUE" ? "bg-red-500/[0.02]" : ""}
+                      >
+                        <td className="px-5 py-3.5">
+                          <Link href={`/billing/invoices/${inv.id}`}>
+                            <span className="text-[13px] font-mono font-medium text-primary hover:text-primary/80 cursor-pointer">
+                              {inv.invoiceNumber}
+                            </span>
+                          </Link>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className="text-[13px] text-foreground">
+                            {inv.customer?.customerName || inv.billToName || "—"}
                           </span>
-                        </Link>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="text-[13px] text-foreground">
-                          {inv.customer?.customerName || inv.billToName || "—"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <StatusPill status={inv.status} />
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <span className="text-[13px] font-semibold text-foreground">
-                          {formatCurrency(inv.grandTotal, inv.currency)}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="text-[12px] text-muted-foreground">
-                          {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : "—"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="text-[11px] text-muted-foreground/70 bg-white/5 px-2 py-0.5 rounded">
-                          {inv.invoiceSource || "MANUAL"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3.5">
-                        <Link href={`/billing/invoices/${inv.id}`}>
-                          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/30 hover:text-primary cursor-pointer" />
-                        </Link>
-                      </td>
-                    </motion.tr>
-                  ))}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <StatusPill status={inv.status} />
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <span className="text-[13px] font-semibold text-foreground">
+                            {formatCurrency(inv.grandTotal, inv.currency)}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`text-[12px] ${inv.status === "OVERDUE" ? "text-red-400" : "text-muted-foreground"}`}>
+                            {inv.dueDate ? formatDueDate(inv.dueDate, inv.status) : "—"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-center">
+                          {daysInfo ? (
+                            <span className={`text-[11px] font-medium ${daysInfo.color}`}>
+                              {daysInfo.label}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground/40">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3.5">
+                          <Link href={`/billing/invoices/${inv.id}`}>
+                            <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/30 hover:text-primary cursor-pointer" />
+                          </Link>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
                 </AnimatePresence>
               </tbody>
             </table>

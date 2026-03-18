@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   DollarSign,
   TrendingUp,
@@ -37,6 +37,8 @@ function KpiCard({
   icon: Icon,
   color,
   trend,
+  href,
+  emphasis,
 }: {
   label: string;
   value: string;
@@ -44,6 +46,8 @@ function KpiCard({
   icon: any;
   color: string;
   trend?: string;
+  href?: string;
+  emphasis?: boolean;
 }) {
   const colorMap: Record<string, string> = {
     teal: "bg-primary/10 text-primary",
@@ -52,27 +56,46 @@ function KpiCard({
     blue: "bg-blue-500/10 text-blue-400",
     green: "bg-emerald-500/10 text-emerald-400",
   };
-  return (
+  const card = (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-card-border rounded-xl p-5"
+      className={`bg-card border rounded-xl p-5 ${
+        emphasis ? "border-red-500/40 ring-1 ring-red-500/20" : "border-card-border"
+      } ${href ? "cursor-pointer hover:bg-white/[0.02] transition-colors" : ""}`}
     >
       <div className="flex items-start justify-between mb-3">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${colorMap[color] || colorMap.teal}`}>
           <Icon className="w-4.5 h-4.5" />
         </div>
         {trend && (
-          <span className="text-[11px] font-medium text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
+          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+            color === "teal" || color === "green"
+              ? "text-emerald-400 bg-emerald-400/10"
+              : color === "red"
+              ? "text-red-400 bg-red-400/10"
+              : "text-emerald-400 bg-emerald-400/10"
+          }`}>
             {trend}
           </span>
         )}
       </div>
-      <p className="text-[24px] font-semibold text-foreground leading-tight">{value}</p>
+      <p className={`text-[24px] font-semibold leading-tight ${
+        emphasis ? "text-red-400" : "text-foreground"
+      }`}>{value}</p>
       <p className="text-[12px] text-muted-foreground mt-1">{label}</p>
       {subtitle && <p className="text-[11px] text-muted-foreground/70 mt-0.5">{subtitle}</p>}
+      {href && (
+        <p className="text-[11px] text-primary mt-2 flex items-center gap-1">
+          View details <ArrowRight className="w-3 h-3" />
+        </p>
+      )}
     </motion.div>
   );
+  if (href) {
+    return <Link href={href}>{card}</Link>;
+  }
+  return card;
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -85,7 +108,7 @@ function StatusPill({ status }: { status: string }) {
     OVERDUE: { bg: "bg-red-500/10", text: "text-red-400", dot: "bg-red-400" },
     DISPUTED: { bg: "bg-orange-500/10", text: "text-orange-400", dot: "bg-orange-400" },
     CANCELLED: { bg: "bg-zinc-500/10", text: "text-zinc-500", dot: "bg-zinc-500" },
-    FINANCED: { bg: "bg-primary/10", text: "text-primary", dot: "bg-primary" },
+    FINANCED: { bg: "bg-emerald-500/10", text: "text-emerald-400", dot: "bg-emerald-400" },
   };
   const s = map[status] || map.DRAFT;
   return (
@@ -94,6 +117,10 @@ function StatusPill({ status }: { status: string }) {
       {status.replace(/_/g, " ")}
     </span>
   );
+}
+
+function pluralize(count: number, singular: string, plural: string) {
+  return count === 1 ? singular : plural;
 }
 
 export default function BillingOverview() {
@@ -114,11 +141,18 @@ export default function BillingOverview() {
     );
   }
 
-  const recentInvoices = (invoices || []).slice(0, 8);
+  const statusOrder: Record<string, number> = {
+    OVERDUE: 0, DISPUTED: 1, PARTIALLY_PAID: 2, SENT: 3, DRAFT: 4, FINANCED: 5, PAID: 6, CANCELLED: 7,
+  };
+  const sortedInvoices = [...(invoices || [])].sort(
+    (a: any, b: any) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99)
+  );
+  const recentInvoices = sortedInvoices.slice(0, 8);
   const totalInvoiced = (invoices || []).reduce((s: number, i: any) => s + Number(i.grandTotal || 0), 0);
   const paidInvoices = (invoices || []).filter((i: any) => i.status === "PAID");
   const overdueInvoices = (invoices || []).filter((i: any) => i.status === "OVERDUE");
   const disputedInvoices = (invoices || []).filter((i: any) => i.status === "DISPUTED");
+  const overdueCount = overview?.countOverdue || overdueInvoices.length;
 
   return (
     <AppLayout hideRightPanel>
@@ -146,65 +180,63 @@ export default function BillingOverview() {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <KpiCard
-            label="Total Outstanding"
-            value={formatCurrency(overview?.totalOutstanding || 0)}
-            subtitle={`${overview?.receivableCount || 0} open receivables`}
-            icon={DollarSign}
-            color="teal"
-          />
-          <KpiCard
-            label="Collected This Month"
-            value={formatCurrency(overview?.paidThisMonth || 0)}
-            subtitle={`${paidInvoices.length} invoices paid`}
-            icon={TrendingUp}
-            color="green"
-            trend={paidInvoices.length > 0 ? `${paidInvoices.length} paid` : undefined}
-          />
+        <div className="grid grid-cols-4 gap-4 mb-4">
           <KpiCard
             label="Overdue"
             value={formatCurrency(overview?.totalOverdue || 0)}
-            subtitle={`${overview?.countOverdue || 0} invoices past due`}
+            subtitle={`${overdueCount} ${pluralize(overdueCount, "invoice", "invoices")} past due`}
             icon={Clock}
-            color="amber"
+            color="red"
+            emphasis={overdueCount > 0}
+            href="/billing/invoices?status=OVERDUE"
+            trend={overdueCount > 0 ? `${overdueCount} urgent` : undefined}
           />
           <KpiCard
             label="Disputed"
             value={formatCurrency(overview?.totalDisputed || 0)}
-            subtitle={`${disputedInvoices.length} active disputes`}
+            subtitle={`${disputedInvoices.length} active ${pluralize(disputedInvoices.length, "dispute", "disputes")}`}
             icon={AlertTriangle}
-            color="red"
+            color="amber"
           />
-        </div>
-
-        <div className="grid grid-cols-4 gap-4 mb-8">
           <KpiCard
-            label="Total Invoiced"
-            value={formatCurrency(totalInvoiced)}
-            icon={Receipt}
+            label="Total Outstanding"
+            value={formatCurrency(overview?.totalOutstanding || 0)}
+            subtitle={`${overview?.receivableCount || 0} open ${pluralize(overview?.receivableCount || 0, "receivable", "receivables")}`}
+            icon={DollarSign}
             color="blue"
           />
           <KpiCard
-            label="Active Customers"
-            value={String((customers || []).filter((c: any) => c.status === "ACTIVE").length)}
-            icon={Users}
-            color="teal"
+            label="Collected This Month"
+            value={formatCurrency(overview?.paidThisMonth || 0)}
+            subtitle={`${paidInvoices.length} ${pluralize(paidInvoices.length, "invoice", "invoices")} paid`}
+            icon={TrendingUp}
+            color="green"
+            trend={paidInvoices.length > 0 ? `${paidInvoices.length} paid` : undefined}
           />
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 mb-8">
           <KpiCard
             label="Financed Amount"
             value={formatCurrency(overview?.totalFinanced || 0)}
-            subtitle={`${overview?.financedCount || 0} records`}
+            subtitle={`${overview?.financedCount || 0} ${pluralize(overview?.financedCount || 0, "record", "records")}`}
             icon={Banknote}
             color="green"
           />
           <KpiCard
-            label="Platform Revenue"
+            label="Revenue Earned"
             value={formatCurrency(overview?.platformRevenue || 0)}
-            subtitle={overview?.averageFinancingRate ? `${(overview.averageFinancingRate * 100).toFixed(1)}% avg rate` : "From financing spreads"}
+            subtitle={`${overview?.financedCount || 0} financing ${pluralize(overview?.financedCount || 0, "event", "events")}`}
             icon={TrendingUp}
             color="teal"
             trend={Number(overview?.platformRevenue || 0) > 0 ? "Earning" : undefined}
+          />
+          <KpiCard
+            label="Total Invoiced"
+            value={formatCurrency(totalInvoiced)}
+            subtitle={`${(invoices || []).length} ${pluralize((invoices || []).length, "invoice", "invoices")} total`}
+            icon={Receipt}
+            color="blue"
           />
         </div>
 
@@ -272,14 +304,13 @@ export default function BillingOverview() {
                         <StatusPill status={inv.status} />
                       </div>
                       <p className="text-[12px] text-muted-foreground mt-0.5 truncate">
-                        {inv.customer?.customerName || inv.billToName || "—"}{" "}
-                        {inv.shipmentId && <span className="text-muted-foreground/50">· Shipment linked</span>}
+                        {inv.customer?.customerName || inv.billToName || "—"}
                       </p>
                     </div>
                     <div className="text-right pl-4">
                       <p className="text-[14px] font-semibold text-foreground">{formatCurrency(inv.grandTotal, inv.currency)}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : "No due date"}
+                        {inv.dueDate ? formatDueDate(inv.dueDate, inv.status) : "No due date"}
                       </p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-muted-foreground/30 ml-4" />
@@ -292,4 +323,18 @@ export default function BillingOverview() {
       </div>
     </AppLayout>
   );
+}
+
+function formatDueDate(dueDate: string, status: string) {
+  const due = new Date(dueDate);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - due.getTime()) / 86400000);
+  if (status === "OVERDUE" && diffDays > 0) {
+    return `${diffDays} ${diffDays === 1 ? "day" : "days"} overdue`;
+  }
+  if (diffDays < 0) {
+    const abs = Math.abs(diffDays);
+    return `Due in ${abs} ${abs === 1 ? "day" : "days"}`;
+  }
+  return due.toLocaleDateString();
 }

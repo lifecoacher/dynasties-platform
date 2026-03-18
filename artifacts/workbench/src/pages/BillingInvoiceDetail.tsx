@@ -38,7 +38,7 @@ function StatusBadge({ status }: { status: string }) {
     OVERDUE: { bg: "bg-red-500/10 border-red-500/20", text: "text-red-400", icon: Clock },
     DISPUTED: { bg: "bg-orange-500/10 border-orange-500/20", text: "text-orange-400", icon: AlertTriangle },
     CANCELLED: { bg: "bg-zinc-500/10 border-zinc-500/20", text: "text-zinc-500", icon: XCircle },
-    FINANCED: { bg: "bg-primary/10 border-primary/20", text: "text-primary", icon: Banknote },
+    FINANCED: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", icon: Banknote },
   };
   const s = map[status] || map.DRAFT;
   const Icon = s.icon;
@@ -101,6 +101,14 @@ export default function BillingInvoiceDetail() {
   const customer = invoice.customer;
   const terms = invoice.financingTerms;
   const isFinanced = invoice.status === "FINANCED" || invoice.financeStatus === "FUNDED";
+  const isRepaid = invoice.financeStatus === "REPAID";
+  const showFinancingPanel = terms && terms.eligible && !isFinanced && !isRepaid;
+
+  const dueDate = invoice.dueDate ? new Date(invoice.dueDate) : null;
+  const now = new Date();
+  const daysOverdue = dueDate && invoice.status === "OVERDUE"
+    ? Math.floor((now.getTime() - dueDate.getTime()) / 86400000)
+    : 0;
 
   return (
     <AppLayout hideRightPanel>
@@ -115,6 +123,11 @@ export default function BillingInvoiceDetail() {
             <div className="flex items-center gap-4">
               <h1 className="text-[22px] font-mono font-semibold text-foreground">{invoice.invoiceNumber}</h1>
               <StatusBadge status={invoice.status} />
+              {daysOverdue > 0 && (
+                <span className="text-[12px] font-medium text-red-400 bg-red-500/10 px-2.5 py-1 rounded-full">
+                  {daysOverdue} {daysOverdue === 1 ? "day" : "days"} overdue
+                </span>
+              )}
             </div>
             <p className="text-[13px] text-muted-foreground mt-0.5">
               Created {new Date(invoice.createdAt).toLocaleDateString()}
@@ -131,7 +144,7 @@ export default function BillingInvoiceDetail() {
                 {acting === "send" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 inline mr-1.5 -mt-0.5" />Send Invoice</>}
               </button>
             )}
-            {["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status) && !terms && (
+            {["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status) && !showFinancingPanel && (
               <button
                 onClick={() => handleAction("mark-paid")}
                 disabled={!!acting}
@@ -158,7 +171,7 @@ export default function BillingInvoiceDetail() {
                 Cancel
               </button>
             )}
-            {invoice.financeStatus === "FUNDED" && invoice.status === "FINANCED" && (
+            {isFinanced && !isRepaid && (
               <button
                 onClick={() => handleAction("mark-repaid")}
                 disabled={!!acting}
@@ -171,7 +184,7 @@ export default function BillingInvoiceDetail() {
         </div>
 
         <AnimatePresence mode="wait">
-          {terms && !isFinanced && (
+          {showFinancingPanel && (
             <motion.div
               key="financing-offer"
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
@@ -187,8 +200,14 @@ export default function BillingInvoiceDetail() {
                     <Zap className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-[20px] font-bold text-foreground">Get Paid Now</h3>
-                    <p className="text-[13px] text-muted-foreground">Receive funds instantly instead of waiting for payment</p>
+                    <h3 className="text-[20px] font-bold text-foreground">
+                      {invoice.financeStatus === "OFFERED" ? "Accept Financing" : "Get Paid Now"}
+                    </h3>
+                    <p className="text-[13px] text-muted-foreground">
+                      {invoice.financeStatus === "OFFERED"
+                        ? "A financing offer is available — accept to receive funds instantly"
+                        : "Receive funds instantly instead of waiting for payment"}
+                    </p>
                   </div>
                 </div>
 
@@ -225,7 +244,7 @@ export default function BillingInvoiceDetail() {
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <>
-                        Accept Financing
+                        {invoice.financeStatus === "OFFERED" ? "Accept Financing" : "Get Paid Now"}
                         <ArrowRight className="w-5 h-5" />
                       </>
                     )}
@@ -255,8 +274,12 @@ export default function BillingInvoiceDetail() {
                   <CheckCircle2 className="w-6 h-6 text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="text-[20px] font-bold text-emerald-400">Invoice Financed</h3>
-                  <p className="text-[13px] text-muted-foreground">Funds have been advanced to your account</p>
+                  <h3 className="text-[20px] font-bold text-emerald-400">
+                    {isRepaid ? "Financing Complete" : "Invoice Financed"}
+                  </h3>
+                  <p className="text-[13px] text-muted-foreground">
+                    {isRepaid ? "Financing has been fully repaid" : "Funds have been advanced to your account"}
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-6">
@@ -273,8 +296,10 @@ export default function BillingInvoiceDetail() {
                   <p className="text-[16px] font-semibold text-primary">{formatCurrency(invoice.dynastiesSpread)}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Outstanding</p>
-                  <p className="text-[16px] font-semibold text-emerald-400">$0.00</p>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Status</p>
+                  <p className={`text-[16px] font-semibold ${isRepaid ? "text-primary" : "text-emerald-400"}`}>
+                    {isRepaid ? "Repaid" : "Funded"}
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -368,11 +393,10 @@ export default function BillingInvoiceDetail() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Due Date</span>
-                <span className="text-foreground font-medium">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Source</span>
-                <span className="text-foreground font-medium">{invoice.invoiceSource}</span>
+                <span className={`font-medium ${daysOverdue > 0 ? "text-red-400" : "text-foreground"}`}>
+                  {dueDate ? dueDate.toLocaleDateString() : "—"}
+                  {daysOverdue > 0 && ` (${daysOverdue}d overdue)`}
+                </span>
               </div>
               {invoice.financeStatus !== "NONE" && (
                 <div className="flex justify-between">
@@ -384,6 +408,12 @@ export default function BillingInvoiceDetail() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{isFinanced ? "Financed On" : "Paid On"}</span>
                   <span className="text-emerald-400 font-medium">{new Date(invoice.paidAt).toLocaleDateString()}</span>
+                </div>
+              )}
+              {invoice.financeEligible && !isFinanced && !isRepaid && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Finance Eligible</span>
+                  <span className="text-primary font-medium">Yes</span>
                 </div>
               )}
             </div>
@@ -446,37 +476,6 @@ export default function BillingInvoiceDetail() {
               <div>
                 <p className="text-[11px] text-muted-foreground mb-1">Settlement</p>
                 <p className="text-[13px] font-medium text-foreground">{receivable.settlementStatus}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {financing && !isFinanced && (
-          <div className="bg-card border border-primary/20 rounded-xl p-6 mb-8">
-            <h3 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Banknote className="w-4 h-4 text-primary" />
-              Financing Record
-            </h3>
-            <div className="grid grid-cols-4 gap-6">
-              <div>
-                <p className="text-[11px] text-muted-foreground mb-1">Status</p>
-                <p className={`text-[13px] font-semibold ${
-                  financing.applicationStatus === "FUNDED" ? "text-emerald-400" :
-                  financing.applicationStatus === "APPROVED" ? "text-primary" :
-                  "text-foreground"
-                }`}>{financing.applicationStatus}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground mb-1">Financed Amount</p>
-                <p className="text-[16px] font-semibold text-foreground">{formatCurrency(financing.financedAmount || 0)}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground mb-1">Term</p>
-                <p className="text-[13px] font-medium text-foreground">{financing.termDays} days</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground mb-1">Provider Fee</p>
-                <p className="text-[13px] font-medium text-foreground">{formatCurrency(financing.providerFeeAmount || 0)}</p>
               </div>
             </div>
           </div>

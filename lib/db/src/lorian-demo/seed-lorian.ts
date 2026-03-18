@@ -1592,7 +1592,7 @@ export async function seedLorian() {
     { id: "inv_lor_001", num: "LOR-INV-2026-0001", status: "PAID" as const, cust: 0, shp: 7, subtotal: "18250.00", tax: "0", fee: "0", spread: "0", grand: "18250.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: 15, issuedAgo: 45, paidAgo: 12, finEligible: true, finStatus: "NONE" as const },
     { id: "inv_lor_002", num: "LOR-INV-2026-0002", status: "PAID" as const, cust: 1, shp: 6, subtotal: "12800.00", tax: "0", fee: "0", spread: "0", grand: "12800.00", terms: "NET_60" as const, source: "SHIPMENT" as const, dueAgo: 5, issuedAgo: 55, paidAgo: 8, finEligible: true, finStatus: "NONE" as const },
     { id: "inv_lor_003", num: "LOR-INV-2026-0003", status: "PAID" as const, cust: 5, shp: 17, subtotal: "32500.00", tax: "1625.00", fee: "0", spread: "0", grand: "34125.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: 20, issuedAgo: 50, paidAgo: 22, finEligible: false, finStatus: "NONE" as const },
-    { id: "inv_lor_004", num: "LOR-INV-2026-0004", status: "SENT" as const, cust: 0, shp: 1, subtotal: "9750.00", tax: "0", fee: "0", spread: "0", grand: "9750.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: -12, issuedAgo: 18, paidAgo: null, finEligible: true, finStatus: "OFFERED" as const },
+    { id: "inv_lor_004", num: "LOR-INV-2026-0004", status: "SENT" as const, cust: 0, shp: 1, subtotal: "9750.00", tax: "0", fee: "0", spread: "0", grand: "9750.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: -12, issuedAgo: 18, paidAgo: null, finEligible: true, finStatus: "NONE" as const },
     { id: "inv_lor_005", num: "LOR-INV-2026-0005", status: "SENT" as const, cust: 1, shp: 2, subtotal: "21400.00", tax: "1070.00", fee: "0", spread: "0", grand: "22470.00", terms: "NET_60" as const, source: "SHIPMENT" as const, dueAgo: -30, issuedAgo: 20, paidAgo: null, finEligible: true, finStatus: "NONE" as const },
     { id: "inv_lor_006", num: "LOR-INV-2026-0006", status: "OVERDUE" as const, cust: 2, shp: 4, subtotal: "15200.00", tax: "760.00", fee: "0", spread: "0", grand: "15960.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: 8, issuedAgo: 38, paidAgo: null, finEligible: true, finStatus: "NONE" as const },
     { id: "inv_lor_007", num: "LOR-INV-2026-0007", status: "DISPUTED" as const, cust: 3, shp: 8, subtotal: "28900.00", tax: "1445.00", fee: "0", spread: "0", grand: "30345.00", terms: "NET_30" as const, source: "SHIPMENT" as const, dueAgo: 3, issuedAgo: 33, paidAgo: null, finEligible: true, finStatus: "NONE" as const },
@@ -1750,25 +1750,7 @@ export async function seedLorian() {
       decidedAt: daysAgo(27),
       fundedAt: daysAgo(26),
     },
-    {
-      id: "bfr_lor_002",
-      companyId: LORIAN_COMPANY_ID,
-      invoiceId: "inv_lor_004",
-      customerBillingProfileId: "cbp_lor_001",
-      applicationStatus: "APPROVED" as const,
-      termDays: 30,
-      financedAmount: "9750.00",
-      providerFeeRate: 0.018,
-      providerFeeAmount: "175.50",
-      clientFacingFeeRate: 0.025,
-      clientFacingFeeAmount: "243.75",
-      dynastiesSpreadAmount: "68.25",
-      providerExternalRef: "BAL-SBX-20260310-002",
-      providerName: "balance",
-      settlementStatus: "PENDING" as const,
-      requestedAt: daysAgo(5),
-      decidedAt: daysAgo(4),
-    },
+  
   ]).onConflictDoNothing();
 
   const commercialEventDefs = [
