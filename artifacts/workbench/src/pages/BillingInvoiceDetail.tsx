@@ -337,10 +337,10 @@ export default function BillingInvoiceDetail() {
                 </div>
                 <div>
                   <h3 className="text-[20px] font-bold text-emerald-400">
-                    {isRepaid ? "Financing Complete" : "Invoice Financed"}
+                    {isRepaid ? "Financing Complete" : "Receivable Sold — Financed"}
                   </h3>
                   <p className="text-[13px] text-muted-foreground">
-                    {isRepaid ? "Financing has been fully repaid" : "Funds have been advanced to your account"}
+                    {isRepaid ? "Financing has been fully repaid" : "Receivable transferred to financing provider — funds disbursed"}
                   </p>
                 </div>
               </div>
@@ -360,7 +360,7 @@ export default function BillingInvoiceDetail() {
                 <div>
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Status</p>
                   <p className={`text-[16px] font-semibold ${isRepaid ? "text-primary" : "text-emerald-400"}`}>
-                    {isRepaid ? "Repaid" : "Funded"}
+                    {isRepaid ? "Repaid" : "Sold / Funded"}
                   </p>
                 </div>
               </div>
@@ -515,30 +515,41 @@ export default function BillingInvoiceDetail() {
         )}
 
         {receivable && (
-          <div className="bg-card border border-card-border rounded-xl p-6 mb-8">
+          <div className={`border rounded-xl p-6 mb-8 ${receivable.receivableTransferred ? "bg-primary/[0.04] border-primary/20" : "bg-card border-card-border"}`}>
             <h3 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-primary" />
               Receivable
+              {receivable.receivableTransferred && (
+                <span className="text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full ml-2">Transferred</span>
+              )}
             </h3>
-            <div className="grid grid-cols-4 gap-6">
+            <div className={`grid ${receivable.receivableTransferred ? "grid-cols-5" : "grid-cols-4"} gap-6`}>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-1">Original Amount</p>
                 <p className="text-[16px] font-semibold text-foreground">{formatCurrency(receivable.originalAmount)}</p>
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-1">Outstanding</p>
-                <p className={`text-[16px] font-semibold ${Number(receivable.outstandingAmount) > 0 ? "text-amber-400" : "text-emerald-400"}`}>
-                  {formatCurrency(receivable.outstandingAmount)}
+                <p className={`text-[16px] font-semibold ${receivable.receivableTransferred ? "text-primary" : Number(receivable.outstandingAmount) > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+                  {receivable.receivableTransferred ? "Sold" : formatCurrency(receivable.outstandingAmount)}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] text-muted-foreground mb-1">Collections Status</p>
-                <p className="text-[13px] font-medium text-foreground">{receivable.collectionsStatus}</p>
+                <p className="text-[11px] text-muted-foreground mb-1">Collections</p>
+                <p className={`text-[13px] font-medium ${receivable.collectionsStatus === "FINANCED" ? "text-primary" : "text-foreground"}`}>
+                  {receivable.collectionsStatus === "FINANCED" ? "Financed / Sold" : receivable.collectionsStatus}
+                </p>
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-1">Settlement</p>
                 <p className="text-[13px] font-medium text-foreground">{receivable.settlementStatus}</p>
               </div>
+              {receivable.receivableTransferred && (
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-1">Transfer Status</p>
+                  <p className="text-[13px] font-medium text-primary">Transferred to Provider</p>
+                </div>
+              )}
             </div>
           </div>
         )}

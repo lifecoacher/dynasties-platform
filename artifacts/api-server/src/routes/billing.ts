@@ -742,14 +742,15 @@ router.post("/billing/invoices/:id/fund-financing", requireMinRole("OPERATOR"), 
       outstandingAmount: "0",
       settlementStatus: "SETTLED",
       financeStatus: "FUNDED",
-      collectionsStatus: "CURRENT",
+      collectionsStatus: "FINANCED",
+      receivableTransferred: true,
       daysOverdue: 0,
     }).where(eq(receivablesTable.id, receivable.id));
   }
   await logCommercialEvent({
     companyId, eventType: "BALANCE_FUNDED", entityType: "INVOICE", entityId: invoice.id,
     actorType: "PROVIDER", amount: advanceAmount, currency: invoice.currency,
-    description: `Funds disbursed to account — fee: ${invoice.currency} ${financingFee.toFixed(2)}`,
+    description: `Receivable transferred to financing provider — ${invoice.currency} ${advanceAmount.toFixed(2)} disbursed`,
   });
   await logCommercialEvent({
     companyId, eventType: "SPREAD_RECORDED", entityType: "INVOICE", entityId: invoice.id,
