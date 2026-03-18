@@ -291,7 +291,7 @@ export default function BillingInvoiceDetail() {
                   <p className="text-[13px] text-muted-foreground">Awaiting funds disbursement from provider</p>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-6 mb-6">
+              <div className="grid grid-cols-4 gap-6 mb-4">
                 <div>
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Amount to Receive</p>
                   <p className="text-[20px] font-bold text-amber-400">{formatCurrency(financing?.financedAmount || 0)}</p>
@@ -309,10 +309,13 @@ export default function BillingInvoiceDetail() {
                   <p className="text-[16px] font-semibold text-amber-400">Pending Disbursement</p>
                 </div>
               </div>
+              <p className="text-[13px] text-muted-foreground mb-5">
+                Click 'Disburse Funds' to transfer {formatCurrency(financing?.financedAmount || 0)} to your account.
+              </p>
               <button
                 onClick={handleFundFinancing}
                 disabled={!!acting}
-                className="px-8 py-3.5 rounded-xl text-[15px] font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                className="px-8 py-3.5 rounded-xl text-[15px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-primary/20"
               >
                 {acting === "fund-financing" ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -531,7 +534,7 @@ export default function BillingInvoiceDetail() {
               <div>
                 <p className="text-[11px] text-muted-foreground mb-1">Outstanding</p>
                 <p className={`text-[16px] font-semibold ${receivable.receivableTransferred ? "text-primary" : Number(receivable.outstandingAmount) > 0 ? "text-amber-400" : "text-emerald-400"}`}>
-                  {receivable.receivableTransferred ? "Sold" : formatCurrency(receivable.outstandingAmount)}
+                  {formatCurrency(receivable.outstandingAmount)}{receivable.receivableTransferred && <span className="text-[11px] font-normal text-muted-foreground ml-1.5">— Transferred to Provider</span>}
                 </p>
               </div>
               <div>

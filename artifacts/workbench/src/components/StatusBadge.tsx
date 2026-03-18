@@ -49,6 +49,9 @@ export function StatusBadge({ status, className, type = 'shipment' }: StatusBadg
         return 'bg-muted/50 text-muted-foreground border-muted';
       case 'CANCELLED':
         return 'bg-destructive/10 text-destructive/70 border-destructive/20';
+      case 'FINANCED':
+      case 'FUNDED':
+        return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25';
       default:
         return 'bg-muted/50 text-muted-foreground border-muted';
     }

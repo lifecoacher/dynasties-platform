@@ -912,9 +912,22 @@ router.get("/billing/receivables/overview", async (req, res) => {
     }
   }
 
-  const overdueInvoices = allInvoices.filter(
-    (i) => i.status === "OVERDUE" && i.financeStatus !== "FUNDED" && i.financeStatus !== "REPAID",
+  const overdueInvoiceIds = new Set(
+    allInvoices
+      .filter((i) => i.status === "OVERDUE" && i.financeStatus !== "FUNDED" && i.financeStatus !== "REPAID")
+      .map((i) => i.id),
   );
+  totalOverdue = 0;
+  countOverdue = 0;
+  for (const r of receivables) {
+    if (!overdueInvoiceIds.has(r.invoiceId)) continue;
+    if (r.receivableTransferred) continue;
+    const amt = Number(r.outstandingAmount);
+    if (amt > 0) {
+      totalOverdue += amt;
+      countOverdue++;
+    }
+  }
   const disputedInvoices = allInvoices.filter((i) => i.status === "DISPUTED");
   const paidInvoices = allInvoices.filter((i) => i.status === "PAID");
   const paidThisMonth = paidInvoices
@@ -961,7 +974,7 @@ router.get("/billing/receivables/overview", async (req, res) => {
       countOverdue,
       countDisputed: disputedInvoices.length,
       countPaid: paidInvoices.length,
-      countOverdueInvoices: overdueInvoices.length,
+      countOverdueInvoices: countOverdue,
       paidThisMonth,
       totalInvoiced,
       totalInvoiceCount: allInvoices.length,
