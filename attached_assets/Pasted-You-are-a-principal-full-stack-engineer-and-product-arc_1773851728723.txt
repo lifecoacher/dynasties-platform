@@ -1,0 +1,258 @@
+You are a principal full-stack engineer and product architect tasked with fixing critical inconsistencies and elevating the Dynasties billing + financing platform to a fully coherent, demo-ready, high-trust system.
+
+Your objective is to eliminate all broken revenue flows, remove all state contradictions, and upgrade the UI to clearly communicate urgency, action, and monetization.
+
+Implement everything below fully. No placeholders. No partial fixes.
+
+⸻
+
+SECTION 1 — FIX BROKEN FINANCING LOOP (CRITICAL)
+
+PROBLEM
+
+Some invoices that are eligible for financing or have financing offers do NOT display a financing panel or CTA, creating a dead-end and breaking the core business flow.
+
+REQUIRED FIX
+
+1.1 UNIFIED FINANCING PANEL LOGIC
+
+Ensure the financing panel renders when ANY of the following are true:
+	•	invoice.status === “OVERDUE”
+	•	invoice.financingStatus === “OFFERED”
+	•	invoice.eligibleForFinancing === true
+
+This must be consistent across ALL invoices.
+
+⸻
+
+1.2 CTA AVAILABILITY
+
+If:
+	•	financingStatus === “OFFERED”
+OR
+	•	eligibleForFinancing === true
+
+Then:
+	•	ALWAYS show a financing panel
+	•	ALWAYS show a primary CTA button:
+“Get Paid Now” or “Accept Financing”
+
+There must be NO scenario where:
+	•	financing data is shown
+	•	but no action is available
+
+⸻
+
+1.3 REMOVE PASSIVE FINANCING STATES
+
+Eliminate passive “Financing Record” blocks that show offer/approval without action.
+
+If financing exists:
+	•	it must be actionable
+	•	not informational only
+
+⸻
+
+1.4 CONSISTENCY GUARANTEE
+
+Ensure:
+	•	every eligible invoice behaves identically
+	•	no missing CTA states
+	•	no dead-end financing UI
+
+⸻
+
+SECTION 2 — FIX STATE + DATA CONTRADICTIONS (TRUST LAYER)
+
+OBJECTIVE
+
+Eliminate all inconsistencies between backend, UI, KPIs, and audit logs.
+
+⸻
+
+2.1 CANONICAL FINANCING LIFECYCLE
+
+Define and enforce a single lifecycle:
+
+NONE → OFFERED → ACCEPTED → FINANCED → REPAID
+
+Requirements:
+	•	remove conflicting states like “APPROVED”
+	•	ensure UI and backend use identical values
+	•	ensure transitions are strictly enforced
+
+⸻
+
+2.2 COLLECTIONS STATUS CORRECTION
+
+If:
+	•	financingStatus === “FINANCED”
+
+Then:
+	•	collectionsStatus must be:
+“FINANCED” or “CLOSED”
+
+It must NOT be:
+	•	“FOLLOW_UP”
+
+Remove all conflicting combinations like:
+	•	FOLLOW_UP + SETTLED
+
+⸻
+
+2.3 KPI SYNCHRONIZATION
+
+When an invoice transitions to FINANCED:
+	•	remove it from OVERDUE totals
+	•	update all KPI values immediately
+	•	ensure overview reflects real-time state
+
+There must be no mismatch between:
+	•	invoice state
+	•	KPI aggregates
+
+⸻
+
+2.4 AUDIT LOG ORDERING
+
+Ensure strict chronological correctness:
+	•	“Financing offer generated” occurs BEFORE acceptance
+	•	“Financing accepted” occurs BEFORE funding
+	•	timestamps align with lifecycle transitions
+
+Fix any inverted or illogical sequences.
+
+⸻
+
+2.5 LABEL AND TEXT FIXES
+
+Correct all trust-breaking text issues:
+	•	“1 invoices past due” → “1 invoice past due”
+
+Ensure all UI text is grammatically correct and consistent.
+
+⸻
+
+SECTION 3 — DEMO IMPACT + VISUAL HIERARCHY UPGRADE
+
+OBJECTIVE
+
+Make urgency, action, and revenue immediately obvious within seconds.
+
+⸻
+
+3.1 KPI PRIORITY REORDERING
+
+Reorder KPI cards to reflect importance:
+	1.	OVERDUE (highest priority, visually dominant)
+	2.	DISPUTED
+	3.	OUTSTANDING
+	4.	COLLECTED
+	5.	FINANCED
+	6.	REVENUE (highlighted)
+	7.	remaining informational metrics
+
+⸻
+
+3.2 OVERDUE EMPHASIS
+
+Enhance OVERDUE KPI and indicators:
+	•	stronger color (red emphasis)
+	•	optional border or highlight
+	•	display “X days overdue” where applicable
+
+⸻
+
+3.3 INVOICE LIST IMPROVEMENTS
+
+Implement:
+	•	default sort:
+OVERDUE → DISPUTED → PARTIALLY PAID → SENT → DRAFT → PAID
+	•	add “Days Overdue” or “Days Outstanding” column
+	•	convert due dates for overdue invoices to relative format:
+e.g. “8 days ago”
+	•	change FINANCED badge to green (same visual language as PAID)
+
+⸻
+
+3.4 REMOVE LOW-VALUE SIGNALS
+
+If any column (e.g. SOURCE) is static or non-informative:
+	•	remove or replace it with decision-relevant data
+
+⸻
+
+3.5 REVENUE VISIBILITY UPGRADE
+
+Update revenue presentation:
+	•	rename KPI to: “Revenue Earned”
+	•	highlight KPI visually (teal or positive emphasis)
+	•	include supporting context:
+“X financing events”
+
+Optional:
+	•	add persistent summary:
+“Earned $X this month”
+
+⸻
+
+3.6 DIRECT NAVIGATION
+
+Add action from OVERDUE KPI:
+	•	clickable link:
+“View overdue invoices”
+
+This should navigate directly to filtered invoice list.
+
+⸻
+
+SECTION 4 — DEMO FLOW INTEGRITY
+
+OBJECTIVE
+
+Ensure a seamless, high-impact demo experience.
+
+⸻
+
+REQUIRED FLOW
+	1.	Billing Overview → clear urgency
+	2.	Invoice list → overdue visible immediately
+	3.	Open overdue invoice → financing panel visible
+	4.	Accept financing → immediate transformation
+	5.	Return to overview → KPIs updated
+
+⸻
+
+REQUIREMENTS
+	•	no broken routes
+	•	no empty states
+	•	no UI dead ends
+	•	no inconsistent data
+	•	no delayed updates
+
+⸻
+
+SECTION 5 — FINAL SYSTEM REQUIREMENTS
+
+Ensure:
+	•	no duplicated logic
+	•	no hardcoded UI-only calculations
+	•	backend and frontend always aligned
+	•	all financial calculations reconcile
+	•	all states are logically consistent
+
+⸻
+
+SUCCESS CRITERIA
+
+The system must clearly demonstrate within seconds:
+	1.	A financial problem (overdue cash)
+	2.	A clear action (financing CTA)
+	3.	Immediate resolution (cash advanced)
+	4.	Platform monetization (revenue visible)
+
+If any of these are unclear, the implementation is incomplete.
+
+⸻
+
+Implement all fixes comprehensively.
