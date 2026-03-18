@@ -8,6 +8,7 @@ import {
   jsonb,
   timestamp,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { companiesTable } from "./companies";
 import { shipmentsTable } from "./shipments";
@@ -426,6 +427,7 @@ export const balanceFinancingRecordsTable = pgTable(
       table.customerBillingProfileId,
     ),
     index("bfr_status_idx").on(table.applicationStatus),
+    uniqueIndex("bfr_invoice_id_unique_idx").on(table.invoiceId),
   ],
 );
 
