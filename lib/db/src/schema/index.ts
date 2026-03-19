@@ -42,3 +42,4 @@ export * from "./document-validation";
 export * from "./routing-pricing";
 export * from "./shipment-decisions";
 export * from "./migrations";
+export * from "./shipment-events";

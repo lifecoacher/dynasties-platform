@@ -25,6 +25,7 @@
     "@workspace/svc-routing-pricing": "workspace:*",
     "@workspace/svc-shipment-decision": "workspace:*",
     "@workspace/svc-migration": "workspace:*",
+    "@workspace/svc-event-ingestion": "workspace:*",
     "@workspace/svc-decision-engine": "workspace:*",
     "@workspace/svc-document-extraction": "workspace:*",
     "@workspace/svc-document-generation": "workspace:*",

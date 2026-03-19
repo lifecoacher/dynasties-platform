@@ -49,6 +49,13 @@ import {
   ArrowDownRight,
   Navigation,
   MapPin,
+  Anchor,
+  Ship,
+  Truck,
+  PackageCheck,
+  Clock,
+  Plus,
+  Calendar,
 } from "lucide-react";
 import { OutcomeForm, type OutcomeData } from "@/components/recommendations/OutcomeForm";
 import { useToast } from "@/hooks/use-toast";
@@ -108,6 +115,64 @@ function getEventColor(type: string) {
   return "text-primary bg-primary/10";
 }
 
+const LOGISTICS_EVENT_LABELS: Record<string, string> = {
+  SHIPMENT_CREATED: "Shipment Created",
+  BOOKING_CONFIRMED: "Booking Confirmed",
+  PICKED_UP: "Picked Up",
+  DEPARTED_ORIGIN: "Departed Origin",
+  ARRIVED_TRANSSHIPMENT: "At Transshipment",
+  DEPARTED_TRANSSHIPMENT: "Left Transshipment",
+  ARRIVED_DESTINATION: "Arrived Destination",
+  CUSTOMS_HOLD: "Customs Hold",
+  CUSTOMS_RELEASED: "Customs Released",
+  DELAYED: "Delayed",
+  OUT_FOR_DELIVERY: "Out for Delivery",
+  DELIVERED: "Delivered",
+  UNKNOWN: "Unknown",
+};
+
+const LOGISTICS_EVENT_ICONS: Record<string, React.ReactNode> = {
+  SHIPMENT_CREATED: <FileBox className="w-3.5 h-3.5" />,
+  BOOKING_CONFIRMED: <ClipboardCheck className="w-3.5 h-3.5" />,
+  PICKED_UP: <Truck className="w-3.5 h-3.5" />,
+  DEPARTED_ORIGIN: <Ship className="w-3.5 h-3.5" />,
+  ARRIVED_TRANSSHIPMENT: <Anchor className="w-3.5 h-3.5" />,
+  DEPARTED_TRANSSHIPMENT: <Ship className="w-3.5 h-3.5" />,
+  ARRIVED_DESTINATION: <Anchor className="w-3.5 h-3.5" />,
+  CUSTOMS_HOLD: <AlertCircle className="w-3.5 h-3.5" />,
+  CUSTOMS_RELEASED: <CheckCircle2 className="w-3.5 h-3.5" />,
+  DELAYED: <Clock className="w-3.5 h-3.5" />,
+  OUT_FOR_DELIVERY: <Truck className="w-3.5 h-3.5" />,
+  DELIVERED: <PackageCheck className="w-3.5 h-3.5" />,
+  UNKNOWN: <Bot className="w-3.5 h-3.5" />,
+};
+
+function getLogisticsColor(type: string) {
+  if (type === "DELIVERED") return "text-primary bg-primary/10";
+  if (type === "CUSTOMS_HOLD" || type === "DELAYED") return "text-[#E05252] bg-[#E05252]/10";
+  if (type === "CUSTOMS_RELEASED") return "text-primary bg-primary/10";
+  if (type.includes("DEPARTED") || type.includes("PICKED") || type === "OUT_FOR_DELIVERY") return "text-[#4EAEE3] bg-[#4EAEE3]/10";
+  if (type.includes("ARRIVED")) return "text-[#D4A24C] bg-[#D4A24C]/10";
+  if (type === "BOOKING_CONFIRMED") return "text-primary bg-primary/10";
+  return "text-muted-foreground bg-muted/50";
+}
+
+function getSourceBadge(source: string) {
+  const styles: Record<string, string> = {
+    IMPORT: "bg-violet-500/10 text-violet-400",
+    MANUAL: "bg-blue-500/10 text-blue-400",
+    API: "bg-orange-500/10 text-orange-400",
+    SYSTEM: "bg-muted text-muted-foreground",
+  };
+  return styles[source] || styles.SYSTEM;
+}
+
+const SHIPMENT_EVENT_OPTIONS = [
+  "SHIPMENT_CREATED", "BOOKING_CONFIRMED", "PICKED_UP", "DEPARTED_ORIGIN",
+  "ARRIVED_TRANSSHIPMENT", "DEPARTED_TRANSSHIPMENT", "ARRIVED_DESTINATION",
+  "CUSTOMS_HOLD", "CUSTOMS_RELEASED", "DELAYED", "OUT_FOR_DELIVERY", "DELIVERED",
+];
+
 export default function ShipmentDetail() {
   const [, params] = useRoute("/shipments/:id");
   const id = params?.id || "";
@@ -151,6 +216,18 @@ export default function ShipmentDetail() {
     },
     enabled: !!id,
   });
+  const { data: timelineRes, refetch: refetchTimeline } = useQuery({
+    queryKey: [`/api/shipments/${id}/timeline`],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const res = await fetch(`${import.meta.env.BASE_URL}api/shipments/${id}/timeline`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return { data: { events: [], derivedStatus: null } };
+      return res.json();
+    },
+    enabled: !!id,
+  });
   const { data: insuranceRes } = useGetShipmentInsurance(id);
   const { data: eventsRes } = useGetShipmentEvents(id);
   const { data: docsRes } = useGetShipmentDocuments(id);
@@ -173,8 +250,18 @@ export default function ShipmentDetail() {
   const events = (eventsRes?.data || []) as any[];
   const docs = (docsRes?.data || []) as any[];
   const corrections = (correctionsRes?.data || []) as any[];
+  const timelineEvents = (timelineRes?.data?.events || []) as any[];
+  const derivedStatus = timelineRes?.data?.derivedStatus as string | null;
 
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [eventFormData, setEventFormData] = useState({
+    eventType: "",
+    timestamp: "",
+    location: "",
+    description: "",
+  });
+  const [submittingEvent, setSubmittingEvent] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -298,6 +385,43 @@ export default function ShipmentDetail() {
       toast({ title: "Decision engine failed", description: "An error occurred during evaluation. Please try again.", variant: "destructive" });
     } finally {
       setRunningDecision(false);
+    }
+  };
+
+  const submitEvent = async () => {
+    if (!eventFormData.timestamp) {
+      toast({ title: "Timestamp required", variant: "destructive" });
+      return;
+    }
+    setSubmittingEvent(true);
+    try {
+      const token = getAuthToken();
+      const body: Record<string, any> = {
+        timestamp: eventFormData.timestamp,
+        source: "MANUAL",
+      };
+      if (eventFormData.eventType) body.eventType = eventFormData.eventType;
+      if (eventFormData.description) body.description = eventFormData.description;
+      if (eventFormData.location) body.location = eventFormData.location;
+
+      const res = await fetch(`${BASE}/shipments/${id}/shipment-events`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed" }));
+        throw new Error(err.error || "Failed");
+      }
+      refetchTimeline();
+      qc.invalidateQueries({ queryKey: [`/api/shipments/${id}`] });
+      setEventFormData({ eventType: "", timestamp: "", location: "", description: "" });
+      setShowEventForm(false);
+      toast({ title: "Event recorded", description: "Shipment timeline updated." });
+    } catch (err: any) {
+      toast({ title: "Failed to record event", description: err.message, variant: "destructive" });
+    } finally {
+      setSubmittingEvent(false);
     }
   };
 
@@ -580,11 +704,135 @@ export default function ShipmentDetail() {
               )}
             </div>
 
+            <div className="p-5 rounded-xl bg-card border border-card-border">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[14px] font-semibold text-foreground flex items-center gap-2">
+                  <Navigation className="w-4 h-4 text-primary" />
+                  Shipment Journey
+                  {derivedStatus && (
+                    <span className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded ${
+                      derivedStatus === "DELIVERED" ? "bg-primary/10 text-primary" :
+                      derivedStatus === "CUSTOMS" ? "bg-[#D4A24C]/10 text-[#D4A24C]" :
+                      derivedStatus === "IN_TRANSIT" ? "bg-[#4EAEE3]/10 text-[#4EAEE3]" :
+                      "bg-muted text-muted-foreground"
+                    }`}>{derivedStatus}</span>
+                  )}
+                </h3>
+                <button
+                  onClick={() => setShowEventForm(!showEventForm)}
+                  className="px-2 py-1 text-[10px] font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 flex items-center gap-1 border border-primary/20"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add Event
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {showEventForm && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-4 p-3 rounded-lg bg-muted/30 border border-card-border space-y-2"
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={eventFormData.eventType}
+                        onChange={(e) => setEventFormData({ ...eventFormData, eventType: e.target.value })}
+                        className="px-2 py-1.5 text-[11px] rounded bg-background border border-card-border text-foreground"
+                      >
+                        <option value="">Auto-classify from description</option>
+                        {SHIPMENT_EVENT_OPTIONS.map((t) => (
+                          <option key={t} value={t}>{LOGISTICS_EVENT_LABELS[t] || t}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="datetime-local"
+                        value={eventFormData.timestamp}
+                        onChange={(e) => setEventFormData({ ...eventFormData, timestamp: e.target.value })}
+                        className="px-2 py-1.5 text-[11px] rounded bg-background border border-card-border text-foreground"
+                        placeholder="Timestamp"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={eventFormData.location}
+                      onChange={(e) => setEventFormData({ ...eventFormData, location: e.target.value })}
+                      className="w-full px-2 py-1.5 text-[11px] rounded bg-background border border-card-border text-foreground"
+                      placeholder="Location (e.g. CNSHA, Shanghai)"
+                    />
+                    <input
+                      type="text"
+                      value={eventFormData.description}
+                      onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
+                      className="w-full px-2 py-1.5 text-[11px] rounded bg-background border border-card-border text-foreground"
+                      placeholder="Description (optional — used for AI classification if no type selected)"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setShowEventForm(false)} className="px-3 py-1 text-[10px] rounded bg-muted text-muted-foreground hover:bg-muted/80">Cancel</button>
+                      <button onClick={submitEvent} disabled={submittingEvent} className="px-3 py-1 text-[10px] font-medium rounded bg-primary text-background hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1">
+                        {submittingEvent ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                        Record Event
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {timelineEvents.length > 0 ? (
+                <div className="relative ml-3 border-l-2 border-primary/20 space-y-0">
+                  {timelineEvents.map((evt: any, i: number) => (
+                    <motion.div
+                      key={evt.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="relative pl-6 py-2 group"
+                    >
+                      <div className={`absolute -left-[11px] top-3 w-5 h-5 rounded-full flex items-center justify-center border-2 border-background ${
+                        i === timelineEvents.length - 1 ? "bg-primary ring-2 ring-primary/30" : "bg-card"
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                          i === timelineEvents.length - 1 ? "bg-background" : "bg-primary/60"
+                        }`} />
+                      </div>
+                      <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/30 transition-colors">
+                        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${getLogisticsColor(evt.eventType)}`}>
+                          {LOGISTICS_EVENT_ICONS[evt.eventType] || <Bot className="w-3.5 h-3.5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-medium text-foreground">
+                            {LOGISTICS_EVENT_LABELS[evt.eventType] || evt.eventType}
+                            {evt.isCriticalEvent && <span className="ml-1.5 text-[9px] font-bold text-[#E05252]">CRITICAL</span>}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {evt.location && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                <MapPin className="w-2.5 h-2.5" /> {evt.location}
+                              </span>
+                            )}
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${getSourceBadge(evt.source)}`}>
+                              {evt.source}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground/60 shrink-0 font-mono">
+                          {format(new Date(evt.eventTimestamp), "MMM d, HH:mm")}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground text-center py-4">No shipment events recorded yet. Add the first event above.</p>
+              )}
+            </div>
+
             {events.length > 0 && (
               <div className="p-5 rounded-xl bg-card border border-card-border">
                 <h3 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Bot className="w-4 h-4 text-primary" />
-                  Processing Timeline
+                  Agent Processing Timeline
                 </h3>
                 <div className="space-y-2">
                   {events.filter((event: any, idx: number, arr: any[]) => arr.findIndex((e: any) => e.id === event.id) === idx).map((event: any, i: number) => (
