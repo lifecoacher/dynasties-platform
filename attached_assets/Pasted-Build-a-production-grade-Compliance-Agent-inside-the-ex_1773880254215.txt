@@ -1,0 +1,222 @@
+Build a production-grade Compliance Agent inside the existing Dynasties Replit project. This must integrate with the current architecture, existing shipment data model, current AI layer, and UI. Do NOT create a separate prototype or duplicate systems.
+
+WORKING STYLE
+- Plan first before coding.
+- Inspect the existing repo and reuse all current services.
+- Do not introduce parallel systems or duplicate logic.
+- Build incrementally with checkpoints.
+- Keep everything production-oriented and typed.
+- Do not overwrite working code.
+
+PRIMARY GOAL
+Implement a real Compliance Agent that evaluates shipment data, detects compliance risks, checks restricted/sanctioned patterns, and returns structured decisions that affect workflow.
+
+---
+
+AI PROVIDER INTEGRATION (CRITICAL)
+
+1. Inspect the codebase for an existing AI provider.
+   - If an AI service already exists (Anthropic or otherwise):
+     - Reuse it.
+     - Do NOT create a second AI client.
+     - Route all AI calls through the existing abstraction.
+
+2. If no AI provider exists:
+   - Implement Anthropic using ANTHROPIC_API_KEY.
+   - Create a wrapper: lib/ai/anthropic.ts
+   - Use a clean, reusable interface.
+
+3. Fix existing issues if present:
+   - Prevent crashes if API key is missing
+   - Use lazy initialization
+   - Add error handling and fallbacks
+
+4. LLM usage rules:
+   - Input must be structured
+   - Output must be structured JSON
+   - Low temperature (deterministic)
+   - Used for reasoning and explanation only
+   - NOT used for hard compliance decisions
+
+5. System must work WITHOUT AI:
+   - Rules engine runs first
+   - AI enhances reasoning, not replaces it
+
+---
+
+CORE FUNCTION
+
+The Compliance Agent must:
+
+- Accept shipment/trade data
+- Evaluate:
+  - counterparties
+  - origin/destination
+  - commodity
+  - documentation
+- Detect:
+  - missing fields
+  - suspicious patterns
+  - restricted-party risks (via provider abstraction)
+- Return structured output:
+
+{
+  shipmentId,
+  status: CLEAR | REVIEW | BLOCK,
+  riskLevel: LOW | MEDIUM | HIGH,
+  confidence,
+  issues: [],
+  recommendedActions: [],
+  reasoningSummary,
+  sourceChecks: [],
+  reviewedAt
+}
+
+---
+
+ARCHITECTURE
+
+- Create service: services/compliance/
+- Separate:
+  - input normalization
+  - rules engine
+  - screening provider
+  - AI reasoning layer
+  - output builder
+
+- Build provider abstraction:
+  ComplianceScreeningProvider
+
+- Implement default local provider for now
+  (extensible later for real sanctions APIs)
+
+---
+
+RULES ENGINE (FIRST PASS)
+
+Implement deterministic checks:
+
+- Missing counterparty data
+- Missing origin/destination
+- High-risk countries
+- Weak commodity descriptions
+- Document inconsistencies
+- Missing HS/HTS where required
+- Suspicious invoice values
+- Incomplete compliance-critical fields
+
+Rules must be configurable and extensible.
+
+---
+
+AI LAYER (SECOND PASS)
+
+Use AI ONLY to:
+- explain findings
+- summarize risk
+- classify ambiguous cases
+
+Never:
+- override hard rules
+- block shipments alone
+
+---
+
+DATABASE
+
+If needed, create compliance_assessments table:
+
+- id
+- shipment_id
+- company_id
+- status
+- risk_level
+- confidence
+- issues (JSON)
+- reasoning_summary
+- source_checks (JSON)
+- recommended_actions (JSON)
+- timestamps
+
+Follow existing schema patterns.
+
+---
+
+API
+
+Add endpoints:
+
+POST /api/shipments/:id/compliance-check  
+GET /api/shipments/:id/compliance-result  
+
+Use existing auth + tenant isolation.
+
+---
+
+UI
+
+Integrate into existing shipment/workflow UI:
+
+- “Run Compliance Check” button
+- Show:
+  - status badge
+  - risk level
+  - issues
+  - reasoning
+  - recommended actions
+
+Must be understandable in <10 seconds.
+
+---
+
+TESTING
+
+Test cases:
+
+- clean shipment → CLEAR
+- missing data → REVIEW
+- restricted match → BLOCK or REVIEW
+- ambiguous → REVIEW
+- AI failure → system still works
+
+Add 3 sample shipments:
+- clean
+- medium risk
+- high risk
+
+---
+
+CHECKPOINTS
+
+Checkpoint 1: Repo analysis + integration plan  
+Checkpoint 2: Backend compliance service  
+Checkpoint 3: Rules engine + provider  
+Checkpoint 4: AI integration  
+Checkpoint 5: API + DB  
+Checkpoint 6: UI integration  
+Checkpoint 7: Testing + validation  
+
+---
+
+DEMO REQUIREMENT
+
+The agent must support:
+
+- Input shipment
+- Run compliance check
+- Display result
+- Influence workflow decision
+
+No placeholders. No fake outputs.
+
+---
+
+QUALITY BAR
+
+- Real workflow impact
+- Clear reasoning
+- Stable execution
+- Integrated into system
+- Demo-ready for real operator
+
+Do not mark complete until the agent runs inside the app end-to-end.
