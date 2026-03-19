@@ -208,6 +208,9 @@ importers:
       '@workspace/svc-decision-engine':
         specifier: workspace:*
         version: link:../../services/decision-engine
+      '@workspace/svc-doc-engine':
+        specifier: workspace:*
+        version: link:../../services/doc-engine
       '@workspace/svc-document-extraction':
         specifier: workspace:*
         version: link:../../services/document-extraction
@@ -949,6 +952,21 @@ importers:
       vitest:
         specifier: ^3.2.1
         version: 3.2.4(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
+
+  services/doc-engine:
+    dependencies:
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      '@workspace/storage':
+        specifier: workspace:*
+        version: link:../../lib/storage
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
 
   services/document-extraction:
     dependencies:

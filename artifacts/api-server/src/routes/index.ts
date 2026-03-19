@@ -20,6 +20,7 @@ import aiAnalysisRouter from "./ai-analysis.js";
 import externalSignalsRouter from "./external-signals.js";
 import billingRouter from "./billing.js";
 import migrationRouter from "./migration.js";
+import generatedDocumentsRouter from "./generated-documents.js";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant } from "../middlewares/tenant.js";
 
@@ -51,5 +52,6 @@ router.use(aiAnalysisRouter);
 router.use(externalSignalsRouter);
 router.use(billingRouter);
 router.use(migrationRouter);
+router.use(generatedDocumentsRouter);
 
 export default router;
