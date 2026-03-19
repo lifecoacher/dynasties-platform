@@ -1,0 +1,17 @@
+{
+  "name": "@workspace/svc-migration",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/shared-utils": "workspace:*",
+    "@workspace/integrations-anthropic-ai": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "xlsx": "^0.18.5",
+    "csv-parse": "^5.6.0"
+  }
+}

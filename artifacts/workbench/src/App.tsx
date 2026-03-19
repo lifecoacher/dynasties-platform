@@ -29,6 +29,7 @@ import BillingInvoices from "./pages/BillingInvoices";
 import BillingInvoiceDetail from "./pages/BillingInvoiceDetail";
 import BillingCustomers from "./pages/BillingCustomers";
 import BillingSettings from "./pages/BillingSettings";
+import MigrationWorkspace from "./pages/MigrationWorkspace";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -122,6 +123,7 @@ function AuthenticatedRouter() {
       <Route path="/billing/customers/:id" component={BillingCustomers} />
       <Route path="/billing/customers" component={BillingCustomers} />
       <Route path="/billing/settings" component={BillingSettings} />
+      <Route path="/onboarding/migration" component={MigrationWorkspace} />
       <Route path="/settings" component={SettingsPage} />
       {!DEMO_MODE && <Route path="/intelligence" component={IntelligencePage} />}
       {!DEMO_MODE && <Route path="/customers" component={CustomersPage} />}
