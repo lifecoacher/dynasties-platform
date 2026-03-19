@@ -8,6 +8,7 @@ import { requireAuth, requireRole, refreshRole } from "../middlewares/auth.js";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { validateBody } from "../middlewares/validate.js";
 import { createCompanySchema, createUserSchema, inviteUserSchema } from "../schemas/index.js";
+import { checkSeatLimit } from "../middlewares/billing-enforcement.js";
 
 const router: IRouter = Router();
 
@@ -82,6 +83,16 @@ router.post("/admin/users", ...adminGuard, validateBody(createUserSchema), async
     return;
   }
 
+  const seatInfo = await checkSeatLimit(companyId);
+  if (!seatInfo.allowed) {
+    res.status(403).json({
+      error: "Seat limit reached",
+      code: "SEAT_LIMIT_EXCEEDED",
+      message: `Your plan allows ${seatInfo.limit} team members. You currently have ${seatInfo.used}. Upgrade your plan for more seats.`,
+    });
+    return;
+  }
+
   const [company] = await db
     .select({ id: companiesTable.id })
     .from(companiesTable)
@@ -146,6 +157,16 @@ router.post("/admin/invite", ...adminGuard, validateBody(inviteUserSchema), asyn
   const { email, name, role } = req.body;
   const companyId = getCompanyId(req);
   const normalizedEmail = email.toLowerCase().trim();
+
+  const seatInfo = await checkSeatLimit(companyId);
+  if (!seatInfo.allowed) {
+    res.status(403).json({
+      error: "Seat limit reached",
+      code: "SEAT_LIMIT_EXCEEDED",
+      message: `Your plan allows ${seatInfo.limit} team members. You currently have ${seatInfo.used}. Upgrade your plan for more seats.`,
+    });
+    return;
+  }
 
   const [existing] = await db
     .select({ id: usersTable.id })

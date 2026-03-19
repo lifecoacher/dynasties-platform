@@ -8,13 +8,12 @@ const PLANS = [
       planType: 'STARTER',
       features: JSON.stringify([
         '3 team members',
-        '50 shipments/month',
+        '40 shipments/month',
         'Basic document generation',
         'Email support',
       ]),
     },
-    monthlyPrice: 4900,
-    yearlyPrice: 47000,
+    monthlyPrice: 24900,
   },
   {
     name: 'Dynasties Growth',
@@ -29,12 +28,11 @@ const PLANS = [
         'Priority support',
       ]),
     },
-    monthlyPrice: 14900,
-    yearlyPrice: 143000,
+    monthlyPrice: 89500,
   },
   {
     name: 'Dynasties Scale',
-    description: 'For established forwarders with high volume operations',
+    description: 'For established forwarders with high-volume operations',
     metadata: {
       planType: 'SCALE',
       features: JSON.stringify([
@@ -45,8 +43,7 @@ const PLANS = [
         'Dedicated support',
       ]),
     },
-    monthlyPrice: 39900,
-    yearlyPrice: 383000,
+    monthlyPrice: 240000,
   },
   {
     name: 'Dynasties Enterprise',
@@ -61,14 +58,34 @@ const PLANS = [
         'SLA guarantee',
       ]),
     },
-    monthlyPrice: 99900,
-    yearlyPrice: 959000,
+    monthlyPrice: 0,
+  },
+];
+
+const DEPLOYMENT_FEES = [
+  {
+    name: 'Growth Deployment Fee',
+    description: 'One-time deployment and onboarding fee for Growth plan',
+    metadata: { planType: 'GROWTH', priceType: 'deployment_fee' },
+    price: 150000,
+  },
+  {
+    name: 'Scale Deployment Fee',
+    description: 'One-time deployment and onboarding fee for Scale plan',
+    metadata: { planType: 'SCALE', priceType: 'deployment_fee' },
+    price: 350000,
+  },
+  {
+    name: 'Enterprise Deployment Fee',
+    description: 'Custom deployment and onboarding fee for Enterprise plan (placeholder)',
+    metadata: { planType: 'ENTERPRISE', priceType: 'deployment_fee' },
+    price: 0,
   },
 ];
 
 async function seedProducts() {
   const stripe = await getUncachableStripeClient();
-  console.log('Seeding Stripe products...\n');
+  console.log('Seeding Stripe products with correct Dynasties pricing...\n');
 
   for (const plan of PLANS) {
     const existing = await stripe.products.search({
@@ -87,23 +104,52 @@ async function seedProducts() {
     });
     console.log(`[created] ${plan.name} (${product.id})`);
 
-    const monthly = await stripe.prices.create({
-      product: product.id,
-      unit_amount: plan.monthlyPrice,
-      currency: 'usd',
-      recurring: { interval: 'month' },
-      metadata: { planType: plan.metadata.planType, interval: 'month' },
-    });
-    console.log(`  monthly: $${(plan.monthlyPrice / 100).toFixed(2)}/mo (${monthly.id})`);
+    if (plan.monthlyPrice > 0) {
+      const monthly = await stripe.prices.create({
+        product: product.id,
+        unit_amount: plan.monthlyPrice,
+        currency: 'usd',
+        recurring: { interval: 'month' },
+        metadata: { planType: plan.metadata.planType, interval: 'month', priceType: 'subscription' },
+      });
+      console.log(`  monthly: $${(plan.monthlyPrice / 100).toFixed(2)}/mo (${monthly.id})`);
+    } else {
+      console.log(`  [custom pricing — no auto-created price]`);
+    }
+  }
 
-    const yearly = await stripe.prices.create({
-      product: product.id,
-      unit_amount: plan.yearlyPrice,
-      currency: 'usd',
-      recurring: { interval: 'year' },
-      metadata: { planType: plan.metadata.planType, interval: 'year' },
+  console.log('\n--- Deployment Fees ---\n');
+
+  for (const fee of DEPLOYMENT_FEES) {
+    if (fee.price === 0) {
+      console.log(`[skip] ${fee.name} — custom/manual pricing`);
+      continue;
+    }
+
+    const existing = await stripe.products.search({
+      query: `name:'${fee.name}' AND active:'true'`,
     });
-    console.log(`  yearly: $${(plan.yearlyPrice / 100).toFixed(2)}/yr (${yearly.id})`);
+
+    if (existing.data.length > 0) {
+      console.log(`[skip] ${fee.name} already exists (${existing.data[0].id})`);
+      continue;
+    }
+
+    const product = await stripe.products.create({
+      name: fee.name,
+      description: fee.description,
+      metadata: fee.metadata,
+    });
+
+    const price = await stripe.prices.create({
+      product: product.id,
+      unit_amount: fee.price,
+      currency: 'usd',
+      metadata: { planType: fee.metadata.planType, priceType: 'deployment_fee' },
+    });
+
+    console.log(`[created] ${fee.name} (${product.id})`);
+    console.log(`  one-time: $${(fee.price / 100).toFixed(2)} (${price.id})`);
   }
 
   console.log('\nDone! Webhooks will sync products to the database.');

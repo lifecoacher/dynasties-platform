@@ -1,0 +1,398 @@
+You are a Principal Payments Architect, B2B SaaS Billing Engineer, and Product Monetization Systems Lead.
+
+Your task is to correct, rebuild, and fully wire the Dynasties Stripe Billing implementation so that pricing, checkout, activation, billing state, plan limits, and workspace access are all handled correctly and consistently.
+
+This is not a cosmetic update. This is the system that determines whether Dynasties is a real business or just a demo with fake pricing.
+
+Implement everything below fully and cleanly.
+
+⸻
+
+SECTION 1 — CORRECT STRIPE PRICING IMMEDIATELY
+
+PROBLEM
+
+The currently connected Stripe sandbox has stale/incorrect products and prices:
+	•	Starter $49
+	•	Growth $149
+	•	Scale $399
+	•	Enterprise $999
+
+These are wrong and must not be used.
+
+REQUIRED FIX
+
+Archive or stop using the stale product/price set.
+
+Create or standardize the Stripe sandbox products and prices to exactly:
+
+Monthly Recurring Plans
+	•	Starter → $249/month
+	•	Growth → $895/month
+	•	Scale → $2,400/month
+	•	Enterprise → placeholder/manual/custom (do not hardcode fake low pricing)
+
+One-Time Deployment Fees
+	•	Growth Deployment → $1,500
+	•	Scale Deployment → $3,500
+	•	Enterprise Deployment → configurable/manual placeholder
+
+Requirements:
+	•	no duplicate active pricing configurations
+	•	no fallback to old prices
+	•	system must map only to the new correct Stripe price IDs
+
+⸻
+
+SECTION 2 — SINGLE SOURCE OF TRUTH FOR PLAN CONFIG
+
+Create a centralized plan configuration layer in Dynasties.
+
+Each plan must define:
+	•	planType
+	•	stripePriceId
+	•	monthlyPrice
+	•	seatLimit
+	•	shipmentLimit
+	•	deploymentFee
+	•	feature access flags if needed later
+
+Required plan definitions
+
+STARTER
+	•	monthlyPrice: 249
+	•	seatLimit: 3
+	•	shipmentLimit: 40
+
+GROWTH
+	•	monthlyPrice: 895
+	•	seatLimit: 10
+	•	shipmentLimit: 250
+
+SCALE
+	•	monthlyPrice: 2400
+	•	seatLimit: 25
+	•	shipmentLimit: 1000
+
+ENTERPRISE
+	•	custom pricing
+	•	negotiated seatLimit
+	•	negotiated shipmentLimit
+
+Requirements:
+	•	all pricing references in backend and frontend must come from this centralized config
+	•	no hardcoded plan values in UI components
+	•	plan config must be the system of record
+
+⸻
+
+SECTION 3 — TENANT BILLING MODEL
+
+Extend tenant/workspace billing fields so the billing system can operate correctly.
+
+Ensure tenant/workspace has:
+	•	stripeCustomerId
+	•	stripeSubscriptionId
+	•	stripePriceId
+	•	billingStatus
+	•	currentPeriodEnd
+	•	trialEndsAt
+	•	planType
+	•	seatLimit
+	•	shipmentLimit
+	•	isActive (derived)
+	•	onboardingPaid (optional)
+	•	deploymentFeeStatus (NOT_REQUIRED / PENDING / PAID)
+
+Billing statuses should include:
+	•	TRIAL
+	•	ACTIVE
+	•	PAST_DUE
+	•	CANCELED
+	•	INCOMPLETE
+
+Requirements:
+	•	no active workspace without a valid billing state
+	•	all fields updated from Stripe webhooks, not only client-side flow
+
+⸻
+
+SECTION 4 — CHECKOUT FLOW
+
+Implement a proper Stripe Checkout flow.
+
+Trigger
+
+After workspace/tenant creation, or from billing page, user can select a plan.
+
+Backend responsibilities
+
+On plan selection:
+	•	create Stripe customer if missing
+	•	create checkout session using correct stripePriceId
+	•	optionally include deployment fee line item for Growth / Scale if required
+	•	return Stripe Checkout URL
+
+Frontend responsibilities
+	•	select plan
+	•	call backend
+	•	redirect to Stripe Checkout
+
+Requirements:
+	•	no client-side secret usage
+	•	no direct Stripe object creation in frontend
+	•	no stale priceId usage
+
+⸻
+
+SECTION 5 — WEBHOOK-DRIVEN ACTIVATION (CRITICAL)
+
+All workspace activation must be based on Stripe webhooks, not on optimistic client-side success.
+
+Implement webhook handling for at least:
+	•	checkout.session.completed
+	•	invoice.paid
+	•	invoice.payment_failed
+	•	customer.subscription.updated
+	•	customer.subscription.deleted
+
+On webhook:
+	•	find tenant by stripeCustomerId or metadata mapping
+	•	update:
+	•	stripeCustomerId
+	•	stripeSubscriptionId
+	•	stripePriceId
+	•	billingStatus
+	•	currentPeriodEnd
+	•	planType
+	•	isActive
+
+Requirements:
+	•	idempotent webhook handling
+	•	duplicate webhook events must not corrupt state
+	•	billing state must remain consistent on retries
+
+⸻
+
+SECTION 6 — ACCESS ACTIVATION GATE
+
+Implement strict workspace activation enforcement.
+
+Rule
+
+Workspace is active only if:
+	•	billingStatus = ACTIVE
+OR
+	•	billingStatus = TRIAL and trial is still valid
+
+If not active:
+	•	block:
+	•	shipment creation
+	•	migration import
+	•	document generation
+	•	invoice generation
+	•	advanced operational workflows
+
+Allow:
+	•	login
+	•	workspace settings
+	•	billing page
+	•	read-only access where appropriate
+
+Requirements:
+	•	enforcement must happen at backend route level
+	•	frontend should also reflect locked state cleanly
+	•	no silent bypasses
+
+⸻
+
+SECTION 7 — PLAN LIMIT ENFORCEMENT
+
+Implement plan-based limit enforcement inside Dynasties.
+
+Seats
+	•	count active users
+	•	compare to seatLimit
+	•	block invites if limit exceeded
+	•	show upgrade messaging
+
+Shipments
+	•	track shipments created during active billing period
+	•	compare to shipmentLimit
+	•	warn at 80%
+	•	warn strongly at 90%
+	•	at 100%:
+	•	block new shipment creation OR
+	•	allow temporary overage flag only if intentionally configured
+
+Do NOT implement automated usage billing yet.
+
+Requirements:
+	•	plan limits enforced from centralized plan config
+	•	counters must be data-driven, not UI approximations
+
+⸻
+
+SECTION 8 — BILLING PAGE / BILLING SETTINGS UI
+
+Create or update a Billing page at something like:
+
+/settings/billing
+
+It must show:
+	•	current plan
+	•	monthly price
+	•	billing status
+	•	renewal/current period end
+	•	seats used vs seat limit
+	•	shipments used vs shipment limit
+	•	deployment fee status if relevant
+	•	upgrade/change plan CTA
+	•	manage billing portal link
+
+Requirements:
+	•	clear
+	•	enterprise-credible
+	•	no placeholder values
+	•	all data derived from real billing state
+
+⸻
+
+SECTION 9 — STRIPE CUSTOMER PORTAL
+
+Add support for Stripe Billing Portal.
+
+Allow user to:
+	•	update payment method
+	•	view billing history
+	•	manage subscription where appropriate
+
+Expose portal link from Dynasties billing page.
+
+Requirements:
+	•	tenant-specific customer portal session
+	•	no cross-tenant leakage
+	•	only accessible to OWNER / ADMIN roles
+
+⸻
+
+SECTION 10 — DEPLOYMENT FEE HANDLING
+
+Implement deployment fee logic carefully.
+
+Rules
+	•	Starter: no required deployment fee
+	•	Growth: deployment fee available / recommended
+	•	Scale: deployment fee required
+	•	Enterprise: deployment fee configurable / required
+
+Support:
+	•	one-time payment via Stripe
+OR
+	•	manual placeholder if Enterprise needs to be custom
+
+Store:
+	•	deploymentFeeStatus
+	•	onboardingPaid
+	•	onboardingCompletedAt
+
+If deployment fee is required but unpaid:
+	•	block advanced setup if needed
+	•	keep billing status and deployment fee status separate
+
+⸻
+
+SECTION 11 — TRIAL SUPPORT
+
+Implement a clean trial mode.
+
+Suggested:
+	•	7-day or 14-day trial
+	•	trial available before full activation
+
+Requirements:
+	•	tenant can operate during valid trial
+	•	once expired:
+	•	require subscription
+	•	lock advanced actions until payment completed
+	•	trial state must be explicit and time-bound
+
+⸻
+
+SECTION 12 — SECURITY + CONSISTENCY
+
+Requirements:
+	•	all billing mutations originate from Stripe webhooks or authorized backend actions
+	•	client-side checkout success alone must never grant access
+	•	tenant mapping must always be verified before applying billing state
+	•	no fallback behavior that activates wrong workspace
+	•	log billing state transitions for audit purposes
+
+⸻
+
+SECTION 13 — TESTING / VERIFICATION
+
+Fully verify the following in Stripe test mode:
+
+Happy path
+	1.	Create workspace
+	2.	Select Growth plan
+	3.	Complete checkout
+	4.	Webhook fires
+	5.	Tenant becomes ACTIVE
+	6.	Billing page reflects correct plan and limits
+
+Failure path
+	1.	Simulate payment failure
+	2.	billingStatus becomes PAST_DUE or INCOMPLETE
+	3.	restricted actions are blocked
+
+Portal path
+	1.	Open Stripe portal
+	2.	confirm correct customer session
+
+Limits path
+	1.	exceed seats
+	2.	exceed shipment usage
+	3.	warnings / enforcement behave correctly
+
+Return exact test results.
+
+⸻
+
+SECTION 14 — CLEANUP + MIGRATION
+
+If the current Stripe account contains stale pricing or mismatched references:
+	•	clean old references out of app config
+	•	ensure no old $49 / $149 / $399 / $999 products are used anywhere
+	•	migrate any local config or seed assumptions to the new pricing model
+
+⸻
+
+SECTION 15 — SUCCESS CRITERIA
+
+The system must allow:
+	1.	Tenant/workspace creation
+	2.	Plan selection using correct Dynasties pricing
+	3.	Stripe Checkout completion
+	4.	Webhook-driven activation
+	5.	Billing-aware access control
+	6.	Seat and shipment limit enforcement
+	7.	Billing page visibility and management
+	8.	No stale price or activation logic anywhere
+
+If a tenant can still become active without Stripe-confirmed billing state, the system has failed.
+
+⸻
+
+FINAL INSTRUCTION
+
+You are not just integrating Stripe.
+
+You are building the commercial control layer that decides:
+	•	who pays
+	•	who gets access
+	•	what they are entitled to use
+	•	and how Dynasties starts earning real revenue
+
+Build this cleanly, deterministically, and without fake shortcuts.

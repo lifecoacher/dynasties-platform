@@ -8,7 +8,7 @@ function getBaseUrl() {
 export interface SubscriptionInfo {
   billingStatus: string;
   planType: string | null;
-  planPriceId: string | null;
+  stripePriceId: string | null;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   seatLimit: number;
@@ -16,9 +16,31 @@ export interface SubscriptionInfo {
   seatsUsed: number;
   shipmentsUsedThisCycle: number;
   shipmentUsagePercent: number;
+  shipmentWarning: string | null;
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
+  trialEndsAt: string | null;
+  deploymentFeeStatus: string;
+  onboardingPaid: boolean;
+  onboardingCompletedAt: string | null;
+  monthlyPrice: number | null;
+  deploymentFeeCents: number | null;
+  deploymentFeeRequirement: string | null;
   subscription: any;
+}
+
+export interface PlanConfigInfo {
+  planType: string;
+  name: string;
+  description: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  seatLimit: number;
+  shipmentLimit: number;
+  deploymentFeeCents: number;
+  deploymentFeeRequirement: string;
+  trialDays: number;
+  features: string[];
 }
 
 export interface PlanInfo {
@@ -32,7 +54,9 @@ export interface PlanInfo {
     id: string;
     unitAmount: number;
     currency: string;
-    interval: string;
+    interval: string | null;
+    type: string;
+    priceType: string;
   }>;
 }
 
@@ -76,11 +100,30 @@ export function usePlans() {
   return { plans, isLoading };
 }
 
+export function usePlanConfig() {
+  const { token } = useAuth();
+  const [configs, setConfigs] = useState<PlanConfigInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${getBaseUrl()}/api/stripe/plan-config`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((body) => setConfigs(body.data ?? []))
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [token]);
+
+  return { configs, isLoading };
+}
+
 export function useCheckout() {
   const { token } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const startCheckout = async (priceId: string) => {
+  const startCheckout = async (planType: string) => {
     if (!token) return;
     setIsLoading(true);
     try {
@@ -90,7 +133,7 @@ export function useCheckout() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ planType }),
       });
       const body = await res.json();
       if (body.data?.url) {
@@ -159,4 +202,31 @@ export function useDemoActivate() {
   };
 
   return { activate, isLoading };
+}
+
+export function useStartTrial() {
+  const { token } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const startTrial = async (planType: string) => {
+    if (!token) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${getBaseUrl()}/api/stripe/start-trial`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ planType }),
+      });
+      return await res.json();
+    } catch {
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { startTrial, isLoading };
 }
