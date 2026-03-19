@@ -247,6 +247,9 @@ importers:
       '@workspace/svc-pricing':
         specifier: workspace:*
         version: link:../../services/pricing
+      '@workspace/svc-reconciliation':
+        specifier: workspace:*
+        version: link:../../services/reconciliation
       '@workspace/svc-risk-intelligence':
         specifier: workspace:*
         version: link:../../services/risk-intelligence
@@ -1267,6 +1270,18 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+
+  services/reconciliation:
+    dependencies:
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
 
   services/risk-intelligence:
     dependencies:

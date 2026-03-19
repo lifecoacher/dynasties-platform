@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { DocumentWorkspace } from "../components/documents/DocumentWorkspace";
+import { ReconciliationPanel } from "../components/reconciliation/ReconciliationPanel";
 import {
   useGetShipment,
   useGetShipmentCompliance,
@@ -830,6 +831,8 @@ export default function ShipmentDetail() {
             </div>
 
             <DocumentWorkspace shipmentId={id} />
+
+            <ReconciliationPanel shipmentId={id} />
 
             {events.length > 0 && (
               <div className="p-5 rounded-xl bg-card border border-card-border">

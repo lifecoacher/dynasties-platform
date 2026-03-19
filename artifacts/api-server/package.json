@@ -27,6 +27,7 @@
     "@workspace/svc-migration": "workspace:*",
     "@workspace/svc-event-ingestion": "workspace:*",
     "@workspace/svc-doc-engine": "workspace:*",
+    "@workspace/svc-reconciliation": "workspace:*",
     "@workspace/svc-decision-engine": "workspace:*",
     "@workspace/svc-document-extraction": "workspace:*",
     "@workspace/svc-document-generation": "workspace:*",
