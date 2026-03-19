@@ -47,6 +47,8 @@ import {
   ChevronUp,
   ArrowUpRight,
   ArrowDownRight,
+  Navigation,
+  MapPin,
 } from "lucide-react";
 import { OutcomeForm, type OutcomeData } from "@/components/recommendations/OutcomeForm";
 import { useToast } from "@/hooks/use-toast";
@@ -123,6 +125,18 @@ export default function ShipmentDetail() {
     },
     enabled: !!id,
   });
+  const { data: routingPricingRes } = useQuery({
+    queryKey: [`/api/shipments/${id}/routing-pricing`],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const res = await fetch(`${import.meta.env.BASE_URL}api/shipments/${id}/routing-pricing`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return { data: null };
+      return res.json();
+    },
+    enabled: !!id,
+  });
   const { data: insuranceRes } = useGetShipmentInsurance(id);
   const { data: eventsRes } = useGetShipmentEvents(id);
   const { data: docsRes } = useGetShipmentDocuments(id);
@@ -139,6 +153,7 @@ export default function ShipmentDetail() {
   const compliance = Array.isArray(complianceArr) ? complianceArr[0] || null : complianceArr;
   const risk = riskRes?.data as any;
   const docValidation = docValRes?.data as any;
+  const routingPricing = routingPricingRes?.data as any;
   const insurance = insuranceRes?.data as any;
   const events = (eventsRes?.data || []) as any[];
   const docs = (docsRes?.data || []) as any[];
@@ -165,6 +180,8 @@ export default function ShipmentDetail() {
   const [weatherContext, setWeatherContext] = useState<any>(null);
   const [runningCompliance, setRunningCompliance] = useState(false);
   const [runningDocValidation, setRunningDocValidation] = useState(false);
+  const [runningRoutingPricing, setRunningRoutingPricing] = useState(false);
+  const [expandedRoute, setExpandedRoute] = useState<number | null>(null);
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -225,6 +242,26 @@ export default function ShipmentDetail() {
       toast({ title: "Document validation failed", description: "An error occurred during validation. Please try again.", variant: "destructive" });
     } finally {
       setRunningDocValidation(false);
+    }
+  };
+
+  const runRoutingPricingCheck = async () => {
+    setRunningRoutingPricing(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${BASE}/shipments/${id}/routing-pricing`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error(`Routing & pricing failed: ${res.status}`);
+      qc.invalidateQueries({ queryKey: [`/api/shipments/${id}/routing-pricing`] });
+      qc.invalidateQueries({ queryKey: [`/api/shipments/${id}/events`] });
+      toast({ title: "Routing & pricing complete", description: "Route options and cost estimates generated." });
+    } catch (err) {
+      console.error("[routing-pricing]", err);
+      toast({ title: "Routing & pricing failed", description: "An error occurred. Please try again.", variant: "destructive" });
+    } finally {
+      setRunningRoutingPricing(false);
     }
   };
 
@@ -939,6 +976,168 @@ export default function ShipmentDetail() {
                 </>
               ) : (
                 <p className="text-[12px] text-muted-foreground">No validation completed yet. Click "Run Document Validation" to check documentation completeness.</p>
+              )}
+            </div>
+
+            <div className="p-4 rounded-xl bg-card border border-card-border">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Navigation className="w-4 h-4 text-primary" />
+                  <h3 className="text-[13px] font-semibold text-foreground">Routing & Pricing</h3>
+                </div>
+                <button
+                  onClick={runRoutingPricingCheck}
+                  disabled={runningRoutingPricing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                >
+                  {runningRoutingPricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  {runningRoutingPricing ? "Analyzing..." : routingPricing ? "Re-Analyze Routes" : "Generate Route & Pricing"}
+                </button>
+              </div>
+              {routingPricing ? (
+                <>
+                  {routingPricing.recommendationSummary && (
+                    <div className="mb-3 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                      <p className="text-[11px] text-foreground leading-relaxed">{routingPricing.recommendationSummary}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 mb-3">
+                    {(routingPricing.routeOptions as any[])?.map((route: any, i: number) => {
+                      const isRecommended = i === Number(routingPricing.recommendedRouteIndex);
+                      const isExpanded = expandedRoute === i;
+                      return (
+                        <div key={i} className={`rounded-lg border ${isRecommended ? "border-primary/40 bg-primary/5" : "border-card-border bg-card"}`}>
+                          <button
+                            onClick={() => setExpandedRoute(isExpanded ? null : i)}
+                            className="w-full text-left p-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <MapPin className={`w-3.5 h-3.5 ${isRecommended ? "text-primary" : "text-muted-foreground"}`} />
+                                <span className="text-[12px] font-semibold text-foreground">{route.label}</span>
+                                {isRecommended && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-bold uppercase">Recommended</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[11px] font-semibold text-foreground">${route.estimatedCost?.toLocaleString()}</span>
+                                <span className="text-[10px] text-muted-foreground">{route.totalTransitDays}d</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${route.costConfidence === "HIGH" ? "bg-primary/10 text-primary" : route.costConfidence === "MEDIUM" ? "bg-[#D4A24C]/10 text-[#D4A24C]" : "bg-[#E05252]/10 text-[#E05252]"}`}>
+                                  {route.costConfidence}
+                                </span>
+                                {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${route.type === "DIRECT" ? "bg-primary/10 text-primary" : route.type === "TRANSSHIPMENT" ? "bg-[#D4A24C]/10 text-[#D4A24C]" : "bg-blue-500/10 text-blue-400"}`}>
+                                {route.type}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {route.legs?.map((l: any) => l.from).join(" → ")} → {route.legs?.[route.legs.length - 1]?.to}
+                              </span>
+                            </div>
+                          </button>
+
+                          {isExpanded && (
+                            <div className="px-3 pb-3 space-y-2 border-t border-card-border/50 pt-2">
+                              <div>
+                                <h5 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Route Legs</h5>
+                                <div className="space-y-1">
+                                  {(route.legs as any[])?.map((leg: any, li: number) => (
+                                    <div key={li} className="flex items-center gap-2 text-[11px] text-foreground">
+                                      <span className="text-muted-foreground">{leg.from}</span>
+                                      <span className="text-primary">→</span>
+                                      <span className="text-muted-foreground">{leg.to}</span>
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary/50 text-muted-foreground">{leg.mode}</span>
+                                      <span className="text-[10px] text-muted-foreground ml-auto">{leg.transitDays}d</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div>
+                                <h5 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Cost Breakdown</h5>
+                                <div className="space-y-0.5">
+                                  {(route.costBreakdown as any[])?.map((cb: any, ci: number) => (
+                                    <div key={ci} className="flex items-center justify-between text-[11px]">
+                                      <span className="text-muted-foreground">{cb.label}</span>
+                                      <span className="text-foreground font-medium">${cb.amount.toLocaleString()}</span>
+                                    </div>
+                                  ))}
+                                  <div className="flex items-center justify-between text-[11px] font-semibold border-t border-card-border/50 pt-1 mt-1">
+                                    <span className="text-foreground">Total</span>
+                                    <span className="text-primary">${route.estimatedCost?.toLocaleString()}</span>
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Range: ${route.costRange?.low?.toLocaleString()} – ${route.costRange?.high?.toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {route.advantages?.length > 0 && (
+                                <div>
+                                  <h5 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Advantages</h5>
+                                  <ul className="space-y-0.5">
+                                    {(route.advantages as string[]).map((a: string, ai: number) => (
+                                      <li key={ai} className="text-[11px] text-muted-foreground flex gap-1.5">
+                                        <span className="text-primary shrink-0">+</span>
+                                        <span>{a}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {route.disadvantages?.length > 0 && (
+                                <div>
+                                  <h5 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Disadvantages</h5>
+                                  <ul className="space-y-0.5">
+                                    {(route.disadvantages as string[]).map((d: string, di: number) => (
+                                      <li key={di} className="text-[11px] text-muted-foreground flex gap-1.5">
+                                        <span className="text-[#E05252] shrink-0">−</span>
+                                        <span>{d}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {routingPricing.riskFactors?.length > 0 && (
+                    <div className="mb-2">
+                      <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Risk Factors</h4>
+                      <div className="space-y-1">
+                        {(routingPricing.riskFactors as any[]).map((rf: any, i: number) => (
+                          <div key={i} className={`text-[11px] px-2 py-1.5 rounded ${rf.severity === "HIGH" ? "bg-[#E05252]/10 text-[#E05252] border border-[#E05252]/20" : rf.severity === "MEDIUM" ? "bg-[#D4A24C]/10 text-[#D4A24C] border border-[#D4A24C]/20" : "bg-secondary/50 text-muted-foreground border border-border/30"}`}>
+                            <span className="font-semibold">{rf.title}</span>
+                            <span className="block mt-0.5 opacity-80">{rf.detail}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {routingPricing.reasoning && (
+                    <div className="mt-2 p-2 rounded bg-secondary/30 border border-border/50">
+                      <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Analysis</h4>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">{routingPricing.reasoning}</p>
+                    </div>
+                  )}
+
+                  {routingPricing.analyzedAt && (
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Analyzed {new Date(routingPricing.analyzedAt).toLocaleString()}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-[12px] text-muted-foreground">No routing analysis yet. Click "Generate Route & Pricing" to evaluate route options and cost estimates.</p>
               )}
             </div>
 

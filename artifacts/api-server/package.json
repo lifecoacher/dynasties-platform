@@ -22,6 +22,7 @@
     "@workspace/svc-claims-management": "workspace:*",
     "@workspace/svc-compliance-screening": "workspace:*",
     "@workspace/svc-document-validation": "workspace:*",
+    "@workspace/svc-routing-pricing": "workspace:*",
     "@workspace/svc-decision-engine": "workspace:*",
     "@workspace/svc-document-extraction": "workspace:*",
     "@workspace/svc-document-generation": "workspace:*",
