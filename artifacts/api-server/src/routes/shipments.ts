@@ -18,8 +18,10 @@ import {
   claimsTable,
   claimCommunicationsTable,
 } from "@workspace/db/schema";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
+import { runComplianceScreening } from "@workspace/svc-compliance-screening";
+import { runRiskIntelligence } from "@workspace/svc-risk-intelligence";
 import { publishPricingJob, publishClaimsJob } from "@workspace/queue";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
@@ -202,6 +204,67 @@ router.get("/shipments/:id", async (req, res) => {
       consignee: shipment.consigneeId ? entityMap.get(shipment.consigneeId) || null : null,
       notifyParty: shipment.notifyPartyId ? entityMap.get(shipment.notifyPartyId) || null : null,
       carrier: shipment.carrierId ? entityMap.get(shipment.carrierId) || null : null,
+    },
+  });
+});
+
+router.post("/shipments/:id/compliance-check", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const id = paramId(req);
+
+  const [shipment] = await db
+    .select({ id: shipmentsTable.id })
+    .from(shipmentsTable)
+    .where(and(eq(shipmentsTable.id, id), eq(shipmentsTable.companyId, companyId)))
+    .limit(1);
+
+  if (!shipment) {
+    res.status(404).json({ error: "Shipment not found" });
+    return;
+  }
+
+  await db.delete(complianceScreeningsTable).where(eq(complianceScreeningsTable.shipmentId, id));
+  await db.delete(riskScoresTable).where(eq(riskScoresTable.shipmentId, id));
+
+  const [complianceSettled, riskSettled] = await Promise.allSettled([
+    runComplianceScreening(id, companyId),
+    runRiskIntelligence(id, companyId),
+  ]);
+
+  const complianceResult = complianceSettled.status === "fulfilled"
+    ? complianceSettled.value
+    : { screeningId: null, status: "CLEAR" as const, matchCount: 0, agentResolutions: [], success: false, error: String((complianceSettled as PromiseRejectedResult).reason) };
+
+  const riskResult = riskSettled.status === "fulfilled"
+    ? riskSettled.value
+    : { riskScoreId: null, compositeScore: 0, recommendedAction: "", riskFactors: [], success: false, error: String((riskSettled as PromiseRejectedResult).reason) };
+
+  const screening = complianceResult.screeningId
+    ? await db
+        .select()
+        .from(complianceScreeningsTable)
+        .where(eq(complianceScreeningsTable.id, complianceResult.screeningId))
+        .then((rows) => rows[0] || null)
+    : null;
+
+  const riskScore = riskResult.riskScoreId
+    ? await db
+        .select()
+        .from(riskScoresTable)
+        .where(eq(riskScoresTable.id, riskResult.riskScoreId))
+        .then((rows) => rows[0] ? { ...rows[0], compositeScore: Number(rows[0].compositeScore) } : null)
+    : null;
+
+  res.json({
+    data: {
+      compliance: {
+        ...complianceResult,
+        screening,
+      },
+      risk: {
+        ...riskResult,
+        riskScore,
+      },
     },
   });
 });

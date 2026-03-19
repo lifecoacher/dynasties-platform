@@ -49,6 +49,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { OutcomeForm, type OutcomeData } from "@/components/recommendations/OutcomeForm";
+import { useToast } from "@/hooks/use-toast";
 import {
   normalizeRiskScore,
   riskColor,
@@ -122,7 +123,8 @@ export default function ShipmentDetail() {
   const { approve, reject, updateFields } = useShipmentActions(id);
 
   const shipment = shipmentRes?.data as any;
-  const compliance = complianceRes?.data as any;
+  const complianceArr = (complianceRes?.data || []) as any[];
+  const compliance = Array.isArray(complianceArr) ? complianceArr[0] || null : complianceArr;
   const risk = riskRes?.data as any;
   const insurance = insuranceRes?.data as any;
   const events = (eventsRes?.data || []) as any[];
@@ -148,6 +150,8 @@ export default function ShipmentDetail() {
   const [evaluatingGates, setEvaluatingGates] = useState(false);
   const [evaluatingScenarios, setEvaluatingScenarios] = useState(false);
   const [weatherContext, setWeatherContext] = useState<any>(null);
+  const [runningCompliance, setRunningCompliance] = useState(false);
+  const { toast } = useToast();
   const qc = useQueryClient();
 
   const BASE = `${import.meta.env.BASE_URL}api`;
@@ -168,6 +172,28 @@ export default function ShipmentDetail() {
       qc.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
+
+  const runComplianceCheck = async () => {
+    setRunningCompliance(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${BASE}/shipments/${id}/compliance-check`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error(`Compliance check failed: ${res.status}`);
+      qc.invalidateQueries({ queryKey: [`/api/shipments/${id}/compliance`] });
+      qc.invalidateQueries({ queryKey: [`/api/shipments/${id}/risk`] });
+      qc.invalidateQueries({ queryKey: [`/api/shipments/${id}/events`] });
+      toast({ title: "Compliance check complete", description: "Screening and risk scoring finished successfully." });
+    } catch (err) {
+      console.error("[compliance-check]", err);
+      toast({ title: "Compliance check failed", description: "An error occurred during screening. Please try again.", variant: "destructive" });
+    } finally {
+      setRunningCompliance(false);
+    }
+  };
+
   const { data: diffData } = useQuery({
     queryKey: ["recommendations", "diff", id],
     queryFn: async () => {
@@ -684,21 +710,50 @@ export default function ShipmentDetail() {
               )}
             </div>
 
-            {compliance && (
-              <div className="p-4 rounded-xl bg-card border border-card-border">
-                <div className="flex items-center gap-2 mb-3">
+            <div className="p-4 rounded-xl bg-card border border-card-border">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4 text-primary" />
                   <h3 className="text-[13px] font-semibold text-foreground">Compliance</h3>
                 </div>
-                <div className={`flex items-center gap-1.5 text-[14px] font-semibold ${compliance.status === "CLEAR" ? "text-primary" : "text-[#E05252]"}`}>
-                  {compliance.status === "CLEAR" ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                  {compliance.status}
-                </div>
-                {compliance.explanation && (
-                  <p className="text-[12px] text-muted-foreground mt-2 leading-relaxed">{compliance.explanation}</p>
-                )}
+                <button
+                  onClick={runComplianceCheck}
+                  disabled={runningCompliance}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                >
+                  {runningCompliance ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  {runningCompliance ? "Running..." : compliance ? "Re-Run Check" : "Run Compliance Check"}
+                </button>
               </div>
-            )}
+              {compliance ? (
+                <>
+                  <div className={`flex items-center gap-1.5 text-[14px] font-semibold ${compliance.status === "CLEAR" ? "text-primary" : compliance.status === "ALERT" ? "text-[#D4A24C]" : "text-[#E05252]"}`}>
+                    {compliance.status === "CLEAR" ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                    {compliance.status}
+                  </div>
+                  <div className="flex gap-4 mt-2 text-[11px] text-muted-foreground">
+                    <span>{compliance.screenedParties ?? 0} parties screened</span>
+                    <span>{compliance.matchCount ?? 0} matches</span>
+                  </div>
+                  {compliance.matches && compliance.matches.length > 0 && (
+                    <div className="mt-3 space-y-1.5">
+                      {(compliance.matches as any[]).map((m: any, i: number) => (
+                        <div key={i} className="text-[11px] px-2 py-1.5 rounded bg-[#E05252]/10 text-[#E05252] border border-[#E05252]/20">
+                          {m.matchedEntry || m.entityName || "Unknown"} — {m.listName || "Sanctions List"} ({m.matchType || "fuzzy"})
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {compliance.screenedAt && (
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Screened {new Date(compliance.screenedAt).toLocaleString()}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-[12px] text-muted-foreground">No screening completed yet. Click "Run Compliance Check" to screen all parties.</p>
+              )}
+            </div>
 
             {risk && (
               <div className="p-4 rounded-xl bg-card border border-card-border">
