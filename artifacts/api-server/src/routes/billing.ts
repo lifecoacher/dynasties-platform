@@ -429,6 +429,7 @@ router.post("/billing/invoices/from-shipment/:shipmentId", requireMinRole("OPERA
       paymentTerms: body.paymentTerms || account.defaultPaymentTerms,
       financeEligible: account.financeEnabled && subtotal >= 1000,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
+      sourceQuoteId: shipment.sourceQuoteId,
       invoiceSource: "SHIPMENT",
     })
     .returning();

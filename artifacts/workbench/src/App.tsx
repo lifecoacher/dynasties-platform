@@ -31,6 +31,8 @@ import BillingCustomers from "./pages/BillingCustomers";
 import BillingSettings from "./pages/BillingSettings";
 import MigrationWorkspace from "./pages/MigrationWorkspace";
 import SubscriptionBilling from "./pages/SubscriptionBilling";
+import QuotesPage from "./pages/QuotesPage";
+import QuoteDetail from "./pages/QuoteDetail";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -109,6 +111,8 @@ function AuthenticatedRouter() {
   return (
     <Switch>
       <Route path="/" component={CommandCenter} />
+      <Route path="/quotes/:id" component={QuoteDetail} />
+      <Route path="/quotes" component={QuotesPage} />
       <Route path="/shipments" component={ShipmentsPage} />
       <Route path="/shipments/:id/trace" component={DecisionTrace} />
       <Route path="/shipments/:id" component={ShipmentDetail} />

@@ -45,3 +45,4 @@ export * from "./migrations";
 export * from "./shipment-events";
 export * from "./generated-documents";
 export * from "./reconciliation";
+export * from "./quotes";

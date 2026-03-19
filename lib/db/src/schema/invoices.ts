@@ -42,6 +42,7 @@ export const invoicesTable = pgTable(
     sentAt: timestamp("sent_at"),
     paidAt: timestamp("paid_at"),
     pdfStorageKey: text("pdf_storage_key"),
+    sourceQuoteId: text("source_quote_id"),
     invoiceSource: text("invoice_source", {
       enum: ["MANUAL", "SHIPMENT", "WORKFLOW", "AUTO_RULE"],
     }).notNull().default("MANUAL"),
