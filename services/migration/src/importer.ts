@@ -10,6 +10,7 @@ import {
 } from "@workspace/db/schema";
 import { generateId } from "@workspace/shared-utils";
 import { eq, and } from "drizzle-orm";
+import { createShipmentCreatedEvent } from "@workspace/svc-event-ingestion";
 import type { NormalizedEntity, NormalizationOutput } from "./normalizer.js";
 import type { ImportResults } from "@workspace/db/schema";
 
@@ -166,6 +167,12 @@ export async function importData(
 
       shipmentIdMap.set(reference, id);
       shipmentsCreated++;
+
+      try {
+        await createShipmentCreatedEvent(companyId, id);
+      } catch (evtErr: any) {
+        console.warn(`[importer] SHIPMENT_CREATED event failed for ${id}: ${evtErr.message}`);
+      }
     } catch (err: any) {
       errors.push(`Shipment "${entity.data.reference}" import failed: ${err.message}`);
     }

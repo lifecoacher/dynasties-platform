@@ -28,6 +28,14 @@ import { runRiskIntelligence } from "@workspace/svc-risk-intelligence";
 import { runDocumentValidation } from "@workspace/svc-document-validation";
 import { runRoutingPricing, getRoutingPricingResult } from "@workspace/svc-routing-pricing";
 import { runShipmentDecision, getShipmentDecision } from "@workspace/svc-shipment-decision";
+import {
+  ingestEvent,
+  ingestBatch,
+  getTimeline,
+  createShipmentCreatedEvent,
+  type RawEventInput,
+} from "@workspace/svc-event-ingestion";
+import { shipmentEventsTable } from "@workspace/db/schema";
 import { publishPricingJob, publishClaimsJob } from "@workspace/queue";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
@@ -496,6 +504,68 @@ router.get("/shipments/:id/events", async (req, res) => {
     .limit(pg.limit)
     .offset(pg.offset);
   res.json(paginatedResponse(events, pg));
+});
+
+router.get("/shipments/:id/timeline", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const id = paramId(req);
+  try {
+    const result = await getTimeline(companyId, id);
+    res.json({ data: result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/shipments/:id/shipment-events", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const id = paramId(req);
+  const { description, eventType, timestamp, location, source, rawPayload } = req.body;
+
+  if (!timestamp) {
+    res.status(400).json({ error: "timestamp is required" });
+    return;
+  }
+
+  try {
+    const result = await ingestEvent(companyId, id, {
+      description,
+      eventType,
+      timestamp,
+      location,
+      source: source || "MANUAL",
+      rawPayload,
+    });
+
+    if (result.isDuplicate) {
+      res.status(409).json({ error: "Duplicate event", data: result });
+      return;
+    }
+
+    res.json({ data: result });
+  } catch (err: any) {
+    console.error("[event-ingestion] Ingest failed:", err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post("/shipments/:id/shipment-events/batch", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const id = paramId(req);
+  const { events: rawEvents } = req.body;
+
+  if (!Array.isArray(rawEvents) || rawEvents.length === 0) {
+    res.status(400).json({ error: "events array is required" });
+    return;
+  }
+
+  try {
+    const results = await ingestBatch(companyId, id, rawEvents);
+    res.json({ data: results });
+  } catch (err: any) {
+    console.error("[event-ingestion] Batch ingest failed:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post("/shipments/:id/approve", requireMinRole("OPERATOR"), validateBody(approveShipmentSchema), async (req, res) => {

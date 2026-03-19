@@ -1,0 +1,236 @@
+
+You are a Principal Systems Architect and Event-Driven Systems Engineer.
+
+Your task is to design and implement a real-time and batch-capable event ingestion and timeline system for Dynasties.
+
+This system will transform Dynasties from a static data platform into a live operational system of record.
+
+No mock timelines. No UI-generated events. All timeline data must be derived from ingested or system-generated events.
+
+⸻
+
+SECTION 1 — CORE OBJECTIVE
+
+Build a system that:
+	•	ingests shipment-related events from multiple sources
+	•	normalizes them into a canonical event model
+	•	attaches them to shipments
+	•	drives shipment status and UI timelines
+	•	enables future alerting and automation
+
+⸻
+
+SECTION 2 — EVENT DATA MODEL
+
+Create a new table:
+
+shipment_events
+
+Fields:
+	•	id (UUID)
+	•	tenantId
+	•	shipmentId (FK)
+	•	eventType (enum)
+	•	eventTimestamp (datetime, required)
+	•	location (string, optional)
+	•	source (enum: IMPORT, MANUAL, API, SYSTEM)
+	•	rawPayload (JSONB)
+	•	normalizedData (JSONB)
+	•	createdAt
+
+⸻
+
+SECTION 3 — CANONICAL EVENT TYPES
+
+Define and enforce a strict set of event types:
+	•	SHIPMENT_CREATED
+	•	BOOKING_CONFIRMED
+	•	PICKED_UP
+	•	DEPARTED_ORIGIN
+	•	ARRIVED_TRANSSHIPMENT
+	•	DEPARTED_TRANSSHIPMENT
+	•	ARRIVED_DESTINATION
+	•	CUSTOMS_HOLD
+	•	CUSTOMS_RELEASED
+	•	DELAYED
+	•	OUT_FOR_DELIVERY
+	•	DELIVERED
+
+Requirements:
+	•	no arbitrary event types in UI
+	•	all incoming events must map to one of these
+	•	unmapped events must be flagged as UNKNOWN
+
+⸻
+
+SECTION 4 — EVENT INGESTION SERVICE
+
+Create:
+
+services/event-ingestion/
+
+Capabilities:
+
+4.1 Batch ingestion (from migration / CSV)
+	•	accept event files
+	•	parse rows
+	•	map to shipments
+	•	normalize into canonical event types
+
+4.2 Programmatic ingestion (API)
+
+Endpoint:
+POST /shipments/:id/events
+
+Input:
+	•	raw event payload
+
+System must:
+	•	classify event type
+	•	normalize fields
+	•	persist event
+
+⸻
+
+SECTION 5 — EVENT CLASSIFICATION + NORMALIZATION
+
+Implement an Event Classification Agent:
+
+Inputs:
+	•	event description
+	•	timestamps
+	•	location fields
+	•	source metadata
+
+Outputs:
+	•	canonical eventType
+	•	normalized timestamp
+	•	normalized location
+
+Rules:
+	•	fuzzy match common logistics terms
+	•	“ETD”, “Sailed” → DEPARTED_ORIGIN
+	•	“Arrived at Port” → ARRIVED_DESTINATION
+	•	“Customs Hold” → CUSTOMS_HOLD
+
+Store:
+	•	original raw payload
+	•	normalized result
+
+⸻
+
+SECTION 6 — SHIPMENT STATUS ENGINE
+
+Create a derived shipment status system:
+
+Shipment status must be computed from events.
+
+Rules:
+	•	if DELIVERED exists → status = DELIVERED
+	•	else if OUT_FOR_DELIVERY → OUT_FOR_DELIVERY
+	•	else if ARRIVED_DESTINATION → ARRIVED
+	•	else if DEPARTED_ORIGIN → IN_TRANSIT
+	•	else if PICKED_UP → IN_PROGRESS
+	•	else → CREATED
+
+Constraints:
+	•	UI must not manually override shipment status
+	•	status must always reflect latest event state
+
+⸻
+
+SECTION 7 — TIMELINE ENGINE (UI + BACKEND)
+
+Replace all existing timelines with event-driven timelines.
+
+Requirements:
+	•	timeline sorted by eventTimestamp ascending
+	•	each event shows:
+	•	eventType (human-readable label)
+	•	timestamp
+	•	location (if available)
+	•	source tag (Import / API / System)
+	•	deduplicate identical events
+	•	no duplicate rendering
+
+⸻
+
+SECTION 8 — IMPORT INTEGRATION
+
+Extend migration system:
+	•	if uploaded files contain event-like data:
+	•	ingest and attach events during import
+	•	if no events:
+	•	system generates minimal baseline events:
+	•	SHIPMENT_CREATED
+
+⸻
+
+SECTION 9 — DATA INTEGRITY RULES
+
+Enforce:
+	•	no events without shipmentId
+	•	no null timestamps
+	•	timestamps must be valid (no future unless explicitly allowed)
+	•	duplicate detection:
+	•	same shipmentId + eventType + timestamp → reject or merge
+
+⸻
+
+SECTION 10 — ALERTING HOOKS (FOUNDATION ONLY)
+
+Prepare system for alerts:
+
+Add flags:
+	•	isCriticalEvent (e.g. CUSTOMS_HOLD, DELAYED)
+	•	requiresAttention (boolean)
+
+Do NOT build full notification system yet, but structure for it.
+
+⸻
+
+SECTION 11 — ARCHITECTURE
+
+Modular services:
+	•	event-ingestion-service
+	•	event-classification-agent
+	•	shipment-status-engine
+	•	timeline-renderer
+
+No event logic in UI.
+
+All normalization and classification must occur server-side.
+
+⸻
+
+SECTION 12 — SUCCESS CRITERIA
+
+System must:
+	1.	Accept event data from CSV or API
+	2.	Normalize into canonical event types
+	3.	Attach events correctly to shipments
+	4.	Automatically update shipment status
+	5.	Render accurate, chronological timelines
+	6.	Eliminate all fake or UI-generated timelines
+
+⸻
+
+FINAL INSTRUCTION
+
+You are building the nervous system of Dynasties.
+
+After this is complete:
+	•	shipments are no longer static
+	•	timelines are no longer fabricated
+	•	status is no longer manually controlled
+
+The platform must feel:
+	•	alive
+	•	reactive
+	•	operational
+
+End state:
+
+Imported shipments + ingested events → real timelines → accurate statuses → foundation for alerts, automation, and true system-of-record behavior.
+
+No shortcuts. No simulated data.
