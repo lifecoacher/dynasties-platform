@@ -21,6 +21,7 @@ import externalSignalsRouter from "./external-signals.js";
 import billingRouter from "./billing.js";
 import migrationRouter from "./migration.js";
 import generatedDocumentsRouter from "./generated-documents.js";
+import reconciliationRouter from "./reconciliation.js";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant } from "../middlewares/tenant.js";
 
@@ -53,5 +54,6 @@ router.use(externalSignalsRouter);
 router.use(billingRouter);
 router.use(migrationRouter);
 router.use(generatedDocumentsRouter);
+router.use(reconciliationRouter);
 
 export default router;

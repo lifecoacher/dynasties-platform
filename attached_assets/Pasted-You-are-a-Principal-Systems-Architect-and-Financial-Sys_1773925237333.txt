@@ -1,0 +1,188 @@
+You are a Principal Systems Architect and Financial Systems Engineer.
+
+Your task is to design and implement a Reconciliation Engine that ensures Dynasties reflects real financial outcomes, not just estimated or generated values.
+
+This system must compare expected shipment costs and invoices against actual carrier charges and produce a verified financial state.
+
+No simulated reconciliation. No UI-only comparisons. This must be a backend-enforced financial truth layer.
+
+⸻
+
+SECTION 1 — CORE OBJECTIVE
+
+Build a system that:
+	•	ingests actual carrier invoice data
+	•	compares it against expected/quoted values
+	•	calculates discrepancies
+	•	flags financial issues
+	•	updates shipment and invoice financial status
+
+⸻
+
+SECTION 2 — DATA MODEL
+
+Create:
+
+carrier_invoices
+
+Fields:
+	•	id
+	•	tenantId
+	•	shipmentId
+	•	carrierName
+	•	invoiceNumber
+	•	invoiceDate
+	•	totalAmount
+	•	currency
+	•	lineItems (JSONB)
+	•	rawPayload (JSONB)
+	•	createdAt
+
+⸻
+
+Create:
+
+reconciliation_results
+
+Fields:
+	•	id
+	•	tenantId
+	•	shipmentId
+	•	expectedAmount
+	•	actualAmount
+	•	varianceAmount
+	•	variancePercentage
+	•	reconciliationStatus (MATCHED / MINOR_VARIANCE / MAJOR_VARIANCE / UNMATCHED)
+	•	discrepancyDetails (JSONB)
+	•	createdAt
+
+⸻
+
+SECTION 3 — INGESTION
+
+Support:
+	•	CSV/XLSX carrier invoices
+	•	manual entry
+	•	future API ingestion
+
+Map:
+	•	shipment reference → shipmentId
+	•	line items → normalized format
+
+⸻
+
+SECTION 4 — MATCHING ENGINE
+
+Implement logic to:
+	•	match carrier invoice to shipment
+	•	match invoice line items to expected cost components
+
+Handle:
+	•	fuzzy matching on shipment reference
+	•	missing or partial matches
+
+⸻
+
+SECTION 5 — RECONCILIATION LOGIC
+
+Compare:
+
+expected:
+	•	quoted cost
+	•	generated invoice
+	•	pricing engine output
+
+actual:
+	•	carrier invoice
+
+Compute:
+	•	total variance
+	•	per-line-item variance
+	•	missing charges
+	•	unexpected charges
+
+⸻
+
+SECTION 6 — STATUS CLASSIFICATION
+
+Define:
+	•	MATCHED (0–2% variance)
+	•	MINOR_VARIANCE (2–5%)
+	•	MAJOR_VARIANCE (>5%)
+	•	UNMATCHED (cannot link)
+
+⸻
+
+SECTION 7 — UI INTEGRATION
+
+In Shipment + Invoice views:
+
+Show:
+	•	Expected vs Actual
+	•	Variance
+	•	Status badge
+	•	Line-item breakdown
+
+Highlight:
+	•	overcharges
+	•	missing charges
+
+⸻
+
+SECTION 8 — EVENT INTEGRATION
+
+Create events:
+	•	RECONCILIATION_COMPLETED
+	•	VARIANCE_DETECTED
+	•	MAJOR_DISCREPANCY_FLAGGED
+
+Attach to shipment timeline.
+
+⸻
+
+SECTION 9 — ALERT HOOKS
+
+Flag:
+	•	major variance
+	•	unmatched invoices
+
+Mark:
+	•	requiresAttention = true
+
+⸻
+
+SECTION 10 — SUCCESS CRITERIA
+
+System must:
+	1.	Ingest real carrier invoice data
+	2.	Match invoices to shipments correctly
+	3.	Compute accurate variance
+	4.	Flag discrepancies clearly
+	5.	Reflect true financial outcomes
+
+⸻
+
+FINAL INSTRUCTION
+
+You are not building a reporting feature.
+
+You are building the system that determines whether Dynasties’ financial layer is trusted or ignored.
+
+End state:
+
+Shipment → quote → invoice → carrier bill → reconciliation → verified financial truth.
+
+No shortcuts.
+
+⸻
+
+WHAT THIS UNLOCKS
+
+After this:
+	•	your financing model becomes real
+	•	your revenue numbers become defensible
+	•	your platform becomes financially credible
+
+Without this:
+
+you’re still just a very smart estimation engine.

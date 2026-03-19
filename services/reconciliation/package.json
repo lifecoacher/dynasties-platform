@@ -1,0 +1,14 @@
+{
+  "name": "@workspace/svc-reconciliation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/shared-utils": "workspace:*",
+    "drizzle-orm": "^0.45.1"
+  }
+}
