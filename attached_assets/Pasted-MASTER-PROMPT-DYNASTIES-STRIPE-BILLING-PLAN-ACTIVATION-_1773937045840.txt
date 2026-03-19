@@ -1,0 +1,255 @@
+MASTER PROMPT — DYNASTIES STRIPE BILLING + PLAN ACTIVATION + ENFORCEMENT SYSTEM
+
+You are a Principal Payments Architect and B2B SaaS Billing Engineer.
+
+Your task is to implement the Dynasties Billing System using Stripe Billing, integrated with the existing tenant/workspace system (Clerk-based auth + Dynasties tenant model).
+
+This system must allow Dynasties to:
+	•	charge customers via subscription
+	•	map Stripe customers to Dynasties tenants
+	•	activate/deactivate workspaces based on billing status
+	•	enforce plan limits (seats + shipment volume)
+	•	support onboarding/deployment fees
+	•	remain simple enough for early-stage iteration
+
+No over-engineering. No premature metering complexity. Build for correctness and control.
+
+⸻
+
+SECTION 1 — CORE OBJECTIVE
+
+Build a billing system where:
+	•	every tenant has a Stripe customer
+	•	every tenant has a subscription tied to a plan
+	•	billing status controls access to the platform
+	•	plan limits are enforced inside Dynasties
+	•	onboarding/deployment fees can be charged cleanly
+
+⸻
+
+SECTION 2 — STRIPE CONFIGURATION
+
+Define the following in Stripe:
+
+Products
+	•	Dynasties Starter
+	•	Dynasties Growth
+	•	Dynasties Scale
+	•	Dynasties Enterprise
+
+Prices (monthly recurring)
+	•	Starter: $249/month
+	•	Growth: $895/month
+	•	Scale: $2,400/month
+	•	Enterprise: configurable
+
+One-time prices (deployment fees)
+	•	Growth Deployment: $1,500
+	•	Scale Deployment: $3,500
+	•	Enterprise Deployment: variable ($8K–$25K)
+
+Do not implement metered billing yet.
+
+⸻
+
+SECTION 3 — TENANT BILLING FIELDS
+
+Extend the tenant/workspace model with:
+	•	stripeCustomerId
+	•	stripeSubscriptionId
+	•	stripePriceId
+	•	billingStatus (TRIAL / ACTIVE / PAST_DUE / CANCELED / INCOMPLETE)
+	•	currentPeriodEnd
+	•	trialEndsAt
+	•	planType (STARTER / GROWTH / SCALE / ENTERPRISE)
+	•	seatLimit
+	•	shipmentLimit
+	•	isActive (boolean, derived from billingStatus)
+
+⸻
+
+SECTION 4 — CHECKOUT FLOW
+
+4.1 Trigger
+
+After onboarding:
+
+Route user to:
+/activate-workspace
+
+4.2 Checkout session
+
+Create Stripe Checkout session with:
+	•	mode: subscription
+	•	selected plan price
+	•	customer (create if not exists)
+	•	success URL → /billing/success
+	•	cancel URL → /billing/cancel
+
+Optional:
+	•	include deployment fee as one-time add-on in Checkout for Growth/Scale
+
+⸻
+
+SECTION 5 — WEBHOOK HANDLING
+
+Implement Stripe webhooks for:
+	•	checkout.session.completed
+	•	invoice.paid
+	•	invoice.payment_failed
+	•	customer.subscription.updated
+	•	customer.subscription.deleted
+
+On webhook:
+
+Update tenant:
+	•	stripeCustomerId
+	•	stripeSubscriptionId
+	•	stripePriceId
+	•	billingStatus
+	•	currentPeriodEnd
+	•	planType
+
+Ensure:
+	•	idempotency
+	•	tenant lookup by stripeCustomerId
+
+⸻
+
+SECTION 6 — PLAN ACTIVATION LOGIC
+
+Define:
+
+Active tenant
+
+billingStatus = ACTIVE OR TRIAL
+
+Inactive tenant
+
+billingStatus = PAST_DUE / CANCELED / INCOMPLETE
+
+Enforcement
+
+If inactive:
+	•	block:
+	•	shipment creation
+	•	document generation
+	•	imports
+	•	allow:
+	•	read-only access
+	•	billing page access
+
+⸻
+
+SECTION 7 — PLAN LIMIT ENFORCEMENT
+
+Seats
+	•	compare active users vs seatLimit
+	•	prevent invites if exceeded
+	•	show upgrade prompt
+
+Shipments
+	•	track shipments created per billing cycle
+	•	warn at 80%
+	•	at 100%:
+	•	block OR
+	•	allow temporary overage flag
+
+Do NOT implement automatic billing for overages yet.
+
+⸻
+
+SECTION 8 — BILLING UI
+
+Create:
+
+Billing Page (/settings/billing)
+
+Show:
+	•	current plan
+	•	billing status
+	•	renewal date
+	•	seats used vs limit
+	•	shipments used vs limit
+	•	upgrade button
+	•	link to Stripe customer portal
+
+Upgrade flow
+	•	allow plan change via Stripe Checkout or Billing Portal
+
+⸻
+
+SECTION 9 — STRIPE CUSTOMER PORTAL
+
+Enable:
+	•	payment method updates
+	•	invoice history
+	•	subscription changes (optional)
+
+Link from Dynasties billing page.
+
+⸻
+
+SECTION 10 — DEPLOYMENT FEE HANDLING
+
+For Growth / Scale / Enterprise:
+
+Support:
+	•	one-time charge via:
+	•	Stripe Checkout add-on
+OR
+	•	separate invoice
+
+Store:
+	•	onboardingPaid (boolean)
+	•	onboardingCompletedAt
+
+Block advanced onboarding features until paid if needed.
+
+⸻
+
+SECTION 11 — TRIAL SUPPORT (OPTIONAL BUT RECOMMENDED)
+	•	default trial: 7–14 days
+	•	no payment required upfront
+	•	after trial:
+	•	require subscription
+	•	downgrade or restrict access if not activated
+
+⸻
+
+SECTION 12 — SECURITY + CONSISTENCY
+	•	all billing updates must originate from Stripe webhooks
+	•	do NOT trust client-side payment success alone
+	•	always map billing state to tenant before granting access
+
+⸻
+
+SECTION 13 — SUCCESS CRITERIA
+
+System must allow:
+	1.	User creates workspace
+	2.	User selects plan and pays
+	3.	Tenant becomes ACTIVE
+	4.	Platform access is unlocked
+	5.	Plan limits are enforced
+	6.	Billing state updates automatically via Stripe
+	7.	Failed payments restrict access appropriately
+
+⸻
+
+FINAL INSTRUCTION
+
+You are not just integrating payments.
+
+You are building the system that determines whether Dynasties is:
+	•	a real business with revenue
+or
+	•	an impressive unpaid demo
+
+No shortcuts. No fake states. No manual patching.
+
+End state:
+
+Tenant → Plan → Payment → Activation → Enforcement → Revenue
+
+Build it clean.
