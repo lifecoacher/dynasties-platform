@@ -85,6 +85,7 @@ function getEventIcon(type: string) {
   if (type.includes("COMPLIANCE")) return <Shield className="w-3.5 h-3.5" />;
   if (type.includes("RISK")) return <TrendingUp className="w-3.5 h-3.5" />;
   if (type.includes("INSURANCE")) return <Umbrella className="w-3.5 h-3.5" />;
+  if (type.includes("DECISION")) return <Brain className="w-3.5 h-3.5" />;
   if (type.includes("PRIC")) return <DollarSign className="w-3.5 h-3.5" />;
   if (type.includes("DOCGEN") || type.includes("DOCUMENT_GENERATED")) return <FileOutput className="w-3.5 h-3.5" />;
   if (type.includes("BILLING") || type.includes("INVOICE")) return <Receipt className="w-3.5 h-3.5" />;
@@ -97,6 +98,7 @@ function getEventIcon(type: string) {
 
 function getEventColor(type: string) {
   if (type.includes("COMPLIANCE")) return "text-primary bg-primary/10";
+  if (type.includes("DECISION")) return "text-primary bg-primary/10";
   if (type.includes("RISK")) return "text-[#D4A24C] bg-[#D4A24C]/10";
   if (type.includes("INSURANCE")) return "text-muted-foreground bg-muted/50";
   if (type.includes("EXTRACT")) return "text-primary bg-primary/10";
@@ -137,6 +139,18 @@ export default function ShipmentDetail() {
     },
     enabled: !!id,
   });
+  const { data: decisionRes, refetch: refetchDecision } = useQuery({
+    queryKey: [`/api/shipments/${id}/decision`],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const res = await fetch(`${import.meta.env.BASE_URL}api/shipments/${id}/decision`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return { data: null };
+      return res.json();
+    },
+    enabled: !!id,
+  });
   const { data: insuranceRes } = useGetShipmentInsurance(id);
   const { data: eventsRes } = useGetShipmentEvents(id);
   const { data: docsRes } = useGetShipmentDocuments(id);
@@ -154,6 +168,7 @@ export default function ShipmentDetail() {
   const risk = riskRes?.data as any;
   const docValidation = docValRes?.data as any;
   const routingPricing = routingPricingRes?.data as any;
+  const decision = decisionRes?.data as any;
   const insurance = insuranceRes?.data as any;
   const events = (eventsRes?.data || []) as any[];
   const docs = (docsRes?.data || []) as any[];
@@ -181,6 +196,7 @@ export default function ShipmentDetail() {
   const [runningCompliance, setRunningCompliance] = useState(false);
   const [runningDocValidation, setRunningDocValidation] = useState(false);
   const [runningRoutingPricing, setRunningRoutingPricing] = useState(false);
+  const [runningDecision, setRunningDecision] = useState(false);
   const [expandedRoute, setExpandedRoute] = useState<number | null>(null);
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -262,6 +278,26 @@ export default function ShipmentDetail() {
       toast({ title: "Routing & pricing failed", description: "An error occurred. Please try again.", variant: "destructive" });
     } finally {
       setRunningRoutingPricing(false);
+    }
+  };
+
+  const runDecisionEngine = async () => {
+    setRunningDecision(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${BASE}/shipments/${id}/decision`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error(`Decision engine failed: ${res.status}`);
+      refetchDecision();
+      qc.invalidateQueries({ queryKey: [`/api/shipments/${id}/events`] });
+      toast({ title: "Decision computed", description: "Global decision engine evaluation complete." });
+    } catch (err) {
+      console.error("[decision-engine]", err);
+      toast({ title: "Decision engine failed", description: "An error occurred during evaluation. Please try again.", variant: "destructive" });
+    } finally {
+      setRunningDecision(false);
     }
   };
 
@@ -551,7 +587,7 @@ export default function ShipmentDetail() {
                   Processing Timeline
                 </h3>
                 <div className="space-y-2">
-                  {events.map((event: any, i: number) => (
+                  {events.filter((event: any, idx: number, arr: any[]) => arr.findIndex((e: any) => e.id === event.id) === idx).map((event: any, i: number) => (
                     <motion.div
                       key={event.id}
                       initial={{ opacity: 0, x: -8 }}
@@ -577,6 +613,118 @@ export default function ShipmentDetail() {
           </div>
 
           <div className="space-y-4">
+            <div className={`p-4 rounded-xl border ${
+              decision?.finalStatus === "BLOCKED" ? "bg-[#E05252]/5 border-[#E05252]/20" :
+              decision?.finalStatus === "REVIEW" ? "bg-[#D4A24C]/5 border-[#D4A24C]/20" :
+              decision?.finalStatus === "APPROVED" ? "bg-primary/5 border-primary/20" :
+              "bg-card border-card-border"
+            }`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-primary" />
+                  <h3 className="text-[13px] font-semibold text-foreground">Shipment Decision</h3>
+                </div>
+                <button
+                  onClick={runDecisionEngine}
+                  disabled={runningDecision}
+                  className="px-2 py-1 text-[10px] font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 flex items-center gap-1 border border-primary/20"
+                >
+                  {runningDecision ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  {decision ? "Re-evaluate" : "Compute"}
+                </button>
+              </div>
+              {decision ? (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                      decision.finalStatus === "BLOCKED" ? "bg-[#E05252]/10 text-[#E05252]" :
+                      decision.finalStatus === "REVIEW" ? "bg-[#D4A24C]/10 text-[#D4A24C]" :
+                      decision.finalStatus === "APPROVED" ? "bg-primary/10 text-primary" :
+                      "bg-muted text-muted-foreground"
+                    }`}>{decision.finalStatus}</span>
+                    <span className={`text-[10px] font-medium ${decision.releaseAllowed ? "text-primary" : "text-[#E05252]"}`}>
+                      {decision.releaseAllowed ? "Release Allowed" : "Release Blocked"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mb-3">{decision.decisionReason}</p>
+
+                  {decision.unifiedRisk && (
+                    <div className="mb-3 p-2 rounded-lg bg-background/50 border border-border/50">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Unified Risk</p>
+                      <div className="flex items-center gap-3 mb-1.5">
+                        <span className={`text-lg font-bold tabular-nums ${
+                          decision.unifiedRisk.level === "CRITICAL" ? "text-[#E05252]" :
+                          decision.unifiedRisk.level === "HIGH" ? "text-[#D4A24C]" :
+                          decision.unifiedRisk.level === "MODERATE" ? "text-[#D4A24C]/80" : "text-primary"
+                        }`}>{Math.round(decision.unifiedRisk.finalScore)}</span>
+                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                          decision.unifiedRisk.level === "CRITICAL" ? "bg-[#E05252]/10 text-[#E05252]" :
+                          decision.unifiedRisk.level === "HIGH" ? "bg-[#D4A24C]/10 text-[#D4A24C]" :
+                          decision.unifiedRisk.level === "MODERATE" ? "bg-[#D4A24C]/8 text-[#D4A24C]/80" : "bg-primary/10 text-primary"
+                        }`}>{decision.unifiedRisk.level}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-muted-foreground">Base Risk</span>
+                          <span className="font-mono text-foreground">{Math.round(decision.unifiedRisk.baseScore)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-muted-foreground">Dynamic Risk</span>
+                          <span className="font-mono text-foreground">{Math.round(decision.unifiedRisk.dynamicScore)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {decision.blockReasons?.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-[10px] font-semibold text-[#E05252] mb-1">Block Reasons</p>
+                      {decision.blockReasons.map((r: string, i: number) => (
+                        <p key={i} className="text-[10px] text-[#E05252]/80 leading-relaxed">• {r}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {decision.reviewReasons?.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-[10px] font-semibold text-[#D4A24C] mb-1">Review Reasons</p>
+                      {decision.reviewReasons.map((r: string, i: number) => (
+                        <p key={i} className="text-[10px] text-[#D4A24C]/80 leading-relaxed">• {r}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {decision.inputSnapshot && (
+                    <div className="mt-2 pt-2 border-t border-border/50">
+                      <p className="text-[10px] font-semibold text-muted-foreground mb-1">Input Sources</p>
+                      <div className="grid grid-cols-2 gap-1">
+                        {decision.inputSnapshot.complianceStatus && (
+                          <div className="text-[10px]">
+                            <span className="text-muted-foreground">Compliance: </span>
+                            <span className={decision.inputSnapshot.complianceStatus === "BLOCKED" ? "text-[#E05252]" : decision.inputSnapshot.complianceStatus === "ALERT" ? "text-[#D4A24C]" : "text-primary"}>{decision.inputSnapshot.complianceStatus}</span>
+                          </div>
+                        )}
+                        {decision.inputSnapshot.docValidationStatus && (
+                          <div className="text-[10px]">
+                            <span className="text-muted-foreground">Docs: </span>
+                            <span className={decision.inputSnapshot.docValidationStatus === "BLOCKED" ? "text-[#E05252]" : decision.inputSnapshot.docValidationStatus === "REVIEW" ? "text-[#D4A24C]" : "text-primary"}>{decision.inputSnapshot.docValidationStatus}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {decision.decidedAt && (
+                    <p className="text-[9px] text-muted-foreground/60 mt-2">
+                      Computed {new Date(decision.decidedAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Click "Compute" to run the decision engine across all agent outputs.</p>
+              )}
+            </div>
+
             {(() => {
               const recs = (recsRes?.data || []) as any[];
               if (recs.length === 0 && !analyzeMutation.isPending) return null;
@@ -1428,8 +1576,22 @@ export default function ShipmentDetail() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                  <p className="text-[11px] text-primary">No active holds — clear to proceed</p>
+                  {decision?.releaseAllowed === true ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                      <p className="text-[11px] text-primary">No active holds — clear to proceed</p>
+                    </>
+                  ) : decision?.releaseAllowed === false ? (
+                    <>
+                      <AlertCircle className="w-3.5 h-3.5 text-[#E05252]" />
+                      <p className="text-[11px] text-[#E05252]">Release blocked by decision engine — resolve issues above</p>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-3.5 h-3.5 text-[#D4A24C]" />
+                      <p className="text-[11px] text-[#D4A24C]">No decision computed — run decision engine to determine release status</p>
+                    </>
+                  )}
                 </div>
               )}
             </div>

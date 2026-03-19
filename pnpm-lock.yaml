@@ -247,6 +247,9 @@ importers:
       '@workspace/svc-shipment-construction':
         specifier: workspace:*
         version: link:../../services/shipment-construction
+      '@workspace/svc-shipment-decision':
+        specifier: workspace:*
+        version: link:../../services/shipment-decision
       '@workspace/svc-trade-lane-intelligence':
         specifier: workspace:*
         version: link:../../services/trade-lane-intelligence
@@ -1269,6 +1272,15 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+
+  services/shipment-decision:
+    dependencies:
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
 
   services/trade-lane-intelligence:
     dependencies:
