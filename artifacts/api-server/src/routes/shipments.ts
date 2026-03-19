@@ -17,11 +17,13 @@ import {
   tradeLaneStatsTable,
   claimsTable,
   claimCommunicationsTable,
+  documentValidationResultsTable,
 } from "@workspace/db/schema";
 import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { runComplianceScreening } from "@workspace/svc-compliance-screening";
 import { runRiskIntelligence } from "@workspace/svc-risk-intelligence";
+import { runDocumentValidation } from "@workspace/svc-document-validation";
 import { publishPricingJob, publishClaimsJob } from "@workspace/queue";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
@@ -292,6 +294,57 @@ router.get("/shipments/:id/risk", async (req, res) => {
     return;
   }
   res.json({ data: { ...riskScore, compositeScore: Number(riskScore.compositeScore) } });
+});
+
+router.post("/shipments/:id/document-validation-check", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const id = paramId(req);
+
+  const [shipment] = await db
+    .select({ id: shipmentsTable.id })
+    .from(shipmentsTable)
+    .where(and(eq(shipmentsTable.id, id), eq(shipmentsTable.companyId, companyId)))
+    .limit(1);
+
+  if (!shipment) {
+    res.status(404).json({ error: "Shipment not found" });
+    return;
+  }
+
+  await db.delete(documentValidationResultsTable).where(eq(documentValidationResultsTable.shipmentId, id));
+
+  const result = await runDocumentValidation(id, companyId);
+
+  if (!result.success) {
+    res.status(500).json({ error: result.error || "Validation failed" });
+    return;
+  }
+
+  const [validation] = result.validationId
+    ? await db
+        .select()
+        .from(documentValidationResultsTable)
+        .where(eq(documentValidationResultsTable.id, result.validationId))
+        .limit(1)
+    : [null];
+
+  res.json({ data: validation });
+});
+
+router.get("/shipments/:id/document-validation", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const id = paramId(req);
+  const [validation] = await db
+    .select()
+    .from(documentValidationResultsTable)
+    .where(
+      and(
+        eq(documentValidationResultsTable.shipmentId, id),
+        eq(documentValidationResultsTable.companyId, companyId),
+      ),
+    )
+    .limit(1);
+  res.json({ data: validation || null });
 });
 
 router.get("/shipments/:id/insurance", async (req, res) => {

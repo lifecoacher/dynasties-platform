@@ -1,0 +1,288 @@
+Build a production-grade Routing & Pricing Agent inside the existing Dynasties Replit project. This must integrate with the current architecture, shipment model, document data, compliance results, and UI. Do NOT create a separate prototype, mock service, or parallel system.
+
+WORKING STYLE
+- Plan first before coding.
+- Inspect the existing repository and reuse current services, pricing logic, shipment data, and AI abstraction.
+- Do NOT introduce duplicate AI clients or parallel pricing engines.
+- Build incrementally with checkpoints.
+- Keep all code production-oriented, typed, and integrated.
+- Do not overwrite working code.
+- Prefer composable services and clean interfaces.
+
+PRIMARY GOAL
+Implement a real Routing & Pricing Agent that evaluates a shipment and returns optimal route options, cost estimates, and risk-aware recommendations. It must produce a structured output that is immediately understandable and affects decision-making in the workflow.
+
+THIS IS NOT
+- not a fake “AI route generator”
+- not random pricing guesses
+- not a static rules table
+- not a disconnected demo feature
+
+THIS IS
+- a decision engine using shipment data
+- returning route + cost + reasoning
+- integrated into workflow and UI
+- demo-ready and extensible later
+
+---
+
+AI PROVIDER INTEGRATION (CRITICAL)
+
+1. Inspect the codebase for existing AI provider.
+   - Reuse existing Anthropic or AI abstraction.
+   - Do NOT create a second AI client.
+
+2. If none exists:
+   - Implement Anthropic using ANTHROPIC_API_KEY
+   - Wrap in reusable module
+
+3. LLM usage rules:
+   - structured input / structured JSON output
+   - low temperature
+   - used for reasoning, ranking, explanation
+   - NOT used as sole pricing source
+
+4. System must work WITHOUT AI:
+   - deterministic pricing + routing logic first
+   - AI enhances explanation and ranking
+
+---
+
+CORE FUNCTION
+
+Given a shipment, the agent must:
+
+1. Analyze:
+   - origin / destination
+   - ports
+   - commodity
+   - weight / volume
+   - shipment type (air, ocean, etc.)
+   - incoterms if present
+   - compliance + documentation signals (if available)
+
+2. Generate route options:
+   - direct route
+   - alternative route(s)
+   - optional fallback route
+
+3. Estimate pricing:
+   - base cost estimate
+   - breakdown (freight, handling, etc. if possible)
+   - cost range if uncertainty exists
+
+4. Evaluate:
+   - transit time
+   - cost vs speed tradeoffs
+   - compliance or documentation friction risks
+
+5. Return structured result:
+
+{
+  shipmentId,
+  recommendedRoute,
+  routeOptions: [],
+  pricing: {
+    estimatedCost,
+    currency,
+    breakdown,
+    confidence
+  },
+  transitEstimates: [],
+  riskFactors: [],
+  recommendationSummary,
+  reasoning,
+  createdAt
+}
+
+---
+
+ARCHITECTURE
+
+Create service:
+- services/routing-pricing/
+
+Separate:
+- route generation logic
+- pricing estimation logic
+- risk evaluation layer
+- AI reasoning layer
+- output builder
+
+Reuse:
+- shipment model
+- compliance results
+- document validation results if available
+
+---
+
+ROUTING LOGIC
+
+Implement deterministic routing first:
+
+- map origin → destination
+- generate:
+  - primary route
+  - 1–2 alternative routes
+- consider:
+  - direct vs transshipment
+  - known trade lanes (basic rules)
+  - fallback when missing ports
+
+Do NOT over-engineer. Keep it believable.
+
+---
+
+PRICING LOGIC
+
+Implement simple but structured pricing:
+
+- base estimate derived from:
+  - distance / region
+  - shipment size (weight / volume)
+  - shipment type
+
+- return:
+  - estimated cost
+  - cost range
+  - optional breakdown
+
+Pricing must be:
+- consistent
+- explainable
+- not random
+
+---
+
+RISK EVALUATION
+
+Incorporate:
+- compliance flags (if present)
+- documentation gaps
+- route complexity
+- jurisdiction risk
+
+Return:
+- list of risk factors
+- severity
+
+---
+
+AI LAYER (SECOND PASS)
+
+Use AI to:
+- explain route selection
+- rank route options
+- summarize tradeoffs
+- produce recommendation summary
+
+Never:
+- invent routes
+- override deterministic logic
+- generate random pricing
+
+---
+
+DATABASE (OPTIONAL)
+
+If needed, create:
+
+routing_pricing_results table:
+- id
+- shipment_id
+- company_id
+- route_options JSON
+- pricing JSON
+- risk_factors JSON
+- recommendation_summary
+- created_at
+
+Follow existing schema patterns.
+
+---
+
+API
+
+Add endpoints:
+
+POST /api/shipments/:id/routing-pricing  
+GET /api/shipments/:id/routing-pricing  
+
+Follow existing auth (OPERATOR+).
+
+---
+
+UI
+
+Integrate into ShipmentDetail:
+
+- Add “Generate Route & Pricing” button
+- Display:
+  - recommended route
+  - alternative routes
+  - cost estimate
+  - transit time
+  - risk indicators
+  - summary
+
+Must be readable in under 10 seconds.
+
+---
+
+WORKFLOW IMPACT
+
+- recommended route becomes actionable suggestion
+- risk factors influence decision
+- output should naturally follow compliance + documentation
+
+---
+
+TESTING
+
+Test:
+- simple shipment → valid route + price
+- missing data → graceful fallback
+- compliance flagged shipment → risk reflected
+- AI failure → deterministic output still works
+
+Add 3 sample shipments:
+- standard shipment
+- complex route
+- high-risk shipment
+
+---
+
+CHECKPOINTS
+
+Checkpoint 1: repo analysis + plan  
+Checkpoint 2: routing logic  
+Checkpoint 3: pricing logic  
+Checkpoint 4: risk evaluation  
+Checkpoint 5: AI integration  
+Checkpoint 6: API + UI  
+Checkpoint 7: testing + validation  
+
+---
+
+DEMO REQUIREMENT
+
+Must support:
+
+- input shipment
+- generate route
+- show cost
+- explain decision
+
+No placeholders. No fake outputs.
+
+---
+
+QUALITY BAR
+
+- believable routing
+- consistent pricing
+- clear explanation
+- integrated into system
+- demo-ready
+
+Do not mark complete until routing + pricing works end-to-end inside the app.
