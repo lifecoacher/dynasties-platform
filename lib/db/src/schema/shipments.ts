@@ -61,6 +61,7 @@ export const shipmentsTable = pgTable(
     cargoValue: real("cargo_value"),
     blNumber: text("bl_number"),
     operatorNotes: text("operator_notes"),
+    sourceQuoteId: text("source_quote_id"),
     approvedAt: timestamp("approved_at"),
     approvedBy: text("approved_by"),
     createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -1,0 +1,245 @@
+You are a Principal Systems Architect and Workflow Platform Engineer.
+
+Your task is to design and implement the Quote-to-Cash Continuity Layer for Dynasties so the platform behaves as a single operational system instead of a collection of disconnected modules.
+
+This system must create a canonical commercial chain from quote creation through shipment execution, documentation, invoicing, and reconciliation.
+
+No duplicate entry. No broken handoffs. No disconnected state.
+
+⸻
+
+SECTION 1 — CORE OBJECTIVE
+
+Build a system where:
+	•	quotes can be created and versioned
+	•	quotes convert directly into shipments
+	•	quote data automatically propagates into shipment, documents, and invoicing
+	•	invoice generation uses canonical commercial data from quote + shipment + pricing
+	•	all downstream modules stay linked to the same commercial truth
+
+⸻
+
+SECTION 2 — QUOTE DATA MODEL
+
+Create a new table:
+
+quotes
+
+Fields:
+	•	id
+	•	tenantId
+	•	customerId
+	•	quoteNumber
+	•	status (DRAFT / SENT / ACCEPTED / EXPIRED / CONVERTED)
+	•	origin
+	•	destination
+	•	incoterms
+	•	cargoSummary
+	•	quantity / weight / volume
+	•	currency
+	•	quotedAmount
+	•	pricingSnapshot (JSONB)
+	•	validUntil
+	•	createdBy
+	•	createdAt
+	•	updatedAt
+	•	convertedShipmentId (nullable)
+
+Requirements:
+	•	quote versioning support
+	•	immutable accepted snapshot
+	•	quoteNumber human-readable and unique per tenant
+
+⸻
+
+SECTION 3 — QUOTE LINE ITEMS
+
+Create:
+
+quote_line_items
+
+Fields:
+	•	id
+	•	quoteId
+	•	chargeType
+	•	description
+	•	quantity
+	•	unitPrice
+	•	amount
+	•	metadata
+
+Must support:
+	•	freight
+	•	fuel surcharge
+	•	customs
+	•	documentation
+	•	storage
+	•	insurance
+	•	manual adjustments
+
+⸻
+
+SECTION 4 — QUOTE WORKFLOW
+
+Implement quote lifecycle:
+	•	DRAFT
+	•	SENT
+	•	ACCEPTED
+	•	EXPIRED
+	•	CONVERTED
+
+Rules:
+	•	only ACCEPTED quotes can convert to shipment
+	•	CONVERTED quotes remain historically visible
+	•	accepted quotes preserve pricing snapshot
+
+⸻
+
+SECTION 5 — QUOTE → SHIPMENT CONVERSION
+
+Implement one-click conversion:
+
+Convert Quote to Shipment
+
+This must:
+	•	create shipment from quote
+	•	copy canonical commercial data
+	•	link shipment to source quote
+	•	initialize shipment charges from quote line items / pricing snapshot
+	•	create baseline event(s)
+	•	preserve audit trail
+
+No manual re-entry after conversion.
+
+⸻
+
+SECTION 6 — CANONICAL COMMERCIAL DATA
+
+Define a single commercial source of truth used by:
+	•	shipment detail
+	•	document engine
+	•	invoice engine
+	•	reconciliation engine
+
+Canonical fields include:
+	•	customer
+	•	shipper / consignee
+	•	origin / destination
+	•	cargo description
+	•	quantities / weights / dimensions
+	•	incoterms
+	•	quoted pricing
+	•	charge structure
+	•	currency
+
+If these values change after quote acceptance:
+	•	changes must be versioned
+	•	downstream impact must be visible
+
+⸻
+
+SECTION 7 — SHIPMENT CHARGES NORMALIZATION
+
+Ensure shipment charges are first-class linked objects.
+
+Create or normalize:
+
+shipment_charges
+
+Requirements:
+	•	derived from quote or pricing engine
+	•	editable with audit trail
+	•	used by invoice generation
+	•	used by reconciliation expected values
+
+⸻
+
+SECTION 8 — INVOICE CONTINUITY
+
+Invoice generation must now use:
+	•	accepted quote data
+	•	shipment charges
+	•	customer / consignee context
+	•	generated documents where relevant
+
+Requirements:
+	•	invoice has sourceQuoteId and sourceShipmentId
+	•	no manual duplication of customer/cargo/lane fields
+	•	invoice totals reconcile to shipment charges
+
+⸻
+
+SECTION 9 — DOCUMENT CONTINUITY
+
+Generated documents must reference:
+	•	sourceQuoteId if available
+	•	sourceShipmentId
+	•	sourceInvoiceId where relevant
+
+Document generation should pull from canonical commercial data, not separate form fields.
+
+⸻
+
+SECTION 10 — RECONCILIATION CONTINUITY
+
+Reconciliation results must be traceable back to:
+	•	quote expected pricing
+	•	shipment charges
+	•	generated invoice
+	•	actual carrier invoice
+
+UI should eventually be able to show:
+Quoted → Invoiced → Actual → Variance
+
+⸻
+
+SECTION 11 — AUDIT TRAIL
+
+Emit events for:
+	•	QUOTE_CREATED
+	•	QUOTE_SENT
+	•	QUOTE_ACCEPTED
+	•	QUOTE_CONVERTED
+	•	SHIPMENT_CREATED_FROM_QUOTE
+	•	INVOICE_CREATED_FROM_SHIPMENT
+
+All linked across object chain.
+
+⸻
+
+SECTION 12 — UI WORKFLOW
+
+Add quote workflow surfaces:
+	•	Quotes list
+	•	Quote detail
+	•	Convert to shipment action
+	•	Visibility in shipment detail: “Created from Quote X”
+	•	Visibility in invoice detail: “Originated from Quote X / Shipment Y”
+
+This must feel like one continuous workflow.
+
+⸻
+
+SECTION 13 — SUCCESS CRITERIA
+
+System must allow:
+	1.	Create a quote
+	2.	Accept a quote
+	3.	Convert quote to shipment in one action
+	4.	Generate invoice from shipment without re-entry
+	5.	Preserve canonical commercial data through documents and reconciliation
+	6.	Show traceable commercial chain end-to-end
+
+If a user still has to retype the same commercial data across quote, shipment, document, and invoice, the system has failed.
+
+⸻
+
+FINAL INSTRUCTION
+
+You are building the layer that turns Dynasties from a set of powerful modules into a true operating system for logistics and trade.
+
+End state:
+
+Quote → Shipment → Documents → Invoice → Reconciliation
+
+One chain. One truth. No drift.

@@ -19,6 +19,7 @@ import {
   Receipt,
   Upload,
   CreditCard,
+  Calculator,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
@@ -37,6 +38,7 @@ const DEMO_HIDDEN = new Set([
 
 const ALL_NAV_ITEMS = [
   { href: "/", icon: Command, label: "Command Center" },
+  { href: "/quotes", icon: Calculator, label: "Quotes" },
   { href: "/shipments", icon: Ship, label: "Shipments" },
   { href: "/control-tower", icon: Radar, label: "Control Tower" },
   { href: "/work-queue", icon: ClipboardList, label: "Work Queue" },

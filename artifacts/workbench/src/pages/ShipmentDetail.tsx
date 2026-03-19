@@ -590,9 +590,16 @@ export default function ShipmentDetail() {
               <h1 className="text-xl font-semibold text-foreground font-mono">{shipment.reference}</h1>
               <StatusPill status={shipment.status} />
             </div>
-            <p className="text-[12px] text-muted-foreground mt-0.5">
-              Created {format(new Date(shipment.createdAt), "MMM d, yyyy 'at' HH:mm")}
-            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-[12px] text-muted-foreground">
+                Created {format(new Date(shipment.createdAt), "MMM d, yyyy 'at' HH:mm")}
+              </p>
+              {shipment.sourceQuoteId && (
+                <Link href={`/quotes/${shipment.sourceQuoteId}`} className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#00BFA6]/10 text-[#00BFA6] text-[10px] font-medium hover:bg-[#00BFA6]/20 transition-colors">
+                  Created from Quote
+                </Link>
+              )}
+            </div>
           </div>
 
           <Link
