@@ -18,12 +18,14 @@ import {
   claimsTable,
   claimCommunicationsTable,
   documentValidationResultsTable,
+  routingPricingResultsTable,
 } from "@workspace/db/schema";
 import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { runComplianceScreening } from "@workspace/svc-compliance-screening";
 import { runRiskIntelligence } from "@workspace/svc-risk-intelligence";
 import { runDocumentValidation } from "@workspace/svc-document-validation";
+import { runRoutingPricing, getRoutingPricingResult } from "@workspace/svc-routing-pricing";
 import { publishPricingJob, publishClaimsJob } from "@workspace/queue";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
@@ -345,6 +347,43 @@ router.get("/shipments/:id/document-validation", async (req, res) => {
     )
     .limit(1);
   res.json({ data: validation || null });
+});
+
+router.post("/shipments/:id/routing-pricing", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const id = paramId(req);
+  try {
+    const result = await runRoutingPricing(id, companyId);
+    if (!result.success) {
+      res.status(404).json({ error: result.error });
+      return;
+    }
+    await db.insert(eventsTable).values({
+      id: generateId("evt"),
+      companyId,
+      entityType: "SHIPMENT",
+      entityId: id,
+      eventType: "ROUTING_PRICING_COMPLETED",
+      actorType: "AGENT",
+      serviceId: "routing-pricing-agent",
+      metadata: {
+        routeCount: result.data!.routeOptions.length,
+        recommendedRoute: result.data!.routeOptions[Number(result.data!.recommendedRouteIndex)]?.label,
+        riskCount: result.data!.riskFactors.length,
+      },
+    });
+    res.json({ data: result.data });
+  } catch (err: any) {
+    console.error("Routing & pricing error:", err);
+    res.status(500).json({ error: "Routing & pricing analysis failed" });
+  }
+});
+
+router.get("/shipments/:id/routing-pricing", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const id = paramId(req);
+  const result = await getRoutingPricingResult(id, companyId);
+  res.json({ data: result || null });
 });
 
 router.get("/shipments/:id/insurance", async (req, res) => {
