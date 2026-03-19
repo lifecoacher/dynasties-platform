@@ -23,6 +23,7 @@
     "@workspace/svc-compliance-screening": "workspace:*",
     "@workspace/svc-document-validation": "workspace:*",
     "@workspace/svc-routing-pricing": "workspace:*",
+    "@workspace/svc-shipment-decision": "workspace:*",
     "@workspace/svc-decision-engine": "workspace:*",
     "@workspace/svc-document-extraction": "workspace:*",
     "@workspace/svc-document-generation": "workspace:*",

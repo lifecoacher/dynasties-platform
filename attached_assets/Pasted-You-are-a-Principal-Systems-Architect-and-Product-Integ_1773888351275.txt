@@ -1,0 +1,220 @@
+You are a Principal Systems Architect and Product Integrity Engineer responsible for eliminating all logical contradictions and transforming Dynasties from a demo-layer into a coherent, decision-driven system.
+
+Your objective is to:
+	1.	Enforce a single source of truth across all modules
+	2.	Eliminate all contradictions between AI agents, UI, and backend
+	3.	Implement a deterministic decision system that governs all outcomes
+	4.	Prepare the platform for evolution into a true system of record
+
+No UI-only fixes. No patchwork. All fixes must be systemic and enforced at the data and logic layer.
+
+⸻
+
+SECTION 1 — GLOBAL DECISION ENGINE (CRITICAL)
+
+Implement a centralized decision engine that determines final system truth.
+
+Inputs:
+	•	documentValidationStatus (CLEAR / BLOCKED / INSUFFICIENT)
+	•	riskScore (base)
+	•	preShipmentRisk (dynamic)
+	•	readinessScore
+	•	bookingDecision
+	•	shipmentStatus
+
+Output:
+	•	finalStatus (APPROVED / BLOCKED / REJECTED / REVIEW)
+	•	releaseAllowed (boolean)
+	•	decisionReason (string)
+
+Rules:
+	•	If documentValidationStatus = BLOCKED → finalStatus = BLOCKED
+	•	If readinessScore < threshold → cannot be APPROVED
+	•	If risk exceeds threshold → finalStatus = REVIEW or REJECTED
+	•	If finalStatus != APPROVED → releaseAllowed = false
+	•	No UI component may override this output
+
+Requirements:
+	•	All UI modules must consume this output
+	•	Remove any hardcoded or independent “decision” logic in UI components
+	•	Replace “Release Gates” text with computed releaseAllowed state
+
+⸻
+
+SECTION 2 — UNIFIED RISK MODEL
+
+Eliminate conflicting risk systems.
+
+Current problem:
+	•	Risk Score and Pre-Shipment Risk contradict each other
+
+Fix:
+
+Define:
+	•	baseRiskScore (static factors)
+	•	dynamicRiskScore (weather, real-time signals)
+
+Compute:
+	•	finalRiskScore = max(baseRiskScore, dynamicRiskScore)
+
+UI must display:
+	•	Base Risk
+	•	Dynamic Risk
+	•	Final Risk (used for decisions)
+
+Requirements:
+	•	All decision logic must reference finalRiskScore only
+	•	Remove any independent risk interpretation in UI
+
+⸻
+
+SECTION 3 — SCORE INTEGRITY (NON-NEGOTIABLE)
+
+Fix all mathematical inconsistencies.
+
+Requirements:
+	•	Sub-scores must correctly aggregate into final score
+	•	If aggregation cannot be made accurate:
+	•	hide sub-score breakdown entirely
+	•	No displayed number may contradict its components
+
+This is a trust-critical system. Incorrect math is unacceptable.
+
+⸻
+
+SECTION 4 — STATE MACHINE ENFORCEMENT
+
+Implement a strict shipment lifecycle.
+
+States:
+DRAFT → VALIDATING → READY → BLOCKED → APPROVED → BOOKED → REJECTED
+
+Rules:
+	•	Cannot APPROVE if documentValidationStatus != CLEAR
+	•	Cannot BOOK if validation not completed
+	•	Cannot RELEASE unless finalStatus = APPROVED
+	•	BLOCKED state overrides all downstream approvals
+
+All transitions must be enforced at backend level.
+
+⸻
+
+SECTION 5 — AGENT GOVERNANCE (CRITICAL)
+
+Agents must propose, not decide.
+
+Requirements:
+	•	Routing, Risk, Compliance, and Document agents produce recommendations only
+	•	Final decision must be resolved through Global Decision Engine
+	•	Remove any direct agent-driven UI state changes
+
+⸻
+
+SECTION 6 — RELEASE LOGIC CORRECTION
+
+Remove all static messaging like:
+“No active holds — clear to proceed”
+
+Replace with:
+releaseAllowed derived from system state
+
+If:
+	•	BLOCKED
+	•	REJECTED
+	•	missing documents
+
+Then:
+	•	releaseAllowed must be false
+	•	UI must reflect active holds clearly
+
+⸻
+
+SECTION 7 — DEMO-STABILITY HARDENING
+
+Fix all credibility-breaking issues:
+	•	Remove duplicate timeline entries
+	•	Hide empty sections (e.g. “Recommendation Changes” if unused)
+	•	Fix inconsistent arrow semantics in scenario comparisons
+	•	Ensure Decision Trace is functional or remove it entirely
+	•	Fix floating-point precision leaks (e.g. 16.799999)
+
+No partially implemented features visible in demo.
+
+⸻
+
+SECTION 8 — SYSTEM OF RECORD FOUNDATION (NEXT PHASE PREP)
+
+After stabilization, prepare for transition to system of record.
+
+Implement or scaffold:
+	1.	Unified Object Model
+
+	•	shipment
+	•	invoice
+	•	receivable
+	•	payment
+
+All linked:
+	•	one action updates all downstream objects
+
+	2.	Event System (foundation)
+
+	•	shipment status events
+	•	delays
+	•	customs updates
+	•	stored in timeline
+
+	3.	Document Engine (initial structure)
+
+	•	commercial invoice
+	•	packing list
+	•	bill of lading
+	•	auto-generated from shipment data
+
+	4.	Integration Layer (initial hooks)
+
+	•	carrier tracking ingestion
+	•	accounting export (QuickBooks)
+	•	CSV import framework
+
+⸻
+
+SECTION 9 — QUOTE → CASH CONTINUITY (FOUNDATIONAL)
+
+Ensure no data re-entry across:
+
+quote → shipment → documentation → invoice → payment
+
+Requirements:
+	•	shared data model
+	•	automatic propagation of values
+	•	no manual duplication
+
+⸻
+
+SECTION 10 — ENFORCEMENT VALIDATION
+
+System must pass:
+	1.	No contradictions across UI modules
+	2.	No approval when documents are blocked
+	3.	No release when risk or readiness fails
+	4.	All KPIs consistent with underlying data
+	5.	All displayed numbers mathematically valid
+
+If any contradiction exists, the system is considered broken.
+
+⸻
+
+FINAL INSTRUCTION
+
+You are not improving UI.
+
+You are enforcing truth across a distributed decision system.
+
+The goal is to transform Dynasties from:
+“intelligent-looking interface”
+
+into:
+“deterministic, trustworthy operational system”
+
+All logic must be centralized, consistent, and enforced at the system level.

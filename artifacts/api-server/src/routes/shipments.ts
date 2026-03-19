@@ -19,6 +19,7 @@ import {
   claimCommunicationsTable,
   documentValidationResultsTable,
   routingPricingResultsTable,
+  shipmentDecisionsTable,
 } from "@workspace/db/schema";
 import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
@@ -26,6 +27,7 @@ import { runComplianceScreening } from "@workspace/svc-compliance-screening";
 import { runRiskIntelligence } from "@workspace/svc-risk-intelligence";
 import { runDocumentValidation } from "@workspace/svc-document-validation";
 import { runRoutingPricing, getRoutingPricingResult } from "@workspace/svc-routing-pricing";
+import { runShipmentDecision, getShipmentDecision } from "@workspace/svc-shipment-decision";
 import { publishPricingJob, publishClaimsJob } from "@workspace/queue";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
@@ -386,6 +388,43 @@ router.get("/shipments/:id/routing-pricing", async (req, res) => {
   res.json({ data: result || null });
 });
 
+router.post("/shipments/:id/decision", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const id = paramId(req);
+  try {
+    const result = await runShipmentDecision(id, companyId);
+    if (!result.success) {
+      res.status(404).json({ error: result.error });
+      return;
+    }
+    await db.insert(eventsTable).values({
+      id: generateId("evt"),
+      companyId,
+      entityType: "SHIPMENT",
+      entityId: id,
+      eventType: "DECISION_COMPUTED",
+      actorType: "SYSTEM",
+      serviceId: "shipment-decision-engine",
+      metadata: {
+        finalStatus: result.data!.finalStatus,
+        releaseAllowed: result.data!.releaseAllowed,
+        finalRiskScore: result.data!.finalRiskScore,
+      },
+    });
+    res.json({ data: result.data });
+  } catch (err: any) {
+    console.error("Decision engine error:", err);
+    res.status(500).json({ error: "Decision computation failed" });
+  }
+});
+
+router.get("/shipments/:id/decision", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const id = paramId(req);
+  const result = await getShipmentDecision(id, companyId);
+  res.json({ data: result || null });
+});
+
 router.get("/shipments/:id/insurance", async (req, res) => {
   const companyId = getCompanyId(req);
   const id = paramId(req);
@@ -476,6 +515,41 @@ router.post("/shipments/:id/approve", requireMinRole("OPERATOR"), validateBody(a
 
   if (shipment.status !== "DRAFT" && shipment.status !== "PENDING_REVIEW") {
     res.status(400).json({ error: `Cannot approve shipment in ${shipment.status} status` });
+    return;
+  }
+
+  const [complianceCheck] = await db
+    .select({ status: complianceScreeningsTable.status })
+    .from(complianceScreeningsTable)
+    .where(and(eq(complianceScreeningsTable.shipmentId, id), eq(complianceScreeningsTable.companyId, companyId)))
+    .orderBy(desc(complianceScreeningsTable.screenedAt))
+    .limit(1);
+  if (complianceCheck?.status === "BLOCKED") {
+    res.status(400).json({ error: "Cannot approve: compliance screening returned BLOCKED status. Resolve compliance issues first." });
+    return;
+  }
+
+  const [docCheck] = await db
+    .select({ status: documentValidationResultsTable.status })
+    .from(documentValidationResultsTable)
+    .where(and(eq(documentValidationResultsTable.shipmentId, id), eq(documentValidationResultsTable.companyId, companyId)))
+    .limit(1);
+  if (docCheck?.status === "BLOCKED") {
+    res.status(400).json({ error: "Cannot approve: document validation is BLOCKED. Resolve documentation gaps first." });
+    return;
+  }
+
+  const [decisionCheck] = await db
+    .select({ finalStatus: shipmentDecisionsTable.finalStatus, releaseAllowed: shipmentDecisionsTable.releaseAllowed })
+    .from(shipmentDecisionsTable)
+    .where(and(eq(shipmentDecisionsTable.shipmentId, id), eq(shipmentDecisionsTable.companyId, companyId)))
+    .limit(1);
+  if (!decisionCheck) {
+    res.status(400).json({ error: "Cannot approve: no decision computed. Run the decision engine first." });
+    return;
+  }
+  if (decisionCheck.finalStatus !== "APPROVED" || !decisionCheck.releaseAllowed) {
+    res.status(400).json({ error: `Cannot approve: decision engine status is ${decisionCheck.finalStatus}. Resolve all blocking and review conditions first.` });
     return;
   }
 
