@@ -111,6 +111,18 @@ export default function ShipmentDetail() {
   const { data: shipmentRes, isLoading: loadingShipment } = useGetShipment(id);
   const { data: complianceRes } = useGetShipmentCompliance(id);
   const { data: riskRes } = useGetShipmentRisk(id);
+  const { data: docValRes } = useQuery({
+    queryKey: [`/api/shipments/${id}/document-validation`],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const res = await fetch(`${import.meta.env.BASE_URL}api/shipments/${id}/document-validation`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return { data: null };
+      return res.json();
+    },
+    enabled: !!id,
+  });
   const { data: insuranceRes } = useGetShipmentInsurance(id);
   const { data: eventsRes } = useGetShipmentEvents(id);
   const { data: docsRes } = useGetShipmentDocuments(id);
@@ -126,6 +138,7 @@ export default function ShipmentDetail() {
   const complianceArr = (complianceRes?.data || []) as any[];
   const compliance = Array.isArray(complianceArr) ? complianceArr[0] || null : complianceArr;
   const risk = riskRes?.data as any;
+  const docValidation = docValRes?.data as any;
   const insurance = insuranceRes?.data as any;
   const events = (eventsRes?.data || []) as any[];
   const docs = (docsRes?.data || []) as any[];
@@ -151,6 +164,7 @@ export default function ShipmentDetail() {
   const [evaluatingScenarios, setEvaluatingScenarios] = useState(false);
   const [weatherContext, setWeatherContext] = useState<any>(null);
   const [runningCompliance, setRunningCompliance] = useState(false);
+  const [runningDocValidation, setRunningDocValidation] = useState(false);
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -191,6 +205,26 @@ export default function ShipmentDetail() {
       toast({ title: "Compliance check failed", description: "An error occurred during screening. Please try again.", variant: "destructive" });
     } finally {
       setRunningCompliance(false);
+    }
+  };
+
+  const runDocValidationCheck = async () => {
+    setRunningDocValidation(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${BASE}/shipments/${id}/document-validation-check`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error(`Document validation failed: ${res.status}`);
+      qc.invalidateQueries({ queryKey: [`/api/shipments/${id}/document-validation`] });
+      qc.invalidateQueries({ queryKey: [`/api/shipments/${id}/events`] });
+      toast({ title: "Document validation complete", description: "Documentation review finished successfully." });
+    } catch (err) {
+      console.error("[doc-validation]", err);
+      toast({ title: "Document validation failed", description: "An error occurred during validation. Please try again.", variant: "destructive" });
+    } finally {
+      setRunningDocValidation(false);
     }
   };
 
@@ -793,6 +827,120 @@ export default function ShipmentDetail() {
                 )}
               </div>
             )}
+
+            <div className="p-4 rounded-xl bg-card border border-card-border">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <ClipboardCheck className="w-4 h-4 text-primary" />
+                  <h3 className="text-[13px] font-semibold text-foreground">Document Validation</h3>
+                </div>
+                <button
+                  onClick={runDocValidationCheck}
+                  disabled={runningDocValidation}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                >
+                  {runningDocValidation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  {runningDocValidation ? "Validating..." : docValidation ? "Re-Run Validation" : "Run Document Validation"}
+                </button>
+              </div>
+              {docValidation ? (
+                <>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`flex items-center gap-1.5 text-[14px] font-semibold ${docValidation.status === "READY" ? "text-primary" : docValidation.status === "REVIEW" ? "text-[#D4A24C]" : "text-[#E05252]"}`}>
+                      {docValidation.status === "READY" ? <CheckCircle2 className="w-4 h-4" /> : docValidation.status === "REVIEW" ? <AlertCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                      {docValidation.status}
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${docValidation.readinessLevel === "COMPLETE" ? "bg-primary/10 text-primary" : docValidation.readinessLevel === "PARTIAL" ? "bg-[#D4A24C]/10 text-[#D4A24C]" : "bg-[#E05252]/10 text-[#E05252]"}`}>
+                      {docValidation.readinessLevel}
+                    </span>
+                  </div>
+
+                  {docValidation.missingDocuments?.length > 0 && (
+                    <div className="mb-2">
+                      <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Missing Documents</h4>
+                      <div className="space-y-1">
+                        {(docValidation.missingDocuments as any[]).map((d: any, i: number) => (
+                          <div key={i} className={`text-[11px] px-2 py-1.5 rounded ${d.severity === "CRITICAL" ? "bg-[#E05252]/10 text-[#E05252] border border-[#E05252]/20" : "bg-[#D4A24C]/10 text-[#D4A24C] border border-[#D4A24C]/20"}`}>
+                            {d.label}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {docValidation.missingFields?.length > 0 && (
+                    <div className="mb-2">
+                      <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Missing Fields</h4>
+                      <div className="space-y-1">
+                        {(docValidation.missingFields as any[]).slice(0, 5).map((f: any, i: number) => (
+                          <div key={i} className={`text-[11px] px-2 py-1.5 rounded ${f.severity === "CRITICAL" ? "bg-[#E05252]/10 text-[#E05252] border border-[#E05252]/20" : "bg-[#D4A24C]/10 text-[#D4A24C] border border-[#D4A24C]/20"}`}>
+                            {f.field} — {f.documentType || "document"}
+                          </div>
+                        ))}
+                        {docValidation.missingFields.length > 5 && (
+                          <p className="text-[10px] text-muted-foreground">+{docValidation.missingFields.length - 5} more</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {docValidation.inconsistencies?.length > 0 && (
+                    <div className="mb-2">
+                      <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Inconsistencies</h4>
+                      <div className="space-y-1">
+                        {(docValidation.inconsistencies as any[]).map((inc: any, i: number) => (
+                          <div key={i} className="text-[11px] px-2 py-1.5 rounded bg-[#D4A24C]/10 text-[#D4A24C] border border-[#D4A24C]/20">
+                            {inc.field}: {inc.values?.join(" vs ")}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {docValidation.suspiciousFindings?.length > 0 && (
+                    <div className="mb-2">
+                      <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Suspicious Findings</h4>
+                      <div className="space-y-1">
+                        {(docValidation.suspiciousFindings as any[]).map((s: any, i: number) => (
+                          <div key={i} className={`text-[11px] px-2 py-1.5 rounded ${s.severity === "CRITICAL" ? "bg-[#E05252]/10 text-[#E05252] border border-[#E05252]/20" : "bg-[#D4A24C]/10 text-[#D4A24C] border border-[#D4A24C]/20"}`}>
+                            <span className="font-semibold">{s.title}</span>
+                            {s.detail && <span className="block mt-0.5 opacity-80">{s.detail}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {docValidation.reasoningSummary && (
+                    <div className="mt-2 p-2 rounded bg-secondary/30 border border-border/50">
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">{docValidation.reasoningSummary}</p>
+                    </div>
+                  )}
+
+                  {docValidation.recommendedActions?.length > 0 && (
+                    <div className="mt-2">
+                      <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Recommended Actions</h4>
+                      <ul className="space-y-1">
+                        {(docValidation.recommendedActions as string[]).map((a: string, i: number) => (
+                          <li key={i} className="text-[11px] text-muted-foreground flex gap-1.5">
+                            <span className="text-primary shrink-0">•</span>
+                            <span>{a}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {docValidation.validatedAt && (
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Validated {new Date(docValidation.validatedAt).toLocaleString()}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-[12px] text-muted-foreground">No validation completed yet. Click "Run Document Validation" to check documentation completeness.</p>
+              )}
+            </div>
 
             <div className="p-4 rounded-xl bg-card border border-card-border">
               <div className="flex items-center justify-between mb-3">

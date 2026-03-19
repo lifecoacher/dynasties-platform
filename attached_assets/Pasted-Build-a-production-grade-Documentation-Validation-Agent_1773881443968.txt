@@ -1,0 +1,357 @@
+Build a production-grade Documentation Validation Agent inside the existing Dynasties Replit project. This must integrate with the current architecture, current shipment/document models, existing AI layer, existing compliance agent, and the current UI. Do NOT create a separate prototype, toy app, or parallel system.
+
+WORKING STYLE
+- Plan first before coding.
+- Inspect the existing repo and reuse current services, shared types, schemas, validators, and UI patterns.
+- Do not introduce duplicate AI clients, duplicate document models, or duplicate workflow logic.
+- Build incrementally with checkpoints.
+- Keep all code production-oriented, typed, and integrated.
+- Do not overwrite working code.
+- Prefer narrow composable services over monolithic files.
+- Reuse the existing Anthropic integration if present.
+- Show progress as: repo analysis -> implementation plan -> files to modify -> code changes -> tests -> manual verification -> open issues.
+
+PRIMARY GOAL
+Implement a real Documentation Validation Agent that evaluates whether shipment-related documents are complete, internally consistent, and operationally usable. It must detect missing required documents, missing required fields, field inconsistencies across documents, suspicious document content, and readiness for downstream workflow. It must return a structured decision that visibly affects workflow.
+
+THIS IS NOT
+- not a generic chatbot
+- not a fake “AI validator”
+- not a separate dashboard with mock data
+- not only OCR/extraction
+- not only document generation
+- not a passive report with no workflow consequence
+
+THIS IS
+- one narrow, real, outcome-affecting agent
+- integrated into existing shipment/document workflow
+- able to operate on real shipment and document data
+- able to return structured validation output
+- able to be shown in a client demo
+- extensible later
+
+BUSINESS CONTEXT
+Dynasties is being positioned as governed trade execution infrastructure. Documentation quality is one of the clearest sources of operational failure and manual review in freight workflows. This agent should make the product feel like real operational infrastructure, not AI decoration.
+
+EXISTING SYSTEM CONTEXT
+Before coding, inspect and explicitly map integration points with the existing:
+- document-extraction service
+- shipment-construction service
+- document-generation service
+- compliance agent / compliance screening results
+- risk scoring
+- current shipment detail page / workflow UI
+- existing database tables for ingested documents, shipments, events, and any extracted_data or metadata
+- existing Anthropic integration wrapper
+
+The audit shows the platform already has document extraction, shipment construction, document generation, billing, pricing, exception management, and an Anthropic integration wrapper, so this agent must fit inside those existing rails rather than introducing a second architecture. It also notes the agent pattern should remain advisory with deterministic validation and structured output.  [oai_citation:1‡dynasties-audit-report.pdf](sediment://file_00000000d81c71fd8ff76a2f82f2ca08)
+
+AI PROVIDER INTEGRATION (CRITICAL)
+1. Inspect the codebase for an existing AI provider.
+   - If an AI service already exists:
+     - Reuse it.
+     - Do NOT create a second AI client.
+     - Route all AI calls through the existing abstraction.
+2. If no reusable provider abstraction exists:
+   - Implement a clean wrapper around Anthropic using the existing project convention.
+3. Fix existing issues if present:
+   - prevent crashes if API key is missing
+   - use lazy initialization
+   - add error handling and fallbacks
+4. LLM usage rules:
+   - input must be structured
+   - output must be structured JSON
+   - low temperature / deterministic settings
+   - used for ambiguity resolution, summarization, and explanation
+   - NOT used as the sole source of truth for hard validation rules
+5. System must still work without AI:
+   - deterministic validation runs first
+   - AI enhances reasoning and explains inconsistencies
+6. If there is any Anthropic env mismatch in the current project, align the new code with the existing, working project conventions instead of creating another variant.
+
+CORE FUNCTION
+Given a shipment and its associated ingested/generated documents, the Documentation Validation Agent must:
+1. Inspect the available document set for the shipment.
+2. Determine whether the shipment has the required document types for the current workflow stage.
+3. Validate whether required extracted fields are present within each document.
+4. Detect inconsistencies across documents.
+5. Flag suspicious or incomplete documentation that should block or delay workflow.
+6. Return a structured result:
+   - status: READY | REVIEW | BLOCKED
+   - readinessLevel: COMPLETE | PARTIAL | INSUFFICIENT
+   - missingDocuments: array
+   - missingFields: array
+   - inconsistencies: array
+   - suspiciousFindings: array
+   - recommendedActions: array
+   - reasoningSummary
+   - reviewedAt
+7. Persist the result and show it in the UI.
+8. Affect workflow outcome.
+
+SUPPORTED DOCUMENT TYPES
+Adapt to whatever document model exists in the codebase, but support validation concepts for typical freight docs such as:
+- commercial invoice
+- packing list
+- bill of lading / HBL / MBL
+- arrival notice
+- customs-related documents
+- insurance documents if present
+- shipment summary or generated internal document if already part of system
+
+Do not hardcode assumptions that every shipment requires every document type. Required docs should depend on shipment type, workflow stage, and available metadata/rules.
+
+EXAMPLE VALIDATION TASKS
+The agent should be able to detect:
+- missing commercial invoice
+- missing packing list
+- missing bill of lading
+- missing consignee / shipper / carrier field
+- missing destination/origin
+- missing invoice amount / currency where required
+- missing package count / weight where relevant
+- mismatched consignee name across docs
+- mismatched commodity description across docs
+- mismatched invoice value across docs
+- mismatched ports / destination across docs
+- missing or inconsistent document dates
+- unsupported/low-confidence extracted fields
+- generated documents that cannot proceed because source data is incomplete
+
+OUTPUT CONTRACT
+Create a strongly typed output schema, e.g.
+
+DocumentationValidationResult = {
+  shipmentId: string;
+  status: "READY" | "REVIEW" | "BLOCKED";
+  readinessLevel: "COMPLETE" | "PARTIAL" | "INSUFFICIENT";
+  missingDocuments: Array<{
+    code: string;
+    label: string;
+    reason: string;
+    severity: "WARNING" | "CRITICAL";
+  }>;
+  missingFields: Array<{
+    documentType?: string | null;
+    field: string;
+    severity: "WARNING" | "CRITICAL";
+    detail: string;
+  }>;
+  inconsistencies: Array<{
+    code: string;
+    field: string;
+    values: string[];
+    severity: "WARNING" | "CRITICAL";
+    detail: string;
+  }>;
+  suspiciousFindings: Array<{
+    code: string;
+    title: string;
+    detail: string;
+    severity: "WARNING" | "CRITICAL";
+  }>;
+  recommendedActions: string[];
+  reasoningSummary: string;
+  sourceDocuments: Array<{
+    documentId: string;
+    documentType?: string | null;
+    filename?: string | null;
+    validationState: "VALID" | "INCOMPLETE" | "CONFLICTED" | "UNKNOWN";
+  }>;
+  reviewedAt: string;
+};
+
+ARCHITECTURE
+Create a dedicated service/module, such as:
+- services/document-validation/
+
+Separate:
+- document inventory / normalization
+- required-document rules
+- required-field validation
+- cross-document consistency checks
+- AI reasoning layer
+- output builder
+
+If there is an existing service pattern like agent.ts, validator.ts, index.ts in other service modules, follow that exact pattern so this agent feels native to the codebase.
+
+REQUIRED DOCUMENT RULES
+Implement a deterministic rules layer first.
+Rules should be configurable and extensible, not hardcoded in route handlers.
+
+Examples:
+- Shipment in DRAFT/PENDING_REVIEW requires at least core operational docs to continue
+- Missing invoice and packing list => REVIEW or BLOCKED depending on shipment stage
+- Missing bill of lading at a downstream stage => REVIEW or BLOCKED
+- Missing values required for pricing, billing, compliance, or claims should be surfaced
+- If extraction confidence or extracted field availability exists in the current model, use it
+
+CROSS-DOCUMENT CONSISTENCY
+Implement checks for:
+- shipper name consistency
+- consignee name consistency
+- notify party consistency if present
+- commodity description consistency
+- origin/destination consistency
+- invoice value consistency
+- package count / weight consistency where available
+- dates and reference numbers where meaningful
+
+AI LAYER (SECOND PASS)
+Use AI only to:
+- summarize the validation result
+- explain likely causes of inconsistency
+- classify ambiguous conflicts when deterministic logic is insufficient
+- produce concise recommended actions
+
+Never let AI overrule deterministic missing-document or missing-field rules.
+
+DATABASE / PERSISTENCE
+Inspect current schema first.
+If needed, add a document_validation_results table or equivalent with:
+- id
+- shipment_id
+- company_id
+- status
+- readiness_level
+- missing_documents JSON
+- missing_fields JSON
+- inconsistencies JSON
+- suspicious_findings JSON
+- recommended_actions JSON
+- reasoning_summary
+- source_documents JSON
+- created_at
+- updated_at
+- agent_version or similar
+
+Follow existing schema, migration, and tenancy conventions.
+
+API
+Add endpoints consistent with current route conventions, for example:
+- POST /api/shipments/:id/document-validation-check
+- GET /api/shipments/:id/document-validation-result
+
+Use existing auth and tenant isolation.
+Prefer OPERATOR+ role for running the check, matching the existing compliance workflow if that pattern is already in place.
+
+UI / FRONTEND
+Integrate into the existing ShipmentDetail or equivalent workflow page.
+Minimum UI requirements:
+1. Add a “Run Document Validation” action.
+2. If a result exists, show “Re-Run Validation”.
+3. Display:
+   - status badge (READY / REVIEW / BLOCKED)
+   - readiness level
+   - missing documents
+   - missing fields
+   - inconsistencies
+   - suspicious findings
+   - reasoning summary
+   - timestamp
+4. Make the result understandable in under 10 seconds.
+5. Preserve current visual design patterns.
+6. Invalidate relevant query caches after a successful run.
+
+WORKFLOW CONSEQUENCES
+This is critical.
+The result must affect workflow.
+At minimum:
+- READY => shipment/document workflow may continue
+- REVIEW => requires operator attention / manual review
+- BLOCKED => prevent progression to downstream steps if the current workflow already supports such gating
+
+If hard workflow gating is too invasive for this step, at least expose a clearly visible workflow recommendation and state hook for later enforcement.
+
+AUDIT / EVENTS
+Reuse the current event logging pattern.
+Log:
+- validation run started
+- validation run completed
+- validation result status
+- validation rerun
+- notable failure conditions
+
+TESTING
+Create tests for:
+- clean shipment with complete docs => READY
+- missing required document => REVIEW or BLOCKED
+- missing required fields => REVIEW
+- inconsistent consignee/commodity/value across docs => REVIEW or BLOCKED
+- AI failure => deterministic result still returned
+- tenant isolation preserved
+- UI renders correctly if frontend tests exist
+
+Add at least 3 realistic sample shipments / document sets:
+- one complete and clean
+- one incomplete / review
+- one blocked by severe document gaps or conflicts
+
+COMPATIBILITY WITH EXISTING AGENTS
+This agent must work alongside the Compliance Agent already built.
+Where helpful:
+- display both compliance state and documentation state in the shipment workflow
+- make sure results do not conflict at the type/interface level
+- keep services composable so all three demo agents can be tested together later
+
+CHECKPOINTS
+Checkpoint 1: Repo analysis + implementation plan
+- inspect current codebase
+- identify integration points
+- list files to modify
+- confirm assumptions before edits
+
+Checkpoint 2: Backend validation domain
+- add schemas/types
+- add deterministic validation rules
+- add service orchestration
+
+Checkpoint 3: AI integration
+- reuse existing Anthropic integration
+- add structured LLM summarization/explanation
+- add fallback behavior
+
+Checkpoint 4: Persistence + API
+- add schema changes/migrations if needed
+- add endpoints
+- add event logging
+
+Checkpoint 5: UI integration
+- add run/re-run validation action
+- render result panel/card
+- make output instantly readable
+
+Checkpoint 6: Tests + fixtures
+- add automated tests
+- add realistic sample data
+- verify end-to-end locally in Replit
+
+Checkpoint 7: Final review
+- summarize architecture
+- list files changed
+- note open follow-up items
+- ensure app still runs without regressions
+
+DELIVERABLES
+At the end provide:
+1. short architecture summary
+2. exact files created/modified
+3. db changes/migrations
+4. API endpoints added/changed
+5. UI surfaces added/changed
+6. tests added
+7. manual verification steps
+8. known follow-up items
+9. suggested next checkpoint name
+
+DEMO REQUIREMENT
+The system must support this flow:
+- upload or inspect shipment documents
+- run document validation
+- show a clear result
+- make the operator understand whether the shipment can proceed
+
+QUALITY BAR
+The result should feel like a serious freight operations workflow component, not a gimmick.
+Be conservative, typed, robust, and integrated.
+Do not mark complete until the Documentation Validation Agent runs end-to-end inside the current Dynasties application.
