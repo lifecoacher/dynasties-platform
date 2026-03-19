@@ -9,6 +9,7 @@ import demoRouter from "./routes/demo.js";
 import { loginLimiter, apiLimiter } from "./middlewares/rate-limit.js";
 import { requestLogger } from "./middlewares/request-logger.js";
 import { globalErrorHandler } from "./middlewares/error-handler.js";
+import { WebhookHandlers } from "./webhookHandlers.js";
 
 const app: Express = express();
 app.set("trust proxy", 1);
@@ -32,6 +33,31 @@ app.use(
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
+);
+
+app.post(
+  '/api/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const signature = req.headers['stripe-signature'];
+    if (!signature) {
+      res.status(400).json({ error: 'Missing stripe-signature' });
+      return;
+    }
+    try {
+      const sig = Array.isArray(signature) ? signature[0] : signature;
+      if (!Buffer.isBuffer(req.body)) {
+        console.error('STRIPE WEBHOOK ERROR: req.body is not a Buffer');
+        res.status(500).json({ error: 'Webhook processing error' });
+        return;
+      }
+      await WebhookHandlers.processWebhook(req.body as Buffer, sig);
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error('Webhook error:', error.message);
+      res.status(400).json({ error: 'Webhook processing error' });
+    }
+  }
 );
 
 app.use(express.json({ limit: "10mb" }));

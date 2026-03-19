@@ -18,6 +18,7 @@ import {
   FileText,
   Receipt,
   Upload,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
@@ -48,6 +49,7 @@ const ALL_NAV_ITEMS = [
   { href: "/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/billing", icon: Receipt, label: "Billing" },
   { href: "/onboarding/migration", icon: Upload, label: "Data Import" },
+  { href: "/settings/billing", icon: CreditCard, label: "Subscription" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
