@@ -1,0 +1,278 @@
+You’re finally asking for something that actually moves the product forward instead of polishing pixels. Good.
+
+Here’s the prompt. This forces Replit (or whatever you’re using) to build a real AI migration system, not a dressed-up CSV uploader.
+
+⸻
+
+MASTER PROMPT — DYNASTIES AI MIGRATION ENGINE (TENANT CREATION + DATA IMPORT SYSTEM)
+
+You are a Principal Systems Architect and Data Platform Engineer.
+
+Your task is to design and implement a modern AI-powered migration system for Dynasties that enables:
+	•	seamless tenant creation
+	•	intelligent data import (CSV, XLSX, API-ready)
+	•	AI-driven classification, mapping, and normalization
+	•	minimal human input with high-confidence automation
+	•	a clean, reviewable migration workflow
+
+This system must feel like a “one-click migration” from platforms like Flexport, Magaya, or generic exports.
+
+No basic CSV uploader. This is an intelligent ingestion pipeline.
+
+⸻
+
+SECTION 1 — TENANT CREATION + ONBOARDING FLOW
+
+Implement a clean onboarding flow:
+	1.	User creates a new company (tenant)
+	•	companyName
+	•	industry (default logistics)
+	•	admin user
+	•	optional account number auto-generated
+	2.	System generates:
+	•	tenantId
+	•	accountNumber (human-readable, unique)
+	•	isolated workspace
+	3.	Immediately after creation:
+	•	route user into “Migration Workspace”
+	4.	Provide two options:
+	•	“Start Fresh”
+	•	“Import Existing Data (Recommended)”
+
+⸻
+
+SECTION 2 — MIGRATION WORKSPACE (CORE UX)
+
+Create a dedicated module:
+
+/onboarding/migration
+
+Steps:
+	1.	Upload / Connect Data
+	2.	AI Processing (classification + mapping)
+	3.	Review & Resolve Exceptions
+	4.	Validation Summary
+	5.	Import into Tenant
+
+UI must show:
+	•	progress states
+	•	confidence levels
+	•	detected object types
+
+⸻
+
+SECTION 3 — INGESTION LAYER
+
+Support:
+	•	CSV
+	•	XLSX
+	•	multiple files (batch upload)
+	•	ZIP bundles
+
+Design ingestion service:
+
+input:
+	•	raw files
+
+output:
+	•	parsed structured data (tables, rows, metadata)
+
+Handle:
+	•	multiple header rows
+	•	inconsistent column names
+	•	empty rows / metadata rows
+
+⸻
+
+SECTION 4 — AI CLASSIFICATION AGENT
+
+Build an AI agent that:
+
+For each file:
+	•	determines file type:
+	•	shipments
+	•	invoices
+	•	customers
+	•	line items
+	•	payments
+	•	unknown
+
+Use:
+	•	column names
+	•	data patterns
+	•	value distributions
+
+Output:
+	•	fileType
+	•	confidenceScore
+	•	reasoning (for debugging/logging)
+
+⸻
+
+SECTION 5 — SCHEMA MAPPING AGENT
+
+Map source fields to Dynasties schema.
+
+Example targets:
+	•	customers:
+	•	name, address, email, companyId
+	•	shipments:
+	•	origin, destination, container, incoterms, carrier
+	•	invoices:
+	•	invoiceNumber, amount, currency, dueDate
+
+Agent must:
+	•	infer mappings from column names AND values
+	•	support fuzzy matching (e.g. “Client Name” → customer.name)
+	•	split combined fields (e.g. “NYC → LON”)
+	•	normalize date formats
+	•	normalize currencies
+
+Output per field:
+	•	mappedField
+	•	confidenceScore
+	•	transformationApplied
+
+⸻
+
+SECTION 6 — NORMALIZATION ENGINE
+
+Transform mapped data into canonical Dynasties models:
+
+Entities:
+	•	customers
+	•	shipments
+	•	invoices
+	•	invoice_line_items
+	•	payments (optional)
+
+Requirements:
+	•	deduplicate customers (fuzzy match)
+	•	link invoices → customers
+	•	link shipments → invoices where possible
+	•	enforce required fields
+	•	flag missing critical data
+
+⸻
+
+SECTION 7 — CONFIDENCE + REVIEW SYSTEM
+
+Do NOT ask user to map everything.
+
+Instead:
+	•	auto-accept mappings above confidence threshold (e.g. >90%)
+	•	surface only low-confidence items
+
+UI must show:
+	•	“92% mapped automatically”
+	•	list of fields needing review
+	•	unresolved relationships
+
+Allow user actions:
+	•	confirm mapping
+	•	remap field
+	•	merge duplicate entities
+	•	ignore field
+
+⸻
+
+SECTION 8 — VALIDATION LAYER
+
+Before import:
+
+Display:
+	•	total customers detected
+	•	total shipments
+	•	total invoices
+	•	total invoice value
+	•	missing required fields
+	•	duplicate warnings
+
+User must confirm before final import.
+
+⸻
+
+SECTION 9 — IMPORT ENGINE
+
+On confirmation:
+	•	write all normalized entities into tenant database
+	•	maintain relationships (foreign keys)
+	•	ensure transactional integrity
+
+Requirements:
+	•	rollback on failure
+	•	idempotent import support
+	•	prevent duplicate imports
+
+⸻
+
+SECTION 10 — POST-IMPORT STATE
+
+After import:
+	•	redirect to dashboard
+	•	show:
+	•	imported counts
+	•	total revenue
+	•	active shipments
+
+Ensure:
+	•	billing module reflects imported invoices
+	•	receivables visible immediately
+	•	financing eligibility computed
+
+⸻
+
+SECTION 11 — ARCHITECTURE REQUIREMENTS
+
+Implement as modular services:
+	•	ingestion-service
+	•	classification-agent
+	•	mapping-agent
+	•	normalization-engine
+	•	import-service
+
+No logic in UI.
+
+All transformations must occur in backend services.
+
+⸻
+
+SECTION 12 — FUTURE EXTENSIBILITY (DO NOT SKIP STRUCTURE)
+
+Prepare system for:
+	•	API connectors (QuickBooks, carrier APIs)
+	•	saved mapping templates per customer
+	•	learning from previous imports
+	•	real-time sync (future)
+
+⸻
+
+SECTION 13 — SUCCESS CRITERIA
+
+System must:
+	1.	Accept messy real-world files
+	2.	Automatically map >80% of fields correctly
+	3.	Require minimal user correction
+	4.	Import fully linked business objects
+	5.	Populate Dynasties dashboard with real data immediately
+
+If user has to manually map everything, the system has failed.
+
+⸻
+
+FINAL INSTRUCTION
+
+You are not building an importer.
+
+You are building a migration system that replaces implementation teams.
+
+The experience must feel:
+	•	fast
+	•	intelligent
+	•	forgiving
+	•	trustworthy
+
+End state:
+User uploads files → reviews a few items → clicks import → Dynasties is fully populated and usable within minutes.
+
+No shortcuts. No placeholders.

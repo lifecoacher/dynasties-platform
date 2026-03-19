@@ -17,6 +17,7 @@ import {
   Settings2,
   FileText,
   Receipt,
+  Upload,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
@@ -46,6 +47,7 @@ const ALL_NAV_ITEMS = [
   { href: "/reports", icon: FileText, label: "Reports" },
   { href: "/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/billing", icon: Receipt, label: "Billing" },
+  { href: "/onboarding/migration", icon: Upload, label: "Data Import" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
