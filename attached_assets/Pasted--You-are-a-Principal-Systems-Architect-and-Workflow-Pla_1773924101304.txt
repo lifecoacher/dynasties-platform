@@ -1,0 +1,275 @@
+
+You are a Principal Systems Architect and Workflow Platform Engineer.
+
+Your task is to design and implement a Document Engine for Dynasties that turns the platform into a true operational workspace, not just an intelligence and tracking layer.
+
+This engine must generate core freight/logistics documents directly from Dynasties’ canonical data model so users do not need to re-enter the same information across shipment, documentation, and billing workflows.
+
+No mock documents. No static templates without data binding. No manual copy/paste workflow.
+
+⸻
+
+SECTION 1 — CORE OBJECTIVE
+
+Build a system that:
+	•	generates operational documents from canonical shipment/customer/invoice data
+	•	enforces a single source of truth
+	•	prevents duplicate data entry
+	•	validates document readiness before generation
+	•	stores versioned document outputs linked to shipments and invoices
+
+⸻
+
+SECTION 2 — SUPPORTED DOCUMENT TYPES
+
+Implement generation support for:
+	•	Commercial Invoice
+	•	Packing List
+	•	Bill of Lading (draft / generated form)
+	•	Customs / export document scaffold
+	•	Supporting shipment summary PDF
+
+Document types should be extensible.
+
+⸻
+
+SECTION 3 — DOCUMENT DATA MODEL
+
+Create a new table:
+
+shipment_documents_generated
+
+Fields:
+	•	id
+	•	tenantId
+	•	shipmentId
+	•	invoiceId (nullable)
+	•	documentType
+	•	versionNumber
+	•	generationStatus (DRAFT / GENERATED / BLOCKED / SUPERSEDED)
+	•	sourceSnapshot (JSONB)
+	•	validationSnapshot (JSONB)
+	•	filePath or storageRef
+	•	createdBy
+	•	createdAt
+	•	supersededBy (nullable)
+
+Requirements:
+	•	multiple versions per document type
+	•	immutable historical versions
+	•	latest active version easy to query
+
+⸻
+
+SECTION 4 — CANONICAL DATA BINDING
+
+All documents must be generated from canonical objects:
+	•	customer
+	•	shipper / consignee
+	•	shipment
+	•	shipment events / status
+	•	invoice
+	•	invoice line items
+
+Requirements:
+	•	no document can contain fields independent of source data
+	•	no manual duplicate entry unless explicitly marked as override
+	•	every generated document stores the exact source snapshot used at generation time
+
+⸻
+
+SECTION 5 — DOCUMENT VALIDATION ENGINE
+
+Before generation, validate required data.
+
+Examples:
+
+Commercial Invoice
+
+Requires:
+	•	seller / buyer identity
+	•	product description
+	•	quantities
+	•	values
+	•	currency
+
+Packing List
+
+Requires:
+	•	package counts
+	•	weights / dimensions
+	•	item descriptions
+
+Bill of Lading
+
+Requires:
+	•	shipper
+	•	consignee
+	•	origin / destination
+	•	carrier / routing data if available
+
+If required fields are missing:
+	•	block generation
+	•	show missing fields clearly
+	•	suggest next actions
+
+⸻
+
+SECTION 6 — DOCUMENT GENERATION SERVICE
+
+Create modular services:
+	•	commercial-invoice-generator
+	•	packing-list-generator
+	•	bill-of-lading-generator
+	•	customs-doc-generator
+
+Each service must:
+	•	accept canonical source data
+	•	validate required fields
+	•	produce structured document output
+	•	render to a presentable file format (PDF or HTML-to-PDF)
+
+No generation logic in UI.
+
+⸻
+
+SECTION 7 — UI WORKFLOW
+
+In Shipment Detail and/or a dedicated Documents tab, allow user to:
+	•	view required documents
+	•	see generation readiness
+	•	generate document
+	•	view latest version
+	•	regenerate after source changes
+	•	compare versions if useful
+
+UI must show:
+	•	ready / blocked state
+	•	missing data
+	•	generated documents list
+	•	latest version status
+
+⸻
+
+SECTION 8 — VERSIONING + SOURCE OF TRUTH
+
+If source data changes after generation:
+	•	existing document remains as prior version
+	•	user can regenerate
+	•	new version becomes active
+	•	old version marked superseded
+
+Display:
+	•	“Generated from shipment/invoice state at [timestamp]”
+	•	version history
+
+⸻
+
+SECTION 9 — IMPORT + EVENT INTEGRATION
+
+Ensure generated documents work with:
+	•	imported shipments
+	•	imported invoices
+	•	event-driven status changes
+
+Examples:
+	•	arrival / customs events can affect document readiness
+	•	imported invoice data should feed commercial invoice generation
+	•	imported shipment package data should feed packing list generation
+
+⸻
+
+SECTION 10 — AUDIT TRAIL
+
+Every document action must create events:
+	•	DOCUMENT_GENERATION_REQUESTED
+	•	DOCUMENT_GENERATED
+	•	DOCUMENT_BLOCKED
+	•	DOCUMENT_SUPERSEDED
+
+Tie events to shipment and document ID.
+
+⸻
+
+SECTION 11 — STORAGE
+
+Use existing storage abstraction.
+
+Requirements:
+	•	generated docs stored via proper storage layer
+	•	no local-only shortcut logic
+	•	document refs retrievable through API
+
+⸻
+
+SECTION 12 — API ENDPOINTS
+
+Implement endpoints for:
+	•	GET /shipments/:id/documents
+	•	POST /shipments/:id/documents/:type/generate
+	•	GET /shipments/:id/documents/:documentId
+	•	POST /shipments/:id/documents/:documentId/regenerate
+	•	GET /shipments/:id/documents/:documentId/download
+
+Requirements:
+	•	tenant-scoped
+	•	role-aware
+	•	generation blocked when validation fails
+	•	response includes validation details and version state
+
+⸻
+
+SECTION 13 — UX QUALITY BAR
+
+This must feel like a modern operational document workspace, not a file dump.
+
+Requirements:
+	•	clear readiness states
+	•	obvious missing data prompts
+	•	strong document list hierarchy
+	•	generated document preview or preview-ready metadata
+	•	no empty or placeholder panels visible in demo
+
+If a document cannot be generated, the user must understand exactly why in under 3 seconds.
+
+⸻
+
+SECTION 14 — DEMO DATA + VALIDATION
+
+Extend demo data and imported data support so there are:
+	•	at least 2 shipments that can generate all major documents successfully
+	•	at least 1 shipment that is blocked due to missing required fields
+	•	at least 1 example of regenerated document version after source data change
+
+Validate:
+	•	generated docs link to correct shipment and invoice
+	•	document versions supersede properly
+	•	blocked state is truthful
+	•	no duplicate generated docs from repeated clicks
+
+⸻
+
+SECTION 15 — SUCCESS CRITERIA
+
+System must:
+	1.	Generate real commercial invoice, packing list, and B/L draft from canonical data
+	2.	Prevent generation when required inputs are missing
+	3.	Eliminate duplicate entry across shipment / invoice / document flows
+	4.	Preserve document version history
+	5.	Make Dynasties feel like the place where documentation actually happens
+
+If users still need to manually recreate the same shipment data in a separate doc workflow, the system has failed.
+
+⸻
+
+FINAL INSTRUCTION
+
+You are not building a PDF button.
+
+You are building the document layer that makes Dynasties operationally indispensable.
+
+End state:
+
+Data comes in → events update reality → decision engine governs truth → documents are generated directly from the same canonical system.
+
+No shortcuts. No placeholders.

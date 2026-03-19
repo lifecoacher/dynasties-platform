@@ -43,3 +43,4 @@ export * from "./routing-pricing";
 export * from "./shipment-decisions";
 export * from "./migrations";
 export * from "./shipment-events";
+export * from "./generated-documents";

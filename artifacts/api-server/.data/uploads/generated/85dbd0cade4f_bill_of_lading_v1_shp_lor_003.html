@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bill of Lading (Draft)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; line-height: 1.5; }
+  .page { max-width: 800px; margin: 0 auto; padding: 40px 48px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #00BFA6; padding-bottom: 16px; margin-bottom: 24px; }
+  .header-left h1 { font-size: 20px; font-weight: 700; color: #0D1219; letter-spacing: 0.02em; }
+  .header-left .subtitle { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .header-right { text-align: right; }
+  .header-right .doc-number { font-size: 13px; font-weight: 600; color: #00BFA6; }
+  .header-right .date { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .party-box { padding: 12px 16px; background: #f8f9fb; border: 1px solid #e5e7eb; border-radius: 6px; }
+  .party-box .label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #00BFA6; margin-bottom: 6px; }
+  .party-box .name { font-size: 12px; font-weight: 600; color: #1a1a2e; }
+  .party-box .detail { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .section { margin-bottom: 20px; }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #0D1219; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #e5e7eb; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  th { background: #f0f1f3; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; padding: 8px 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 8px 10px; border-bottom: 1px solid #f0f1f3; font-size: 11px; color: #1a1a2e; }
+  tr:last-child td { border-bottom: 1px solid #e5e7eb; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .totals { margin-left: auto; width: 260px; }
+  .totals tr td { border-bottom: 1px solid #f0f1f3; }
+  .totals .grand-total td { font-weight: 700; font-size: 13px; border-top: 2px solid #00BFA6; border-bottom: none; padding-top: 10px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 16px; }
+  .info-item { display: flex; gap: 6px; }
+  .info-item .info-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; min-width: 100px; }
+  .info-item .info-value { font-size: 11px; color: #1a1a2e; font-weight: 500; }
+  .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #9ca3af; text-align: center; }
+  .stamp { display: inline-block; padding: 4px 12px; border: 2px solid #00BFA6; color: #00BFA6; font-weight: 700; font-size: 12px; letter-spacing: 0.1em; transform: rotate(-3deg); margin-top: 16px; }
+  .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 8px 12px; border-radius: 4px; font-size: 10px; color: #856404; margin-bottom: 16px; }
+  @media print { .page { padding: 20px; } body { font-size: 10px; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+    <div class="header">
+      <div class="header-left">
+        <h1>BILL OF LADING</h1>
+        <div class="subtitle">Draft &mdash; Not Negotiable Until Signed</div>
+      </div>
+      <div class="header-right">
+        <div class="doc-number">BL-LOR-2026-0003</div>
+        <div class="date">March 19, 2026</div>
+        <div class="stamp">DRAFT</div>
+      </div>
+    </div>
+
+    <div class="warning">
+      This is a system-generated draft Bill of Lading. It must be reviewed and signed by the carrier before it becomes a negotiable document.
+    </div>
+
+    <div class="parties">
+      <div class="party-box">
+    <div class="label">Shipper</div>
+    <div class="name">Shanghai Precision Optics Co</div>
+    
+    <div class="detail">Shanghai, China</div>
+    
+    
+  </div>
+      <div class="party-box">
+    <div class="label">Consignee</div>
+    <div class="name">European Distribution Hub BV</div>
+    
+    <div class="detail">Rotterdam, Netherlands</div>
+    
+    
+  </div>
+    </div>
+
+    <div style="margin-bottom:24px">
+      <div class="party-box"><div class="label">Notify Party</div><div class="name" style="color:#9ca3af">Not assigned</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Voyage Details</div>
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">B/L Number</span><span class="info-value">BL-LOR-2026-0003</span></div>
+        <div class="info-item"><span class="info-label">Booking No.</span><span class="info-value">BK-0003</span></div>
+        <div class="info-item"><span class="info-label">Vessel</span><span class="info-value">COSCO Harmony</span></div>
+        <div class="info-item"><span class="info-label">Voyage</span><span class="info-value">CH-803W</span></div>
+        <div class="info-item"><span class="info-label">Port of Loading</span><span class="info-value">CNSHA</span></div>
+        <div class="info-item"><span class="info-label">Port of Discharge</span><span class="info-value">NLRTM</span></div>
+        <div class="info-item"><span class="info-label">ETD</span><span class="info-value">March 21, 2026</span></div>
+        <div class="info-item"><span class="info-label">ETA</span><span class="info-value">April 19, 2026</span></div>
+        <div class="info-item"><span class="info-label">Freight Terms</span><span class="info-value">PREPAID</span></div>
+        <div class="info-item"><span class="info-label">Carrier</span><span class="info-value">COSCO Shipping Lines</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Particulars of Cargo</div>
+      <table>
+        <thead><tr>
+          <th>Marks &amp; Numbers</th>
+          <th>Description of Goods</th>
+          <th class="text-center">Packages</th>
+          <th class="text-center">Gross Weight</th>
+          <th class="text-center">Measurement</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td>LOR-2026-0003</td>
+            <td>
+              Optical Instruments
+              <br><span style="font-size:10px;color:#6b7280">HS: 9015.80</span>
+            </td>
+            <td class="text-center">85</td>
+            <td class="text-center">3400 KG</td>
+            <td class="text-center">13.6 CBM</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px">
+      <div>
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;color:#6b7280;margin-bottom:24px">Shipper's Signature</div>
+        <div style="border-bottom:1px solid #1a1a2e;width:200px;margin-top:40px"></div>
+      </div>
+      <div>
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;color:#6b7280;margin-bottom:24px">Carrier's Signature</div>
+        <div style="border-bottom:1px solid #1a1a2e;width:200px;margin-top:40px"></div>
+      </div>
+    </div>
+  
+<div class="footer">
+  Generated by Dynasties Document Engine &mdash; 2026-03-19
+   &mdash; BL-LOR-2026-0003
+</div>
+</div>
+</body>
+</html>

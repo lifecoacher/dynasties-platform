@@ -1,0 +1,15 @@
+{
+  "name": "@workspace/svc-doc-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/shared-utils": "workspace:*",
+    "@workspace/storage": "workspace:*",
+    "drizzle-orm": "^0.45.1"
+  }
+}

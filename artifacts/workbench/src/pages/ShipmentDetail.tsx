@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
+import { DocumentWorkspace } from "../components/documents/DocumentWorkspace";
 import {
   useGetShipment,
   useGetShipmentCompliance,
@@ -827,6 +828,8 @@ export default function ShipmentDetail() {
                 <p className="text-[11px] text-muted-foreground text-center py-4">No shipment events recorded yet. Add the first event above.</p>
               )}
             </div>
+
+            <DocumentWorkspace shipmentId={id} />
 
             {events.length > 0 && (
               <div className="p-5 rounded-xl bg-card border border-card-border">
