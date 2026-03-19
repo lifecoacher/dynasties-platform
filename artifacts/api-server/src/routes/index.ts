@@ -22,8 +22,10 @@ import billingRouter from "./billing.js";
 import migrationRouter from "./migration.js";
 import generatedDocumentsRouter from "./generated-documents.js";
 import reconciliationRouter from "./reconciliation.js";
+import stripeBillingRouter from "./stripe-billing.js";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant } from "../middlewares/tenant.js";
+import { requireActiveBilling } from "../middlewares/billing-enforcement.js";
 
 const router: IRouter = Router();
 
@@ -32,6 +34,7 @@ router.use(referenceRouter);
 router.use(requireAuth);
 router.use(refreshRole);
 router.use(requireTenant);
+router.use(requireActiveBilling);
 
 router.use(shipmentsRouter);
 router.use(entitiesRouter);
@@ -55,5 +58,6 @@ router.use(billingRouter);
 router.use(migrationRouter);
 router.use(generatedDocumentsRouter);
 router.use(reconciliationRouter);
+router.use(stripeBillingRouter);
 
 export default router;
