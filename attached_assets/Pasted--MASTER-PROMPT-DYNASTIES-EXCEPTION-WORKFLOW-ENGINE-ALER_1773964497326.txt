@@ -1,0 +1,241 @@
+
+
+MASTER PROMPT — DYNASTIES EXCEPTION WORKFLOW ENGINE + ALERTS LAYER
+
+You are a Principal Systems Architect and Operations Workflow Engineer.
+
+Your task is to design and implement the Exception Workflow Engine and Alerts Layer for Dynasties so the platform can operationalize real-world disruptions, not just display them.
+
+Dynasties already has:
+	•	event ingestion
+	•	document validation
+	•	decision engine
+	•	reconciliation engine
+	•	quote → shipment → invoice continuity
+
+Now it must turn risk, delays, document failures, and financial discrepancies into structured operational workflows.
+
+No passive warning banners. No disconnected alerts. No fake task lists.
+
+⸻
+
+SECTION 1 — CORE OBJECTIVE
+
+Build a system that:
+	•	detects operational and financial exceptions
+	•	creates first-class exception records
+	•	assigns status, owner, severity, and recommended actions
+	•	surfaces alerts at shipment, invoice, and workspace level
+	•	creates the operational follow-through layer for real teams
+
+⸻
+
+SECTION 2 — EXCEPTION DATA MODEL
+
+Create a new table:
+
+exceptions
+
+Fields:
+	•	id
+	•	tenantId
+	•	shipmentId (nullable)
+	•	invoiceId (nullable)
+	•	documentId (nullable)
+	•	exceptionType
+	•	severity (LOW / MEDIUM / HIGH / CRITICAL)
+	•	status (OPEN / IN_PROGRESS / RESOLVED / ESCALATED)
+	•	detectedFrom (EVENT / DOCUMENT / RECONCILIATION / DECISION / MANUAL)
+	•	title
+	•	description
+	•	recommendedActions (JSONB or structured text)
+	•	assignedToUserId (nullable)
+	•	dueAt (nullable)
+	•	resolvedAt (nullable)
+	•	metadata (JSONB)
+	•	createdAt
+	•	updatedAt
+
+Requirements:
+	•	every exception must belong to a tenant
+	•	exceptions can link to shipment, invoice, and/or document
+	•	support both system-generated and manual exceptions
+
+⸻
+
+SECTION 3 — SUPPORTED EXCEPTION TYPES
+
+Implement canonical exception types at minimum:
+	•	CUSTOMS_HOLD
+	•	DELAYED_SHIPMENT
+	•	MISSING_DOCUMENTS
+	•	DOCUMENT_BLOCKED
+	•	REWEIGH_RECLASS
+	•	MISSED_PICKUP
+	•	DELIVERY_EXCEPTION
+	•	OSD_DAMAGE_SHORTAGE
+	•	MAJOR_INVOICE_VARIANCE
+	•	UNMATCHED_CARRIER_INVOICE
+	•	RELEASE_BLOCKED
+	•	HIGH_RISK_REVIEW
+
+No arbitrary UI-only exception strings.
+
+⸻
+
+SECTION 4 — EXCEPTION DETECTION RULES
+
+Automatically create exceptions from existing systems:
+
+4.1 Event layer
+	•	CUSTOMS_HOLD event → CUSTOMS_HOLD exception
+	•	DELAYED event → DELAYED_SHIPMENT exception
+
+4.2 Document engine
+	•	blocked document generation due to missing required fields → MISSING_DOCUMENTS or DOCUMENT_BLOCKED exception
+
+4.3 Decision engine
+	•	finalStatus = REVIEW or BLOCKED with releaseAllowed = false → RELEASE_BLOCKED or HIGH_RISK_REVIEW exception
+
+4.4 Reconciliation engine
+	•	MAJOR_VARIANCE → MAJOR_INVOICE_VARIANCE exception
+	•	UNMATCHED carrier invoice → UNMATCHED_CARRIER_INVOICE exception
+
+Requirements:
+	•	deduplicate repeat exceptions when same underlying issue already open
+	•	reopen previously resolved exception only if new triggering evidence appears
+
+⸻
+
+SECTION 5 — EXCEPTION WORKFLOW ENGINE
+
+Implement workflow behavior:
+	•	OPEN → IN_PROGRESS → RESOLVED
+	•	OPEN / IN_PROGRESS → ESCALATED
+
+Support:
+	•	assign owner
+	•	change status
+	•	add notes / updates
+	•	resolve with resolution summary
+	•	escalate manually or via rule
+
+Each exception should have recommended actions based on type.
+
+Examples:
+	•	CUSTOMS_HOLD → request missing customs docs, notify ops owner
+	•	MAJOR_INVOICE_VARIANCE → review carrier invoice line items, confirm surcharge legitimacy
+	•	MISSING_DOCUMENTS → generate or upload required docs before release
+
+⸻
+
+SECTION 6 — ALERTS LAYER
+
+Create a lightweight alerts system.
+
+At minimum support:
+	•	shipment-level alert badges
+	•	invoice-level alert badges
+	•	workspace alert summary
+	•	exception count by severity
+
+Create an alerts table if needed, or derive alerts from open exceptions.
+
+UI must show:
+	•	critical open exceptions
+	•	unresolved financial discrepancies
+	•	blocked releases
+	•	delayed shipments needing attention
+
+Do NOT build email/SMS infrastructure yet unless trivial.
+Focus on in-app operational alerts.
+
+⸻
+
+SECTION 7 — UI INTEGRATION
+
+Add exception and alert visibility to:
+
+Shipment Detail
+	•	open exceptions panel
+	•	severity/status badges
+	•	action buttons
+	•	assigned owner if present
+
+Invoice / Reconciliation views
+	•	major variance / unmatched invoice exceptions visible inline
+
+Global workspace view
+	•	open exceptions summary
+	•	critical alerts
+	•	“needs attention” queue
+
+This should feel like a real ops system, not a warning ribbon.
+
+⸻
+
+SECTION 8 — WORK QUEUE INTEGRATION
+
+Tie exceptions into the existing Work Queue if appropriate.
+
+Requirements:
+	•	open exceptions create or appear as actionable work items
+	•	critical exceptions surface first
+	•	resolved exceptions disappear or archive correctly
+
+⸻
+
+SECTION 9 — AUDIT TRAIL
+
+Emit events for:
+	•	EXCEPTION_CREATED
+	•	EXCEPTION_ASSIGNED
+	•	EXCEPTION_ESCALATED
+	•	EXCEPTION_RESOLVED
+
+These must be tied to shipment/invoice/document where relevant.
+
+⸻
+
+SECTION 10 — SECURITY + TENANT ISOLATION
+
+Requirements:
+	•	all exception data tenant-scoped
+	•	assignment and status changes role-aware
+	•	no cross-tenant access
+	•	all alerts derived from tenant-local exception state
+
+⸻
+
+SECTION 11 — DEMO / TEST DATA
+
+Ensure demo/imported data supports:
+	•	at least one customs hold exception
+	•	one delayed shipment exception
+	•	one blocked document exception
+	•	one major invoice variance exception
+	•	one resolved exception example
+
+⸻
+
+SECTION 12 — SUCCESS CRITERIA
+
+System must:
+	1.	Detect exceptions automatically from events, document validation, decision outcomes, and reconciliation
+	2.	Create structured exception records with severity, status, and actions
+	3.	Surface exceptions in shipment/invoice/global views
+	4.	Allow assignment, progression, escalation, and resolution
+	5.	Make Dynasties feel like a system that manages disruptions, not just observes them
+
+If issues are still only shown as passive warnings with no operational workflow, the system has failed.
+
+⸻
+
+FINAL INSTRUCTION
+
+You are building the layer that makes Dynasties operationally dependable under stress.
+
+Happy-path systems are easy.
+Real logistics software is judged by what happens when things go wrong.
+
+Build the exception engine accordingly.

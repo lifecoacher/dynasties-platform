@@ -33,6 +33,7 @@ import MigrationWorkspace from "./pages/MigrationWorkspace";
 import SubscriptionBilling from "./pages/SubscriptionBilling";
 import QuotesPage from "./pages/QuotesPage";
 import QuoteDetail from "./pages/QuoteDetail";
+import ExceptionsPage from "./pages/ExceptionsPage";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -113,6 +114,7 @@ function AuthenticatedRouter() {
       <Route path="/" component={CommandCenter} />
       <Route path="/quotes/:id" component={QuoteDetail} />
       <Route path="/quotes" component={QuotesPage} />
+      <Route path="/exceptions" component={ExceptionsPage} />
       <Route path="/shipments" component={ShipmentsPage} />
       <Route path="/shipments/:id/trace" component={DecisionTrace} />
       <Route path="/shipments/:id" component={ShipmentDetail} />
