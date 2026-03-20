@@ -20,9 +20,11 @@ import {
   Upload,
   CreditCard,
   Calculator,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
+import { useAlertsSummary } from "@/hooks/use-exceptions";
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
@@ -40,6 +42,7 @@ const ALL_NAV_ITEMS = [
   { href: "/", icon: Command, label: "Command Center" },
   { href: "/quotes", icon: Calculator, label: "Quotes" },
   { href: "/shipments", icon: Ship, label: "Shipments" },
+  { href: "/exceptions", icon: AlertTriangle, label: "Exceptions" },
   { href: "/control-tower", icon: Radar, label: "Control Tower" },
   { href: "/work-queue", icon: ClipboardList, label: "Work Queue" },
   { href: "/customers", icon: Users, label: "Customers" },
@@ -63,7 +66,9 @@ export function Sidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const { data: shipmentsRes } = useListShipments();
+  const { data: alertsRes } = useAlertsSummary();
   const recentShipments = (shipmentsRes?.data || []).slice(0, 4);
+  const alertCount = alertsRes?.data?.needsAttention ?? 0;
 
   const isActive = (href: string) => {
     if (href === "/") return location === "/";
@@ -107,6 +112,11 @@ export function Sidebar() {
                 )}
                 <item.icon className="w-4 h-4 shrink-0" />
                 {item.label}
+                {item.href === "/exceptions" && alertCount > 0 && (
+                  <span className="ml-auto px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-red-500/20 text-red-400 min-w-[18px] text-center">
+                    {alertCount}
+                  </span>
+                )}
               </motion.div>
             </Link>
           );

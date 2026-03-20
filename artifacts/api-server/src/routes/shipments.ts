@@ -46,7 +46,6 @@ import {
   rejectShipmentSchema,
   patchShipmentFieldsSchema,
   createRateTableSchema,
-  patchExceptionSchema,
   createClaimSchema,
   patchClaimSchema,
 } from "../schemas/index.js";
@@ -906,94 +905,6 @@ router.get("/shipments/:id/exceptions", async (req, res) => {
     .where(and(eq(exceptionsTable.shipmentId, id), eq(exceptionsTable.companyId, companyId)))
     .orderBy(desc(exceptionsTable.createdAt));
   res.json({ data: exceptions });
-});
-
-router.patch("/exceptions/:id", requireMinRole("OPERATOR"), validateBody(patchExceptionSchema), async (req, res) => {
-  const companyId = getCompanyId(req);
-  const id = paramId(req);
-  const { status, resolution: resolutionNotes } = req.body as {
-    status: string;
-    resolution?: string;
-  };
-
-  const [exception] = await db
-    .select()
-    .from(exceptionsTable)
-    .where(and(eq(exceptionsTable.id, id), eq(exceptionsTable.companyId, companyId)))
-    .limit(1);
-
-  if (!exception) {
-    res.status(404).json({ error: "Exception not found" });
-    return;
-  }
-
-  const actorId = req.user!.userId;
-  const updateData: Record<string, unknown> = {};
-  if (status) {
-    updateData.status = status;
-  }
-  if (resolutionNotes) updateData.resolutionNotes = resolutionNotes;
-  if (status === "RESOLVED") {
-    updateData.resolvedAt = new Date();
-    updateData.resolvedBy = actorId;
-  }
-
-  await db.transaction(async (tx: DbTransaction) => {
-    await tx
-      .update(exceptionsTable)
-      .set(updateData)
-      .where(eq(exceptionsTable.id, id));
-
-    await tx.insert(eventsTable).values({
-      id: generateId(),
-      companyId,
-      eventType: "EXCEPTION_UPDATED",
-      entityType: "exception",
-      entityId: id,
-      actorType: "USER",
-      userId: actorId,
-      beforeState: { status: exception.status },
-      afterState: { status: status || exception.status },
-      metadata: { resolutionNotes },
-    });
-  });
-
-  const [updated] = await db
-    .select()
-    .from(exceptionsTable)
-    .where(eq(exceptionsTable.id, id))
-    .limit(1);
-
-  res.json({ data: updated });
-});
-
-router.get("/exceptions/:id", async (req, res) => {
-  const companyId = getCompanyId(req);
-  const id = paramId(req);
-  const [exception] = await db
-    .select()
-    .from(exceptionsTable)
-    .where(and(eq(exceptionsTable.id, id), eq(exceptionsTable.companyId, companyId)))
-    .limit(1);
-
-  if (!exception) {
-    res.status(404).json({ error: "Exception not found" });
-    return;
-  }
-  res.json({ data: exception });
-});
-
-router.get("/exceptions", async (req, res) => {
-  const companyId = getCompanyId(req);
-  const pg = parsePagination(req);
-  const exceptions = await db
-    .select()
-    .from(exceptionsTable)
-    .where(eq(exceptionsTable.companyId, companyId))
-    .orderBy(desc(exceptionsTable.createdAt))
-    .limit(pg.limit)
-    .offset(pg.offset);
-  res.json(paginatedResponse(exceptions, pg));
 });
 
 router.get("/trade-lanes", async (req, res) => {

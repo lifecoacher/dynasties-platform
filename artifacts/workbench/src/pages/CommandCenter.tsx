@@ -13,10 +13,12 @@ import {
   Loader2,
   Clock,
   AlertCircle,
+  XCircle,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CommandInput } from "@/components/command/CommandInput";
 import { useAuth } from "@/hooks/use-auth";
+import { useAlertsSummary } from "@/hooks/use-exceptions";
 import { normalizeRiskScore, riskColor, riskLabel, formatCurrency } from "@/lib/format";
 
 function StatusDot({ status }: { status: string }) {
@@ -38,7 +40,9 @@ function StatusDot({ status }: { status: string }) {
 export default function CommandCenter() {
   const { user } = useAuth();
   const { data: shipmentsRes, isLoading } = useListShipments();
+  const { data: alertsRes } = useAlertsSummary();
   const shipments = (shipmentsRes?.data || []) as any[];
+  const alertsSummary = alertsRes?.data;
 
   const totalShipments = shipments.length;
   const complianceClear = shipments.filter((s: any) => s.compliance?.status === "CLEAR").length;
@@ -85,6 +89,57 @@ export default function CommandCenter() {
           <MetricCard label="Risk Alerts" value={isLoading ? null : highRisk} icon={<TrendingUp className="w-4 h-4" />} color={highRisk > 0 ? "text-[#D4A24C]" : "text-primary"} />
           <MetricCard label="Compliance" value={isLoading ? null : complianceAlerts} sub={complianceAlerts > 0 ? "alerts" : "clear"} icon={<AlertCircle className="w-4 h-4" />} color={complianceAlerts > 0 ? "text-[#E05252]" : "text-primary"} />
         </motion.div>
+
+        {alertsSummary && alertsSummary.total > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.25 }}
+            className="mb-8"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[15px] font-semibold text-foreground flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-orange-400" />
+                Exception Alerts
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-red-400">
+                  {alertsSummary.needsAttention} need attention
+                </span>
+              </h2>
+              <Link href="/exceptions" className="text-[12px] text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors">
+                View all <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="space-y-1.5">
+              {alertsSummary.criticalAlerts.map((alert: any) => (
+                <Link key={alert.id} href={alert.shipmentId ? `/shipments/${alert.shipmentId}` : "/exceptions"}>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-card border border-card-border hover:bg-white/[0.02] transition-colors cursor-pointer group">
+                    <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
+                      alert.severity === "CRITICAL" ? "bg-red-500/10" : "bg-orange-500/10"
+                    }`}>
+                      {alert.severity === "CRITICAL" ? (
+                        <XCircle className="w-3.5 h-3.5 text-red-400" />
+                      ) : (
+                        <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[12px] font-medium text-foreground">{alert.title}</span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
+                          alert.severity === "CRITICAL" ? "bg-red-500/10 text-red-400" : "bg-orange-500/10 text-orange-400"
+                        }`}>{alert.severity}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
+                          alert.status === "ESCALATED" ? "bg-orange-500/10 text-orange-400" : "bg-red-500/10 text-red-400"
+                        }`}>{alert.status}</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 8 }}
