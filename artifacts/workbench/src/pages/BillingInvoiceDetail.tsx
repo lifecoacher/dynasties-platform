@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useBillingInvoice, useBillingAction } from "@/hooks/use-billing";
+import { InvoiceSyncBadge } from "@/components/accounting/SyncBadge";
 
 function formatCurrency(val: number | string, currency = "USD") {
   const n = typeof val === "string" ? parseFloat(val) : val;
@@ -574,6 +575,8 @@ export default function BillingInvoiceDetail() {
             </div>
           </div>
         )}
+
+        <InvoiceSyncBadge invoiceId={invoiceId} />
 
         {events.length > 0 && (
           <div className="bg-card border border-card-border rounded-xl p-6">
