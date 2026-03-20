@@ -34,6 +34,7 @@ import SubscriptionBilling from "./pages/SubscriptionBilling";
 import QuotesPage from "./pages/QuotesPage";
 import QuoteDetail from "./pages/QuoteDetail";
 import ExceptionsPage from "./pages/ExceptionsPage";
+import AccountingIntegration from "./pages/AccountingIntegration";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -132,6 +133,7 @@ function AuthenticatedRouter() {
       <Route path="/billing/settings" component={BillingSettings} />
       <Route path="/onboarding/migration" component={MigrationWorkspace} />
       <Route path="/settings/billing" component={SubscriptionBilling} />
+      <Route path="/settings/accounting" component={AccountingIntegration} />
       <Route path="/settings" component={SettingsPage} />
       {!DEMO_MODE && <Route path="/intelligence" component={IntelligencePage} />}
       {!DEMO_MODE && <Route path="/customers" component={CustomersPage} />}

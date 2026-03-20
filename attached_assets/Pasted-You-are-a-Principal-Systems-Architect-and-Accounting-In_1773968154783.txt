@@ -1,0 +1,222 @@
+You are a Principal Systems Architect and Accounting Integration Engineer.
+
+Your task is to design and implement the Accounting Sync Layer for Dynasties, starting with QuickBooks Online.
+
+This system must connect Dynasties’ canonical commercial and financial objects to the customer’s accounting system so Dynasties becomes operationally and financially embedded, not just operationally useful.
+
+No fake sync. No CSV export pretending to be integration. Build a real integration foundation.
+
+⸻
+
+SECTION 1 — CORE OBJECTIVE
+
+Build a system that:
+	•	connects a tenant workspace to QuickBooks Online
+	•	syncs customers from Dynasties to QuickBooks
+	•	syncs invoices from Dynasties to QuickBooks
+	•	ingests payment status from QuickBooks back into Dynasties
+	•	preserves a clear mapping between Dynasties objects and accounting objects
+
+⸻
+
+SECTION 2 — CONNECTION MODEL
+
+Implement per-tenant QuickBooks connection state.
+
+Create fields/table to store:
+	•	tenantId
+	•	provider = QUICKBOOKS
+	•	connectionStatus (NOT_CONNECTED / CONNECTED / ERROR / EXPIRED)
+	•	realmId / company identifier
+	•	access token / refresh token storage via secure encrypted config or secrets layer
+	•	token expiry
+	•	createdAt
+	•	updatedAt
+
+Requirements:
+	•	each tenant has isolated accounting connection
+	•	no shared connection state across tenants
+	•	connection status visible in workspace settings
+
+⸻
+
+SECTION 3 — ACCOUNTING OBJECT MAPPING
+
+Create mappings for:
+
+Customers
+	•	Dynasties customerId ↔ QuickBooks customerId
+
+Invoices
+	•	Dynasties invoiceId ↔ QuickBooks invoiceId
+
+Payments
+	•	Dynasties payment / receivable state ↔ QuickBooks payment status
+
+Store explicit mapping records so sync is deterministic and traceable.
+
+⸻
+
+SECTION 4 — CUSTOMER SYNC
+
+Implement customer sync flow:
+	•	push Dynasties customers to QuickBooks
+	•	detect if already mapped
+	•	avoid duplicates
+	•	support update or skip logic
+
+Requirements:
+	•	use exact match if mapping exists
+	•	use safe matching if not mapped
+	•	never silently create duplicate accounting customers if high-confidence match exists
+
+⸻
+
+SECTION 5 — INVOICE SYNC
+
+Implement invoice sync flow:
+	•	push Dynasties invoice to QuickBooks
+	•	include customer reference
+	•	include line items
+	•	include totals, currency, due date, invoice number
+
+Requirements:
+	•	invoice source must remain Dynasties canonical data
+	•	QuickBooks object ID stored after sync
+	•	repeated sync must be idempotent
+	•	invoice changes after sync must support update or version-safe resync
+
+⸻
+
+SECTION 6 — PAYMENT STATUS INGESTION
+
+Implement pull/sync back from QuickBooks for:
+	•	invoice paid
+	•	partial payment
+	•	payment date
+	•	outstanding balance
+
+Dynasties must update:
+	•	receivable state
+	•	invoice payment state
+	•	audit trail event
+
+This is critical so Dynasties does not diverge from accounting truth.
+
+⸻
+
+SECTION 7 — SYNC WORKFLOWS
+
+Support:
+	•	manual sync now
+	•	automatic sync later
+
+V1 flows:
+	•	“Sync customer”
+	•	“Sync invoice”
+	•	“Refresh payment status”
+
+Later-ready architecture:
+	•	background sync jobs
+	•	webhook-style updates if provider supports
+
+⸻
+
+SECTION 8 — UI INTEGRATION
+
+Add Accounting / Integrations workspace settings UI.
+
+Show:
+	•	QuickBooks connection state
+	•	last sync time
+	•	sync errors
+	•	mapped / unmapped invoices
+	•	mapped / unmapped customers
+
+In Invoice Detail:
+	•	show accounting sync status
+	•	show QuickBooks sync badge
+	•	allow manual sync / refresh status
+
+In Customer Detail if available:
+	•	show customer sync status
+
+⸻
+
+SECTION 9 — ERROR HANDLING + CONFLICTS
+
+Handle:
+	•	duplicate customer matches
+	•	invoice number conflicts
+	•	missing customer before invoice sync
+	•	expired tokens
+	•	partial sync failures
+
+Requirements:
+	•	surface conflicts clearly
+	•	do not silently fail
+	•	maintain sync audit log
+
+⸻
+
+SECTION 10 — AUDIT TRAIL
+
+Emit events:
+	•	ACCOUNTING_CONNECTED
+	•	CUSTOMER_SYNCED
+	•	INVOICE_SYNCED
+	•	PAYMENT_STATUS_REFRESHED
+	•	ACCOUNTING_SYNC_FAILED
+
+Tie to tenant and relevant shipment/invoice/customer where possible.
+
+⸻
+
+SECTION 11 — SECURITY
+
+Requirements:
+	•	all accounting tokens securely stored
+	•	tenant-scoped access only
+	•	OWNER / ADMIN only for connection and sync actions
+	•	no cross-tenant accounting visibility
+
+⸻
+
+SECTION 12 — DEMO / TEST SUPPORT
+
+Support:
+	•	sandbox / test QuickBooks integration if available
+	•	mocked connection state only if real connection cannot be used immediately, but architecture must remain real
+
+Provide at least:
+	•	one synced customer
+	•	one synced invoice
+	•	one payment-status refresh example
+
+⸻
+
+SECTION 13 — SUCCESS CRITERIA
+
+System must allow:
+	1.	Tenant connects QuickBooks
+	2.	Dynasties customer syncs to QuickBooks
+	3.	Dynasties invoice syncs to QuickBooks
+	4.	Payment status refresh updates Dynasties correctly
+	5.	Sync state is visible and traceable
+	6.	No duplicate accounting records created by accident
+
+If Dynasties can generate invoices but cannot connect those invoices to the customer’s actual accounting system, the system is still not embedded deeply enough.
+
+⸻
+
+FINAL INSTRUCTION
+
+You are building the financial integration layer that makes Dynasties credible inside the customer’s real operating stack.
+
+End state:
+
+Quote → Shipment → Documents → Invoice → Reconciliation → Accounting Sync
+
+One operational chain.
+One financial chain.
+No drift.

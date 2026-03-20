@@ -25,6 +25,7 @@ import reconciliationRouter from "./reconciliation.js";
 import stripeBillingRouter from "./stripe-billing.js";
 import quotesRouter from "./quotes.js";
 import exceptionsRouter from "./exceptions.js";
+import accountingRouter from "./accounting.js";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant } from "../middlewares/tenant.js";
 import { requireActiveBilling } from "../middlewares/billing-enforcement.js";
@@ -63,5 +64,6 @@ router.use(reconciliationRouter);
 router.use(stripeBillingRouter);
 router.use(quotesRouter);
 router.use(exceptionsRouter);
+router.use(accountingRouter);
 
 export default router;
