@@ -1,0 +1,298 @@
+You are a Principal Payments Architect, SaaS Billing Engineer, and Multi-Tenant Platform Engineer.
+
+Your task is to implement the full Stripe Billing + Tenant Activation + Plan Enforcement layer for Dynasties.
+
+Dynasties already has:
+
+Clerk-based identity
+tenant/workspace model
+migration/import system
+shipment, document, billing, reconciliation, and accounting sync layers
+
+Now build the commercial access-control system that turns Dynasties into a real paid SaaS platform.
+
+This system must allow a real customer to:
+
+sign up
+create a workspace
+choose a plan
+pay via Stripe
+activate the workspace
+invite users within seat limits
+operate within shipment volume limits
+manage billing cleanly
+
+No fake activation states. No manual backend overrides. No UI-only billing logic.
+
+SECTION 1 — CORE OBJECTIVE
+
+Build a billing system where:
+
+every tenant maps to a Stripe customer
+every paid tenant has a Stripe subscription
+billing status determines workspace activation
+seat and shipment limits are enforced by plan
+billing state updates only from backend + Stripe webhook truth
+SECTION 2 — PLAN MODEL
+
+Implement these plans exactly:
+
+Starter
+$249/month
+3 seats
+40 shipments/month
+Growth
+$895/month
+10 seats
+250 shipments/month
+Scale
+$2,400/month
+25 seats
+1,000 shipments/month
+Enterprise
+custom
+negotiated seats
+negotiated shipment volume
+
+Store centrally in plan config:
+
+planType
+monthlyPrice
+stripePriceId
+seatLimit
+shipmentLimit
+deploymentFee
+feature flags placeholder
+
+No hardcoded plan values in UI.
+
+SECTION 3 — TENANT BILLING FIELDS
+
+Ensure tenant/workspace model includes:
+
+stripeCustomerId
+stripeSubscriptionId
+stripePriceId
+billingStatus (TRIAL / ACTIVE / PAST_DUE / CANCELED / INCOMPLETE)
+currentPeriodEnd
+trialEndsAt
+planType
+seatLimit
+shipmentLimit
+isActive
+deploymentFeeStatus
+onboardingPaid
+SECTION 4 — STRIPE PRODUCTS / PRICE MAPPING
+
+Use Stripe Billing, not Stripe Connect.
+
+Expected Stripe product structure:
+
+Dynasties Starter
+Dynasties Growth
+Dynasties Scale
+Dynasties Enterprise
+
+Expected recurring prices:
+
+Starter: 249
+Growth: 895
+Scale: 2400
+
+Also support one-time deployment fees:
+
+Growth Deployment: 1500
+Scale Deployment: 3500
+Enterprise Deployment: manual/custom
+
+Do not use stale old Stripe prices if they still exist.
+
+SECTION 5 — CHECKOUT FLOW
+
+Implement a clean plan activation flow:
+
+Route:
+
+/activate-workspace
+
+Flow:
+
+user selects plan
+backend creates Stripe customer if missing
+backend creates Stripe Checkout session for subscription
+frontend redirects user to Stripe Checkout
+success redirects to billing success page
+activation waits for webhook confirmation
+
+Optional:
+
+include deployment fee in checkout where appropriate
+SECTION 6 — STRIPE WEBHOOKS
+
+Implement webhook handling for:
+
+checkout.session.completed
+invoice.paid
+invoice.payment_failed
+customer.subscription.updated
+customer.subscription.deleted
+
+Webhook must:
+
+identify correct tenant
+update tenant billing fields
+update planType and limits
+set billingStatus truthfully
+activate/deactivate workspace accordingly
+
+Requirements:
+
+idempotent
+retry-safe
+no duplicate corruption
+no client-side optimistic activation
+SECTION 7 — WORKSPACE ACTIVATION RULES
+
+Define:
+
+Workspace is ACTIVE only if:
+
+billingStatus = ACTIVE
+OR
+valid TRIAL
+
+If inactive:
+
+block write-heavy actions:
+shipment creation
+migration import
+document generation
+invoice generation
+sync actions if needed
+allow:
+login
+read-only access
+billing/settings pages
+
+Backend must enforce this, not only frontend.
+
+SECTION 8 — SEAT LIMIT ENFORCEMENT
+
+Use tenant membership + role system.
+
+Rules:
+
+compare active members vs seatLimit
+block new invites if limit exceeded
+show usage and upgrade prompt
+OWNER / ADMIN can manage seats
+SECTION 9 — SHIPMENT LIMIT ENFORCEMENT
+
+Track shipments created/imported during billing cycle.
+
+Rules:
+
+warning at 80%
+stronger warning at 90%
+at 100%:
+block new shipment creation/import
+OR
+support temporary overage flag if explicitly configured
+
+Do not implement automated overage billing yet.
+
+SECTION 10 — BILLING PAGE
+
+Create/update Billing page under settings.
+
+Show:
+
+current plan
+monthly price
+billing status
+renewal date
+seats used vs seat limit
+shipments used vs shipment limit
+deployment fee status
+upgrade button
+Stripe portal link
+
+Must feel enterprise-clean and trustworthy.
+
+SECTION 11 — STRIPE CUSTOMER PORTAL
+
+Add backend flow to generate customer portal session.
+
+Allow:
+
+payment method updates
+invoice history
+subscription management where appropriate
+
+Restrict to OWNER / ADMIN.
+
+SECTION 12 — TRIAL SUPPORT
+
+Implement optional trial mode:
+
+7 or 14 days
+trial tenant gets temporary active status
+after trial expiry, workspace locks to billing-required mode
+
+Trial must be explicit and time-bound.
+
+SECTION 13 — ROLE + SECURITY REQUIREMENTS
+
+Use Clerk for auth identity and Dynasties tenant/workspace records for domain truth.
+
+Requirements:
+
+current authenticated user must map to tenant
+current tenant must map to Stripe customer/subscription
+no cross-tenant billing leakage
+no manual fake activation shortcuts
+SECTION 14 — API ENDPOINTS
+
+Implement endpoints for:
+
+get current billing state
+create checkout session
+get plan catalog
+create customer portal session
+get seat usage
+get shipment usage
+webhook receiver
+
+All tenant-scoped and role-aware.
+
+SECTION 15 — TESTING / VERIFICATION
+
+Verify in Stripe test mode:
+
+workspace created
+plan selected
+checkout completed
+webhook received
+tenant becomes ACTIVE
+plan limits applied
+billing page correct
+payment failure updates status correctly
+inactive billing blocks restricted actions
+
+Return:
+
+exact files changed
+exact Stripe fields mapped
+any remaining gaps
+FINAL INSTRUCTION
+
+You are building the commercial control layer of Dynasties.
+
+This is the system that decides:
+
+who pays
+who gets access
+what they are allowed to use
+and whether Dynasties becomes a real business
+
+Build it cleanly and deterministically.
