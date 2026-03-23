@@ -26,8 +26,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
 import { useAlertsSummary } from "@/hooks/use-exceptions";
-
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+import { DEMO_MODE } from "@/hooks/use-demo";
 
 const DEMO_HIDDEN = new Set([
   "/customers",

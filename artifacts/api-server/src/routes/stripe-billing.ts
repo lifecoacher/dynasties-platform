@@ -7,7 +7,7 @@ import { requireMinRole } from "../middlewares/auth.js";
 import { stripeService } from "../services/stripe-service.js";
 import { PLAN_CONFIGS, getPlanConfig, getPlanLimits, PLAN_ORDER, type PlanType } from "../config/plans.js";
 import { getStripePublishableKey } from "../stripeClient.js";
-import { checkSeatLimit } from "../middlewares/billing-enforcement.js";
+import { checkSeatLimit, getActualShipmentCount } from "../middlewares/billing-enforcement.js";
 
 const router = Router();
 
@@ -130,9 +130,11 @@ router.get("/stripe/subscription", async (req, res) => {
     } catch {}
   }
 
+  const actualShipmentCount = await getActualShipmentCount(companyId);
+
   const limits = getPlanLimits(company.planType);
   const shipmentUsagePercent = limits.shipments > 0
-    ? Math.round((company.shipmentsUsedThisCycle / limits.shipments) * 100) : 0;
+    ? Math.round((actualShipmentCount / limits.shipments) * 100) : 0;
 
   const planConfig = company.planType ? getPlanConfig(company.planType) : null;
 
@@ -140,6 +142,10 @@ router.get("/stripe/subscription", async (req, res) => {
   if (shipmentUsagePercent >= 100) shipmentWarning = "LIMIT_REACHED";
   else if (shipmentUsagePercent >= 90) shipmentWarning = "CRITICAL_USAGE";
   else if (shipmentUsagePercent >= 80) shipmentWarning = "HIGH_USAGE";
+
+  if (company.shipmentsUsedThisCycle !== actualShipmentCount) {
+    console.error(`[billing] USAGE DRIFT DETECTED company=${companyId}: counter=${company.shipmentsUsedThisCycle} actual=${actualShipmentCount}`);
+  }
 
   const isTrialExpired = company.billingStatus === "TRIAL"
     && company.trialEndsAt
@@ -155,7 +161,7 @@ router.get("/stripe/subscription", async (req, res) => {
       seatLimit: company.seatLimit,
       shipmentLimitMonthly: company.shipmentLimitMonthly,
       seatsUsed: Number(seatCount[0]?.count || 0),
-      shipmentsUsedThisCycle: company.shipmentsUsedThisCycle,
+      shipmentsUsedThisCycle: actualShipmentCount,
       shipmentUsagePercent,
       shipmentWarning,
       currentPeriodStart: company.currentPeriodStart,

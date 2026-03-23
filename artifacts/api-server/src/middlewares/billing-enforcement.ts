@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "@workspace/db";
-import { companiesTable } from "@workspace/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { companiesTable, shipmentsTable } from "@workspace/db/schema";
+import { eq, sql, and } from "drizzle-orm";
 
 const EXEMPT_PATHS = [
   "/stripe/",
@@ -11,6 +11,13 @@ const EXEMPT_PATHS = [
 ];
 
 const WRITE_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
+
+export async function getActualShipmentCount(companyId: string): Promise<number> {
+  const result = await db.execute(
+    sql`SELECT count(*)::int as cnt FROM shipments WHERE company_id = ${companyId}`
+  );
+  return (result.rows[0] as any)?.cnt || 0;
+}
 
 export function requireActiveBilling(req: Request, res: Response, next: NextFunction): void {
   const path = req.path;
@@ -38,16 +45,17 @@ export function requireActiveBilling(req: Request, res: Response, next: NextFunc
 
 async function checkBillingStatus(req: Request, res: Response, next: NextFunction) {
   try {
+    const companyId = req.user!.companyId;
+
     const [company] = await db.select({
       billingStatus: companiesTable.billingStatus,
       planType: companiesTable.planType,
       shipmentLimitMonthly: companiesTable.shipmentLimitMonthly,
-      shipmentsUsedThisCycle: companiesTable.shipmentsUsedThisCycle,
       seatLimit: companiesTable.seatLimit,
       trialEndsAt: companiesTable.trialEndsAt,
     })
       .from(companiesTable)
-      .where(eq(companiesTable.id, req.user!.companyId))
+      .where(eq(companiesTable.id, companyId))
       .limit(1);
 
     if (!company) {
@@ -79,13 +87,19 @@ async function checkBillingStatus(req: Request, res: Response, next: NextFunctio
     const isShipmentCreate = req.method === "POST"
       && /^\/shipments\/?$/.test(req.path);
 
-    if (isShipmentCreate && company.shipmentsUsedThisCycle >= company.shipmentLimitMonthly) {
-      res.status(403).json({
-        error: "Shipment limit reached",
-        code: "SHIPMENT_LIMIT_EXCEEDED",
-        message: `You have used all ${company.shipmentLimitMonthly} shipments for this billing cycle. Upgrade your plan for more capacity.`,
-      });
-      return;
+    if (isShipmentCreate) {
+      const actualCount = await getActualShipmentCount(companyId);
+
+      if (actualCount >= company.shipmentLimitMonthly) {
+        res.status(403).json({
+          error: "Shipment limit reached",
+          code: "SHIPMENT_LIMIT_EXCEEDED",
+          message: `You have used ${actualCount} of ${company.shipmentLimitMonthly} shipments. Upgrade your plan for more capacity.`,
+          used: actualCount,
+          limit: company.shipmentLimitMonthly,
+        });
+        return;
+      }
     }
 
     next();
@@ -118,27 +132,21 @@ export async function checkSeatLimit(companyId: string): Promise<{ allowed: bool
   };
 }
 
-export async function incrementShipmentUsage(companyId: string): Promise<{ used: number; limit: number; warning: string | null }> {
-  const [result] = await db.update(companiesTable)
-    .set({
-      shipmentsUsedThisCycle: sql`${companiesTable.shipmentsUsedThisCycle} + 1`,
-    })
-    .where(eq(companiesTable.id, companyId))
-    .returning({
-      used: companiesTable.shipmentsUsedThisCycle,
-      limit: companiesTable.shipmentLimitMonthly,
-    });
+export async function getShipmentUsage(companyId: string): Promise<{ used: number; limit: number; percent: number; warning: string | null }> {
+  const [company] = await db.select({
+    shipmentLimitMonthly: companiesTable.shipmentLimitMonthly,
+  }).from(companiesTable).where(eq(companiesTable.id, companyId)).limit(1);
 
-  const percent = result.limit > 0 ? Math.round((result.used / result.limit) * 100) : 0;
+  if (!company) return { used: 0, limit: 0, percent: 0, warning: null };
+
+  const actualCount = await getActualShipmentCount(companyId);
+  const percent = company.shipmentLimitMonthly > 0
+    ? Math.round((actualCount / company.shipmentLimitMonthly) * 100) : 0;
 
   let warning: string | null = null;
-  if (percent >= 100) {
-    warning = "LIMIT_REACHED";
-  } else if (percent >= 90) {
-    warning = "CRITICAL_USAGE";
-  } else if (percent >= 80) {
-    warning = "HIGH_USAGE";
-  }
+  if (percent >= 100) warning = "LIMIT_REACHED";
+  else if (percent >= 90) warning = "CRITICAL_USAGE";
+  else if (percent >= 80) warning = "HIGH_USAGE";
 
-  return { used: result.used, limit: result.limit, warning };
+  return { used: actualCount, limit: company.shipmentLimitMonthly, percent, warning };
 }

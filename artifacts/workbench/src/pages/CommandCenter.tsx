@@ -19,6 +19,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { CommandInput } from "@/components/command/CommandInput";
 import { useAuth } from "@/hooks/use-auth";
 import { useAlertsSummary } from "@/hooks/use-exceptions";
+import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { normalizeRiskScore, riskColor, riskLabel, formatCurrency } from "@/lib/format";
 
 function StatusDot({ status }: { status: string }) {
@@ -41,17 +42,16 @@ export default function CommandCenter() {
   const { user } = useAuth();
   const { data: shipmentsRes, isLoading } = useListShipments();
   const { data: alertsRes } = useAlertsSummary();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const shipments = (shipmentsRes?.data || []) as any[];
   const alertsSummary = alertsRes?.data;
 
-  const totalShipments = shipments.length;
-  const complianceClear = shipments.filter((s: any) => s.compliance?.status === "CLEAR").length;
-  const complianceAlerts = shipments.filter((s: any) => s.compliance?.status && s.compliance.status !== "CLEAR").length;
-  const highRisk = shipments.filter((s: any) => {
-    const score = normalizeRiskScore(s.risk?.compositeScore);
-    return score != null && score >= 60;
-  }).length;
-  const activeShipments = shipments.filter((s: any) => !["DELIVERED", "CLOSED", "CANCELLED", "REJECTED"].includes(s.status)).length;
+  const metricsLoading = statsLoading;
+  const totalShipments = stats?.shipments.total ?? 0;
+  const activeShipments = stats?.shipments.active ?? 0;
+  const complianceClear = stats?.compliance.clear ?? 0;
+  const complianceAlerts = stats?.compliance.flagged ?? 0;
+  const highRisk = stats?.risk.high ?? 0;
 
   return (
     <AppLayout>
@@ -84,10 +84,10 @@ export default function CommandCenter() {
           transition={{ duration: 0.4, delay: 0.2 }}
           className="grid grid-cols-4 gap-3 mb-8"
         >
-          <MetricCard label="Active" value={isLoading ? null : activeShipments} sub={isLoading ? undefined : `of ${totalShipments}`} icon={<Ship className="w-4 h-4" />} color="text-primary" />
-          <MetricCard label="Compliant" value={isLoading ? null : complianceClear} sub={isLoading ? undefined : `of ${totalShipments}`} icon={<Shield className="w-4 h-4" />} color="text-primary" />
-          <MetricCard label="Risk Alerts" value={isLoading ? null : highRisk} icon={<TrendingUp className="w-4 h-4" />} color={highRisk > 0 ? "text-[#D4A24C]" : "text-primary"} />
-          <MetricCard label="Compliance" value={isLoading ? null : complianceAlerts} sub={complianceAlerts > 0 ? "alerts" : "clear"} icon={<AlertCircle className="w-4 h-4" />} color={complianceAlerts > 0 ? "text-[#E05252]" : "text-primary"} />
+          <MetricCard label="Active" value={metricsLoading ? null : activeShipments} sub={metricsLoading ? undefined : `of ${totalShipments}`} icon={<Ship className="w-4 h-4" />} color="text-primary" />
+          <MetricCard label="Compliant" value={metricsLoading ? null : complianceClear} sub={metricsLoading ? undefined : `of ${totalShipments}`} icon={<Shield className="w-4 h-4" />} color="text-primary" />
+          <MetricCard label="Risk Alerts" value={metricsLoading ? null : highRisk} icon={<TrendingUp className="w-4 h-4" />} color={highRisk > 0 ? "text-[#D4A24C]" : "text-primary"} />
+          <MetricCard label="Compliance" value={metricsLoading ? null : complianceAlerts} sub={complianceAlerts > 0 ? "alerts" : "clear"} icon={<AlertCircle className="w-4 h-4" />} color={complianceAlerts > 0 ? "text-[#E05252]" : "text-primary"} />
         </motion.div>
 
         {alertsSummary && alertsSummary.total > 0 && (

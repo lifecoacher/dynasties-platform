@@ -15,8 +15,7 @@ import {
   useRefreshPaymentStatus,
   useSimulateDemoPayment,
 } from "@/hooks/use-accounting";
-
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+import { DEMO_MODE } from "@/hooks/use-demo";
 
 export function InvoiceSyncBadge({ invoiceId }: { invoiceId: string }) {
   const { data: syncRes, isLoading, refetch } = useInvoiceSyncStatus(invoiceId);

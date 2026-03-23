@@ -78,6 +78,16 @@ The system automates various freight forwarding stages, including:
 - **Money-path test suite**: 21 API-level tests covering invoice lifecycle (create→send→paid→cancel), tenant isolation, charge rules, reconciliation validation, and billing enforcement. Located at `tests/money-path/run.ts`. Run with `npx tsx tests/money-path/run.ts`.
 - **Test suites**: `npx tsx tests/money-path/run.ts` (21 tests), `npx tsx tests/rls-enforcement/run.ts` (15 tests), `npx tsx tests/beta-path/run.ts` (28 tests). Total: 64 passing.
 
+## Critical Fix Sprint (Complete)
+- **T001 Billing Usage Counter**: `getActualShipmentCount()` uses `COUNT(*) FROM shipments` instead of stale counter. Drift detection logs divergence.
+- **T002 Risk + Decision Engine**: Block threshold=70, `enforceInvariants()` on ALL return paths, Zod schemas (`DecisionInputSchema`, `DecisionOutputSchema`) for input validation, terminal status fix (DELIVERED→APPROVED+releaseAllowed=true), frontend risk reconciliation (decision.unifiedRisk.finalScore preferred).
+- **T003 Control Tower**: Verified functional with recommendations, prioritized queue, ingestion triggers, and work queue.
+- **T004 404 + Error Handling**: Backend `notFoundHandler` + `globalErrorHandler`, frontend `NotFound` page with navigation.
+- **T005 Data Normalization**: `normalizeRiskTo100()` in decision engine, `normalizeRiskScore()` in frontend handle 0-1 vs 0-100 scale.
+- **T006 Agent Output Hardening**: Zod validation on decision engine input. All agent outputs go through deterministic services.
+- **T007 Dashboard Metrics**: New `/api/dashboard/stats` endpoint with server-side aggregate queries. `useDashboardStats()` hook replaces paginated-list derivation in Command Center.
+- **T008 Demo Mode Signal**: Centralized `use-demo.ts` hook exports `DEMO_MODE` constant. Global "DEMO MODE" banner in AppLayout. All consumers import from single source.
+
 ## External Dependencies
 - **AI Integration:** Anthropic Claude via `@workspace/integrations-anthropic-ai`.
 - **Authentication:** Clerk (`@clerk/clerk-react`, `@clerk/express`), `jsonwebtoken`.

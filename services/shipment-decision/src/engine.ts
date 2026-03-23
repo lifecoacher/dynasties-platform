@@ -1,35 +1,41 @@
+import { z } from "zod";
+
 export type DecisionStatus = "APPROVED" | "BLOCKED" | "REJECTED" | "REVIEW";
 
-export interface DecisionInput {
-  shipmentStatus: string;
-  complianceStatus: string | null;
-  complianceMatchCount: number;
-  docValidationStatus: string | null;
-  docReadinessLevel: string | null;
-  baseRiskScore: number | null;
-  baseRiskLevel: string | null;
-  dynamicRiskScore: number | null;
-  dynamicRiskLevel: string | null;
-  readinessScore: number | null;
-  gateHoldsCount: number;
-  activeHolds: string[];
-}
+export const DecisionInputSchema = z.object({
+  shipmentStatus: z.string(),
+  complianceStatus: z.string().nullable(),
+  complianceMatchCount: z.number().int().min(0),
+  docValidationStatus: z.string().nullable(),
+  docReadinessLevel: z.string().nullable(),
+  baseRiskScore: z.number().nullable(),
+  baseRiskLevel: z.string().nullable(),
+  dynamicRiskScore: z.number().nullable(),
+  dynamicRiskLevel: z.string().nullable(),
+  readinessScore: z.number().nullable(),
+  gateHoldsCount: z.number().int().min(0),
+  activeHolds: z.array(z.string()),
+});
 
-export interface DecisionOutput {
-  finalStatus: DecisionStatus;
-  releaseAllowed: boolean;
-  decisionReason: string;
-  unifiedRisk: {
-    baseScore: number;
-    dynamicScore: number;
-    finalScore: number;
-    level: string;
-  };
-  blockReasons: string[];
-  reviewReasons: string[];
-}
+export type DecisionInput = z.infer<typeof DecisionInputSchema>;
 
-const RISK_THRESHOLD_BLOCK = 80;
+export const DecisionOutputSchema = z.object({
+  finalStatus: z.enum(["APPROVED", "BLOCKED", "REJECTED", "REVIEW"]),
+  releaseAllowed: z.boolean(),
+  decisionReason: z.string(),
+  unifiedRisk: z.object({
+    baseScore: z.number(),
+    dynamicScore: z.number(),
+    finalScore: z.number(),
+    level: z.string(),
+  }),
+  blockReasons: z.array(z.string()),
+  reviewReasons: z.array(z.string()),
+});
+
+export type DecisionOutput = z.infer<typeof DecisionOutputSchema>;
+
+const RISK_THRESHOLD_BLOCK = 70;
 const RISK_THRESHOLD_REVIEW = 50;
 const READINESS_THRESHOLD = 40;
 
@@ -46,7 +52,8 @@ function normalizeRiskTo100(score: number | null): number {
   return Math.round(Math.min(Math.max(normalized, 0), 100));
 }
 
-export function computeDecision(input: DecisionInput): DecisionOutput {
+export function computeDecision(rawInput: DecisionInput): DecisionOutput {
+  const input = DecisionInputSchema.parse(rawInput);
   const blockReasons: string[] = [];
   const reviewReasons: string[] = [];
 
@@ -97,25 +104,26 @@ export function computeDecision(input: DecisionInput): DecisionOutput {
 
   const terminalStatuses = ["CANCELLED", "CLOSED", "DELIVERED"];
   if (terminalStatuses.includes(input.shipmentStatus)) {
-    return {
-      finalStatus: input.shipmentStatus === "CANCELLED" ? "REJECTED" : "APPROVED",
-      releaseAllowed: false,
+    const terminalStatus: DecisionStatus = input.shipmentStatus === "CANCELLED" ? "REJECTED" : "APPROVED";
+    return enforceInvariants({
+      finalStatus: terminalStatus,
+      releaseAllowed: terminalStatus === "APPROVED",
       decisionReason: `Shipment is in terminal status: ${input.shipmentStatus}. No further decisions applicable.`,
       unifiedRisk,
       blockReasons: [],
       reviewReasons: [],
-    };
+    });
   }
 
   if (blockReasons.length > 0) {
-    return {
+    return enforceInvariants({
       finalStatus: "BLOCKED",
       releaseAllowed: false,
       decisionReason: blockReasons[0],
       unifiedRisk,
       blockReasons,
       reviewReasons,
-    };
+    });
   }
 
   if (input.complianceStatus === "ALERT") {
@@ -136,22 +144,42 @@ export function computeDecision(input: DecisionInput): DecisionOutput {
   }
 
   if (reviewReasons.length > 0) {
-    return {
+    return enforceInvariants({
       finalStatus: "REVIEW",
       releaseAllowed: false,
       decisionReason: reviewReasons[0],
       unifiedRisk,
       blockReasons,
       reviewReasons,
-    };
+    });
   }
 
-  return {
+  return enforceInvariants({
     finalStatus: "APPROVED",
     releaseAllowed: true,
     decisionReason: "All checks passed — shipment is clear for release.",
     unifiedRisk,
     blockReasons: [],
     reviewReasons: [],
-  };
+  });
+}
+
+function enforceInvariants(output: DecisionOutput): DecisionOutput {
+  if (output.finalStatus === "APPROVED" && !output.releaseAllowed) {
+    console.error(`[decision-engine] INVARIANT VIOLATION: APPROVED with releaseAllowed=false. Downgrading to REVIEW.`);
+    output.finalStatus = "REVIEW";
+    output.reviewReasons.push("Invariant violation detected: approval state was inconsistent. Defaulting to manual review.");
+  }
+
+  if (output.finalStatus === "BLOCKED" && output.releaseAllowed) {
+    console.error(`[decision-engine] INVARIANT VIOLATION: BLOCKED with releaseAllowed=true. Blocking release.`);
+    output.releaseAllowed = false;
+  }
+
+  if (output.finalStatus !== "APPROVED" && output.releaseAllowed) {
+    console.error(`[decision-engine] INVARIANT VIOLATION: ${output.finalStatus} with releaseAllowed=true. Blocking release.`);
+    output.releaseAllowed = false;
+  }
+
+  return output;
 }

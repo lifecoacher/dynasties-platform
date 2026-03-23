@@ -26,6 +26,7 @@ import stripeBillingRouter from "./stripe-billing.js";
 import quotesRouter from "./quotes.js";
 import exceptionsRouter from "./exceptions.js";
 import accountingRouter from "./accounting.js";
+import dashboardRouter from "./dashboard.js";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
 import { requireTenant, setTenantContext } from "../middlewares/tenant.js";
 import { requireActiveBilling } from "../middlewares/billing-enforcement.js";
@@ -66,5 +67,6 @@ router.use(stripeBillingRouter);
 router.use(quotesRouter);
 router.use(exceptionsRouter);
 router.use(accountingRouter);
+router.use(dashboardRouter);
 
 export default router;
