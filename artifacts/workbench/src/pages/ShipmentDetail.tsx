@@ -562,7 +562,9 @@ export default function ShipmentDetail() {
   };
 
   const isPendingReview = shipment?.status === "DRAFT" || shipment?.status === "PENDING_REVIEW";
-  const riskScore = normalizeRiskScore(risk?.compositeScore);
+  const riskScore = decision?.unifiedRisk?.finalScore != null
+    ? Math.round(decision.unifiedRisk.finalScore)
+    : normalizeRiskScore(risk?.compositeScore);
 
   if (loadingShipment || !shipment) {
     return (

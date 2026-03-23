@@ -36,6 +36,7 @@ import QuoteDetail from "./pages/QuoteDetail";
 import ExceptionsPage from "./pages/ExceptionsPage";
 import AccountingIntegration from "./pages/AccountingIntegration";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
+import { DEMO_MODE } from "./hooks/use-demo";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,7 +49,6 @@ const queryClient = new QueryClient({
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const clerkEnabled = !!(CLERK_PUBLISHABLE_KEY && CLERK_PUBLISHABLE_KEY.startsWith("pk_"));
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
 function ClerkLoginPage() {
   return (

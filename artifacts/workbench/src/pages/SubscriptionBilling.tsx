@@ -28,8 +28,7 @@ import {
   useStartTrial,
   type PlanConfigInfo,
 } from "@/hooks/use-stripe-billing";
-
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+import { DEMO_MODE } from "@/hooks/use-demo";
 
 const PLAN_ICONS: Record<string, any> = {
   STARTER: Zap,

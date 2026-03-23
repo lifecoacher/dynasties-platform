@@ -1,0 +1,302 @@
+You are a Staff+ Backend Engineer, Frontend Systems Engineer, and Product Reliability Lead.
+
+You are executing a CRITICAL FIX SPRINT based on a full behavioral QA audit of the Dynasties platform.
+
+You are NOT building new features.
+
+You are fixing:
+- data integrity
+- cross-system consistency
+- agent coherence
+- operational trust
+
+Your goal:
+Make the system internally consistent, truthful, and trustworthy for real operators.
+
+--------------------------------------------------
+PRIORITY ORDER (DO NOT CHANGE)
+--------------------------------------------------
+
+1. BILLING + USAGE INTEGRITY
+2. RISK + DECISION CONSISTENCY
+3. CONTROL TOWER + WORK QUEUE ACTIVATION
+4. ERROR HANDLING (404 + FAIL STATES)
+5. DATA QUALITY + NORMALIZATION FIXES
+
+Do NOT start lower priority work until higher priority is complete.
+
+--------------------------------------------------
+T001 — BILLING USAGE COUNTER FIX (CRITICAL)
+--------------------------------------------------
+
+Problem:
+Shipment usage shows 0 while real shipments exist.
+
+Fix:
+
+1. Identify source of truth:
+   - shipments table (companyId-scoped count)
+
+2. Ensure usage calculation:
+   - COUNT(*) FROM shipments WHERE companyId = currentTenant
+
+3. Remove any stale counters or cached values
+
+4. Update:
+   - subscription usage display
+   - billing enforcement middleware (if used)
+
+5. Add:
+   - consistency check:
+     if displayedUsage !== actualCount → log ERROR
+
+6. Ensure:
+   - value updates immediately after import and creation
+   - no async drift
+
+Output:
+Billing always reflects real shipment count.
+
+--------------------------------------------------
+T002 — RISK + DECISION ENGINE UNIFICATION (CRITICAL)
+--------------------------------------------------
+
+Problem:
+- Unified Risk ≠ Risk Score section
+- Decision engine contradicts itself ("APPROVED" + "BLOCKED")
+
+Fix:
+
+1. Define SINGLE SOURCE OF TRUTH:
+   decision.finalRiskScore
+   decision.finalRiskLevel
+
+2. All UI components MUST read from decision output:
+   - remove independent risk calculations in UI
+   - remove duplicate risk derivations
+
+3. Decision rules must be deterministic:
+
+   finalStatus =
+     BLOCKED if compliance BLOCKED OR docs BLOCKED
+     REVIEW if risk >= threshold OR missing inputs
+     APPROVED only if all conditions pass
+
+4. Remove conflicting states:
+   - NO "APPROVED" if releaseAllowed = false
+   - NO dual status labels
+
+5. Adjust thresholds:
+   - High-risk cargo (e.g. pharma score ≥ 70) cannot AUTO APPROVE
+
+6. Add invariant checks:
+   - if conflicting state detected → log + fail-safe to REVIEW
+
+Output:
+One decision. One truth. No contradictions.
+
+--------------------------------------------------
+T003 — CONTROL TOWER + WORK QUEUE ACTIVATION
+--------------------------------------------------
+
+Problem:
+- Control Tower shows zeros despite active data
+- Work Queue empty despite actionable items
+
+Fix:
+
+CONTROL TOWER:
+
+1. Aggregate from real sources:
+   - exceptions table (OPEN, ESCALATED)
+   - shipments needing review (decision.status = REVIEW)
+   - failed accounting syncs
+   - pending document readiness
+
+2. Replace all placeholder values
+
+3. Ensure real-time or near-real-time refresh
+
+WORK QUEUE:
+
+1. Auto-generate tasks from:
+   - exceptions (severity-based priority)
+   - decision REVIEW states
+   - reconciliation discrepancies
+   - unsynced invoices
+
+2. Task schema:
+   - type
+   - priority
+   - relatedEntityId
+   - reason
+   - createdAt
+
+3. Ensure:
+   - tasks appear immediately after triggering condition
+   - no empty state when system has actionable work
+
+Output:
+System surfaces work instead of hiding it.
+
+--------------------------------------------------
+T004 — GLOBAL 404 + FAILURE STATE HANDLING
+--------------------------------------------------
+
+Problem:
+Invalid resources cause infinite loading (silent failure)
+
+Fix:
+
+1. All GET endpoints:
+   if resource not found → return 404
+
+2. Frontend:
+   - detect 404
+   - render:
+     "Resource not found"
+     navigation back to list
+
+3. Add global fallback:
+   - no infinite spinners beyond timeout threshold
+
+4. Apply to:
+   - shipments
+   - invoices
+   - documents
+   - reconciliation
+   - customers
+
+Output:
+No silent failure anywhere.
+
+--------------------------------------------------
+T005 — DATA NORMALIZATION + SEED DATA FIXES
+--------------------------------------------------
+
+Problem:
+- "Unknown shipper/consignee"
+- incorrect units (weight = 4200, unit = 4200)
+- broken imported data
+
+Fix:
+
+1. Migration normalization:
+   - enforce required fields:
+     shipper.name
+     consignee.name
+     origin
+     destination
+
+2. Unit validation:
+   - weightUnit must be ENUM (KG, LB)
+   - volumeUnit must be ENUM
+
+3. Fix seed data:
+   - replace "Unknown" with valid placeholders OR remove records
+
+4. Add ingestion guard:
+   - reject or flag invalid unit mappings
+
+5. Add validation warnings:
+   - surface data quality issues in UI
+
+Output:
+No obviously broken data visible to users.
+
+--------------------------------------------------
+T006 — AGENT OUTPUT HARDENING
+--------------------------------------------------
+
+Problem:
+Agents exist but occasionally contradict or under-deliver
+
+Fix:
+
+1. Decision engine must reconcile ALL sub-agents:
+   - compliance
+   - document validation
+   - risk scoring
+
+2. Remove decorative outputs:
+   - no "0 recommendations" if intervention exists
+   → must produce at least 1 actionable suggestion OR explicitly say "manual review required"
+
+3. Confidence handling:
+   - low confidence → downgrade to REVIEW
+
+4. Control Tower recommendations:
+   - must map directly to real actions
+
+Output:
+Agents influence decisions, not just describe them.
+
+--------------------------------------------------
+T007 — DASHBOARD METRICS CORRECTION
+--------------------------------------------------
+
+Problem:
+- Aging summary = $0 despite real invoices
+- compliance aggregation broken
+
+Fix:
+
+1. Recompute:
+   - aging buckets from invoice dueDate + payment status
+
+2. Compliance:
+   - aggregate from actual screening results
+
+3. Ensure:
+   - dashboard = derived from DB, not cached placeholders
+
+Output:
+Dashboard reflects reality.
+
+--------------------------------------------------
+T008 — DEMO MODE GLOBAL SIGNAL
+--------------------------------------------------
+
+Problem:
+Only accounting shows demo mode
+
+Fix:
+
+1. Add global DEMO_MODE flag
+
+2. Display banner:
+   "Demo data / simulated integrations active"
+
+3. Apply across:
+   - dashboard
+   - accounting
+   - decision outputs if simulated
+
+Output:
+No false impression of live system.
+
+--------------------------------------------------
+SUCCESS CRITERIA
+--------------------------------------------------
+
+System must:
+
+1. Never display contradictory states
+2. Never hide real operational issues
+3. Never show incorrect billing/usage
+4. Never silently fail
+5. Always reflect real system state in dashboards
+
+--------------------------------------------------
+FINAL INSTRUCTION
+--------------------------------------------------
+
+You are not improving UX.
+
+You are restoring system integrity.
+
+If a value is displayed, it must be true.
+
+If a decision is shown, it must be consistent.
+
+If a problem exists, it must be visible.
