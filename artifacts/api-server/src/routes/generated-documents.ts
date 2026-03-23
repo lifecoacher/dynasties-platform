@@ -142,6 +142,8 @@ router.get("/shipments/:id/generated-documents/:documentId/download", async (req
       "Content-Disposition",
       `inline; filename="${doc.documentType.toLowerCase()}_v${doc.versionNumber}.html"`,
     );
+    res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:;");
+    res.setHeader("X-Content-Type-Options", "nosniff");
     res.send(doc.htmlContent);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

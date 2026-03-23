@@ -64,7 +64,7 @@ export async function updateShipmentStatusFromEvents(
   const [shipment] = await db
     .select({ status: shipmentsTable.status })
     .from(shipmentsTable)
-    .where(eq(shipmentsTable.id, shipmentId))
+    .where(and(eq(shipmentsTable.id, shipmentId), eq(shipmentsTable.companyId, companyId)))
     .limit(1);
 
   if (!shipment) return derivedStatus;
@@ -92,7 +92,7 @@ export async function updateShipmentStatusFromEvents(
   await db
     .update(shipmentsTable)
     .set({ status: derivedStatus as any })
-    .where(eq(shipmentsTable.id, shipmentId));
+    .where(and(eq(shipmentsTable.id, shipmentId), eq(shipmentsTable.companyId, companyId)));
 
   return derivedStatus;
 }

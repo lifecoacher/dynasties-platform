@@ -5,8 +5,9 @@ import {
   invoicesTable,
   entitiesTable,
   eventsTable,
+  billingAccountsTable,
 } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { storeFile } from "@workspace/storage";
 import { publishExceptionJob, publishTradeLaneJob } from "@workspace/queue";
@@ -19,13 +20,30 @@ export interface BillingResult {
   error: string | null;
 }
 
-function generateInvoiceNumber(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  const seq = Math.floor(Math.random() * 9000) + 1000;
-  return `INV-${y}${m}${d}-${seq}`;
+async function generateSequentialInvoiceNumber(companyId: string, tx?: typeof db): Promise<string> {
+  const conn = tx || db;
+  const [account] = await conn
+    .select()
+    .from(billingAccountsTable)
+    .where(eq(billingAccountsTable.companyId, companyId))
+    .limit(1);
+
+  const prefix = account?.invoicePrefix || "INV";
+
+  const [maxResult] = await conn
+    .select({ maxNum: sql<string>`MAX(${invoicesTable.invoiceNumber})` })
+    .from(invoicesTable)
+    .where(eq(invoicesTable.companyId, companyId));
+
+  let seqNum = 1;
+  if (maxResult?.maxNum) {
+    const match = maxResult.maxNum.match(/-(\d+)$/);
+    if (match) {
+      seqNum = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  return `${prefix}-${String(seqNum).padStart(5, "0")}`;
 }
 
 function formatCurrency(amount: number, currency = "USD"): string {
@@ -98,7 +116,7 @@ export async function runBilling(
   const existingInvoice = await db
     .select({ id: invoicesTable.id, invoiceNumber: invoicesTable.invoiceNumber })
     .from(invoicesTable)
-    .where(eq(invoicesTable.shipmentId, shipmentId))
+    .where(and(eq(invoicesTable.shipmentId, shipmentId), eq(invoicesTable.companyId, companyId)))
     .limit(1);
 
   if (existingInvoice.length > 0) {
@@ -117,24 +135,24 @@ export async function runBilling(
   const [shipment] = await db
     .select()
     .from(shipmentsTable)
-    .where(eq(shipmentsTable.id, shipmentId))
+    .where(and(eq(shipmentsTable.id, shipmentId), eq(shipmentsTable.companyId, companyId)))
     .limit(1);
 
-  if (!shipment || shipment.companyId !== companyId) {
+  if (!shipment) {
     return { invoiceId: null, invoiceNumber: null, grandTotal: 0, success: false, error: "Shipment not found" };
   }
 
   const charges = await db
     .select()
     .from(shipmentChargesTable)
-    .where(eq(shipmentChargesTable.shipmentId, shipmentId));
+    .where(and(eq(shipmentChargesTable.shipmentId, shipmentId), eq(shipmentChargesTable.companyId, companyId)));
 
   if (charges.length === 0) {
     return { invoiceId: null, invoiceNumber: null, grandTotal: 0, success: false, error: "No charges found" };
   }
 
   const billTo = shipment.consigneeId
-    ? (await db.select().from(entitiesTable).where(eq(entitiesTable.id, shipment.consigneeId)).limit(1))[0]
+    ? (await db.select().from(entitiesTable).where(and(eq(entitiesTable.id, shipment.consigneeId), eq(entitiesTable.companyId, companyId))).limit(1))[0]
     : null;
 
   const lineItems = charges.map((c: any) => ({
@@ -151,7 +169,7 @@ export async function runBilling(
   const taxTotal = charges.reduce((sum: number, c: any) => sum + Number(c.taxAmount || 0), 0);
   const grandTotal = subtotal + taxTotal;
 
-  const invoiceNumber = generateInvoiceNumber();
+  const invoiceNumber = await generateSequentialInvoiceNumber(companyId);
 
   const invoiceContent = generateInvoiceContent(
     invoiceNumber,

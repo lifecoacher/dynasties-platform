@@ -10,7 +10,7 @@ import {
   invoicesTable,
   eventsTable,
 } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { runExceptionAgent } from "./agent.js";
 import { validateExceptionOutput } from "./validator.js";
@@ -37,22 +37,22 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
   const [shipment] = await db
     .select()
     .from(shipmentsTable)
-    .where(eq(shipmentsTable.id, shipmentId))
+    .where(and(eq(shipmentsTable.id, shipmentId), eq(shipmentsTable.companyId, companyId)))
     .limit(1);
 
-  if (!shipment || shipment.companyId !== companyId) return conditions;
+  if (!shipment) return conditions;
 
   const docs = await db
     .select()
     .from(shipmentDocumentsTable)
-    .where(eq(shipmentDocumentsTable.shipmentId, shipmentId));
+    .where(and(eq(shipmentDocumentsTable.shipmentId, shipmentId), eq(shipmentDocumentsTable.companyId, companyId)));
 
   const ingestedDocs = await Promise.all(
     docs.filter((d: any) => d.documentId).map(async (d: any) => {
       const [doc] = await db
         .select()
         .from(ingestedDocumentsTable)
-        .where(eq(ingestedDocumentsTable.id, d.documentId!))
+        .where(and(eq(ingestedDocumentsTable.id, d.documentId!), eq(ingestedDocumentsTable.companyId, companyId)))
         .limit(1);
       return doc;
     }),
@@ -86,7 +86,7 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
   const [compliance] = await db
     .select()
     .from(complianceScreeningsTable)
-    .where(eq(complianceScreeningsTable.shipmentId, shipmentId))
+    .where(and(eq(complianceScreeningsTable.shipmentId, shipmentId), eq(complianceScreeningsTable.companyId, companyId)))
     .limit(1);
 
   if (compliance && compliance.status !== "CLEAR") {
@@ -102,7 +102,7 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
   const [risk] = await db
     .select()
     .from(riskScoresTable)
-    .where(eq(riskScoresTable.shipmentId, shipmentId))
+    .where(and(eq(riskScoresTable.shipmentId, shipmentId), eq(riskScoresTable.companyId, companyId)))
     .limit(1);
 
   if (risk && risk.compositeScore >= 70) {
@@ -117,12 +117,12 @@ async function detectConditions(shipmentId: string, companyId: string): Promise<
   const charges = await db
     .select()
     .from(shipmentChargesTable)
-    .where(eq(shipmentChargesTable.shipmentId, shipmentId));
+    .where(and(eq(shipmentChargesTable.shipmentId, shipmentId), eq(shipmentChargesTable.companyId, companyId)));
 
   const [invoice] = await db
     .select()
     .from(invoicesTable)
-    .where(eq(invoicesTable.shipmentId, shipmentId))
+    .where(and(eq(invoicesTable.shipmentId, shipmentId), eq(invoicesTable.companyId, companyId)))
     .limit(1);
 
   if (invoice && charges.length > 0) {
@@ -181,7 +181,7 @@ export async function runExceptionDetection(
   const existingExceptions = await db
     .select({ id: exceptionsTable.id })
     .from(exceptionsTable)
-    .where(eq(exceptionsTable.shipmentId, shipmentId))
+    .where(and(eq(exceptionsTable.shipmentId, shipmentId), eq(exceptionsTable.companyId, companyId)))
     .limit(1);
 
   if (existingExceptions.length > 0) {

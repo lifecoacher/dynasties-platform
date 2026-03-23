@@ -10,29 +10,26 @@ const EXEMPT_PATHS = [
   "/reference/",
 ];
 
-const READ_METHODS = ["GET", "HEAD", "OPTIONS"];
-
-const DEMO_MODE = process.env.VITE_DEMO_MODE === "true";
+const WRITE_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
 
 export function requireActiveBilling(req: Request, res: Response, next: NextFunction): void {
-  if (DEMO_MODE) {
-    next();
-    return;
-  }
-
   const path = req.path;
   if (EXEMPT_PATHS.some(p => path.includes(p))) {
     next();
     return;
   }
 
-  if (READ_METHODS.includes(req.method)) {
+  if (!WRITE_METHODS.includes(req.method)) {
     next();
     return;
   }
 
   if (!req.user?.companyId) {
-    next();
+    res.status(403).json({
+      error: "Authentication required",
+      code: "NO_COMPANY",
+      message: "Company context is required for write operations.",
+    });
     return;
   }
 
@@ -54,7 +51,11 @@ async function checkBillingStatus(req: Request, res: Response, next: NextFunctio
       .limit(1);
 
     if (!company) {
-      next();
+      res.status(403).json({
+        error: "Billing check failed",
+        code: "BILLING_LOOKUP_FAILED",
+        message: "Unable to verify billing status. Access denied.",
+      });
       return;
     }
 
@@ -88,8 +89,13 @@ async function checkBillingStatus(req: Request, res: Response, next: NextFunctio
     }
 
     next();
-  } catch {
-    next();
+  } catch (err) {
+    console.error("[billing-enforcement] DB lookup failed, failing closed:", err);
+    res.status(503).json({
+      error: "Billing verification unavailable",
+      code: "BILLING_CHECK_ERROR",
+      message: "Unable to verify billing status. Please try again later.",
+    });
   }
 }
 
