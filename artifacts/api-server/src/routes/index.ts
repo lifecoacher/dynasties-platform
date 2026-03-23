@@ -27,7 +27,7 @@ import quotesRouter from "./quotes.js";
 import exceptionsRouter from "./exceptions.js";
 import accountingRouter from "./accounting.js";
 import { requireAuth, refreshRole } from "../middlewares/auth.js";
-import { requireTenant } from "../middlewares/tenant.js";
+import { requireTenant, setTenantContext } from "../middlewares/tenant.js";
 import { requireActiveBilling } from "../middlewares/billing-enforcement.js";
 
 const router: IRouter = Router();
@@ -37,6 +37,7 @@ router.use(referenceRouter);
 router.use(requireAuth);
 router.use(refreshRole);
 router.use(requireTenant);
+router.use(setTenantContext);
 router.use(requireActiveBilling);
 
 router.use(shipmentsRouter);

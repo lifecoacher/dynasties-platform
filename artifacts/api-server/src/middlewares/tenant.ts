@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { runWithTenant } from "@workspace/db";
 
 export function requireTenant(req: Request, res: Response, next: NextFunction): void {
   if (!req.user?.companyId) {
@@ -13,4 +14,28 @@ export function getCompanyId(req: Request): string {
     throw new Error("No tenant context — requireAuth middleware missing");
   }
   return req.user.companyId;
+}
+
+export async function setTenantContext(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const companyId = req.user?.companyId;
+  if (!companyId) {
+    next();
+    return;
+  }
+
+  try {
+    await runWithTenant(companyId, () => {
+      return new Promise<void>((resolve, reject) => {
+        res.on("finish", resolve);
+        res.on("close", resolve);
+        res.on("error", reject);
+        next();
+      });
+    });
+  } catch (err: any) {
+    if (!res.headersSent) {
+      console.error("[tenant] RLS context error:", err.message);
+      res.status(503).json({ error: "Tenant context setup failed" });
+    }
+  }
 }

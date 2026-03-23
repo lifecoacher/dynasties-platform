@@ -70,8 +70,9 @@ router.post("/auth/clerk-sync", async (req, res) => {
     const normalizedEmail = clerkUser.email.toLowerCase().trim();
     const displayName = [clerkUser.first_name, clerkUser.last_name].filter(Boolean).join(" ") || normalizedEmail.split("@")[0];
 
+    const isDemoMode = process.env.VITE_DEMO_MODE === "true";
     const demoEmails = getDemoEmails();
-    const isDemoUser = demoEmails.includes(normalizedEmail);
+    const isDemoUser = isDemoMode && demoEmails.includes(normalizedEmail);
 
     if (isDemoUser) {
       const [lorianAdmin] = await db

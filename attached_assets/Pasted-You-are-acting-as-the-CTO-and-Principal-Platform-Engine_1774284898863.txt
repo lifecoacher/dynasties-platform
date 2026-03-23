@@ -1,0 +1,128 @@
+You are acting as the CTO and Principal Platform Engineer for Dynasties.
+
+This is Sprint 3: Runtime Tenant Enforcement + Controlled Beta Readiness.
+
+The goal is to move Dynasties from controlled-beta candidate to genuinely safe beta infrastructure.
+
+Do NOT add new product features.
+Do NOT expand the surface area.
+Focus on runtime guarantees, tenant isolation, end-to-end usability, and operational readiness.
+
+--------------------------------------------------
+SECTION 1 — RUNTIME RLS ENFORCEMENT (P0)
+--------------------------------------------------
+
+Current state:
+- RLS policies exist
+- restricted role exists
+- withTenantContext() exists
+- but runtime queries still use the superuser pool
+- app-level companyId filters remain the active defense
+
+Required:
+
+1. Introduce a real application DB path that uses the restricted role for tenant-scoped queries
+2. Set tenant context per request:
+   - SET app.current_company_id = <companyId>
+3. Ensure all tenant-owned query paths execute under this tenant context
+4. Prove RLS is actually enforced at runtime
+5. Add tests showing:
+   - cross-tenant query attempts fail
+   - even missing filters do not leak rows when routed through the enforced path
+
+Return:
+- exact DB connection/runtime changes
+- exact middleware/context wiring
+- test evidence that RLS is now active defense, not future infrastructure
+
+--------------------------------------------------
+SECTION 2 — CONTROLLED BETA READINESS (P0)
+--------------------------------------------------
+
+Implement the operational layer needed for real beta users.
+
+Requirements:
+
+1. Ensure a real tenant can:
+   - sign up
+   - create workspace
+   - activate workspace
+   - import data
+   - create/view shipments
+   - generate documents
+   - reconcile invoices
+
+2. Remove hidden internal assumptions:
+   - no demo-only dependencies in required flows
+   - no seed-only expectations
+   - no hardcoded shortcuts
+
+3. Add clear failure states in UI for:
+   - import failure
+   - billing inactive
+   - missing required data
+   - accounting demo-mode
+   - reconciliation unmatched / needs review
+
+--------------------------------------------------
+SECTION 3 — END-TO-END BETA PATH TESTS (P0/P1)
+--------------------------------------------------
+
+Add integration/E2E-style coverage for the actual customer journey:
+
+1. signup/authenticated user
+2. workspace/tenant creation
+3. plan activation or trial
+4. migration import
+5. shipment detail access
+6. event timeline
+7. document generation
+8. invoice + reconciliation path
+
+Tests should verify:
+- tenant boundaries preserved throughout
+- billing enforcement works
+- import lands in correct tenant
+- documents and reconciliation are tenant-safe
+
+--------------------------------------------------
+SECTION 4 — OPERATIONAL OBSERVABILITY (P1)
+--------------------------------------------------
+
+Add better operational introspection for beta support.
+
+Implement:
+- audit events for tenant creation, activation, import completion/failure
+- failure logging around migration, document generation, reconciliation, billing enforcement
+- a lightweight internal admin/status view or structured logs sufficient to debug beta issues quickly
+
+Goal:
+- when a beta user fails, we know exactly where and why
+
+--------------------------------------------------
+SECTION 5 — ERROR HANDLING + USER TRUST (P1)
+--------------------------------------------------
+
+Improve trust surfaces:
+
+- no silent failures
+- no generic success when partial failure occurred
+- every blocked state must explain why
+- every “demo mode” state must be explicit
+- every restricted action due to billing or permissions must be clear
+
+--------------------------------------------------
+SECTION 6 — OUTPUT
+--------------------------------------------------
+
+Return:
+
+1. What runtime guarantees were added
+2. Whether RLS is now truly enforced
+3. What beta-user flows are now supported end-to-end
+4. Tests added and results
+5. Remaining blockers before broader production rollout
+6. Whether Dynasties is now:
+   - controlled beta ready
+   - broader beta ready
+   - still internal-only

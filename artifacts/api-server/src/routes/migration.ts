@@ -115,10 +115,31 @@ router.post("/migration/:jobId/import", requireMinRole("ADMIN"), async (req, res
     }));
 
     const results = await runImport(jobId, companyId, fullData);
+
+    if (results.errors && results.errors.length > 0) {
+      console.warn(`[migration] Import completed with ${results.errors.length} errors for company=${companyId} job=${jobId}`, {
+        customersCreated: results.customersCreated,
+        shipmentsCreated: results.shipmentsCreated,
+        invoicesCreated: results.invoicesCreated,
+        errorCount: results.errors.length,
+        firstErrors: results.errors.slice(0, 5),
+      });
+    } else {
+      console.log(`[migration] Import completed successfully for company=${companyId} job=${jobId}`, {
+        customersCreated: results.customersCreated,
+        shipmentsCreated: results.shipmentsCreated,
+        invoicesCreated: results.invoicesCreated,
+      });
+    }
+
     res.json({ data: results });
   } catch (err: any) {
-    console.error("[migration] Import failed:", err);
-    res.status(500).json({ error: err.message });
+    console.error(`[migration] Import FAILED for company=${companyId} job=${jobId}:`, err.message, err.stack?.split("\n").slice(0, 3).join(" "));
+    res.status(500).json({
+      error: "Import failed",
+      message: err.message || "An unexpected error occurred during data import. Please try again.",
+      code: "IMPORT_FAILED",
+    });
   }
 });
 
