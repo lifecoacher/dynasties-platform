@@ -44,7 +44,11 @@ export async function buildDocContext(
 
   const resolveEntity = async (id: string | null) => {
     if (!id) return null;
-    const [entity] = await db.select().from(entitiesTable).where(eq(entitiesTable.id, id)).limit(1);
+    const [entity] = await db
+      .select()
+      .from(entitiesTable)
+      .where(and(eq(entitiesTable.id, id), eq(entitiesTable.companyId, companyId)))
+      .limit(1);
     return entity ? (entity as Record<string, any>) : null;
   };
 
@@ -56,7 +60,7 @@ export async function buildDocContext(
   const invoices = await db
     .select()
     .from(invoicesTable)
-    .where(eq(invoicesTable.shipmentId, shipmentId))
+    .where(and(eq(invoicesTable.shipmentId, shipmentId), eq(invoicesTable.companyId, companyId)))
     .orderBy(desc(invoicesTable.createdAt))
     .limit(1);
   const invoice = invoices.length > 0 ? (invoices[0] as Record<string, any>) : null;
@@ -252,6 +256,7 @@ export async function generateDocument(
       .where(
         and(
           eq(generatedDocumentsTable.id, existingVersions[0].id),
+          eq(generatedDocumentsTable.companyId, companyId),
         ),
       );
   }

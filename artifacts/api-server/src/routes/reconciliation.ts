@@ -7,6 +7,10 @@ import {
   performReconciliation,
 } from "@workspace/svc-reconciliation";
 import type { CarrierLineItem } from "@workspace/db/schema";
+import { reconciliationResultsTable, carrierInvoicesTable, eventsTable } from "@workspace/db/schema";
+import { db } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
+import { generateId } from "@workspace/shared-utils";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
 
@@ -171,6 +175,86 @@ router.post("/shipments/:id/reconcile", requireMinRole("OPERATOR"), async (req, 
     res.json({ data: result });
   } catch (err: any) {
     console.error("[reconciliation] Reconciliation failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+const VALID_RESOLUTION_STATUSES = ["ACCEPTED", "DISPUTED", "ADJUSTED", "ESCALATED"] as const;
+
+router.patch("/reconciliation/:reconId/resolve", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const reconId = req.params.reconId as string;
+  const { resolutionStatus, resolutionNote } = req.body;
+
+  if (!resolutionStatus || !VALID_RESOLUTION_STATUSES.includes(resolutionStatus)) {
+    res.status(400).json({
+      error: `resolutionStatus is required and must be one of: ${VALID_RESOLUTION_STATUSES.join(", ")}`,
+    });
+    return;
+  }
+
+  try {
+    const [existing] = await db
+      .select()
+      .from(reconciliationResultsTable)
+      .where(and(
+        eq(reconciliationResultsTable.id, reconId),
+        eq(reconciliationResultsTable.companyId, companyId),
+      ))
+      .limit(1);
+
+    if (!existing) {
+      res.status(404).json({ error: "Reconciliation result not found" });
+      return;
+    }
+
+    const userId = (req as any).user?.id || null;
+
+    const [updated] = await db
+      .update(reconciliationResultsTable)
+      .set({
+        resolutionStatus: resolutionStatus as any,
+        resolutionNote: resolutionNote || null,
+        resolvedBy: userId,
+        resolvedAt: new Date(),
+      })
+      .where(and(
+        eq(reconciliationResultsTable.id, reconId),
+        eq(reconciliationResultsTable.companyId, companyId),
+      ))
+      .returning();
+
+    if (resolutionStatus === "ACCEPTED" || resolutionStatus === "ADJUSTED") {
+      await db
+        .update(carrierInvoicesTable)
+        .set({ requiresAttention: "false" })
+        .where(and(
+          eq(carrierInvoicesTable.id, existing.carrierInvoiceId),
+          eq(carrierInvoicesTable.companyId, companyId),
+        ));
+    }
+
+    await db.insert(eventsTable).values({
+      id: generateId("evt"),
+      companyId,
+      entityType: "SHIPMENT",
+      entityId: existing.shipmentId,
+      eventType: "VARIANCE_RESOLVED",
+      actorType: "USER",
+      serviceId: "reconciliation",
+      metadata: {
+        reconciliationId: reconId,
+        resolutionStatus,
+        resolutionNote: resolutionNote || null,
+        resolvedBy: userId,
+        previousStatus: existing.reconciliationStatus,
+        varianceAmount: existing.varianceAmount,
+      },
+    });
+
+    res.json({ data: updated });
+  } catch (err: any) {
+    console.error("[reconciliation] Resolution failed:", err);
     res.status(500).json({ error: err.message });
   }
 });

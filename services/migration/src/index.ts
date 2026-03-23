@@ -245,7 +245,7 @@ export async function runImport(
     .limit(1);
 
   if (!job) throw new Error("Migration job not found");
-  if (job.status === "COMPLETED") {
+  if (job.status === "COMPLETED" || job.status === "COMPLETED_WITH_ERRORS") {
     throw new Error("Migration already completed — cannot re-import");
   }
   if (!["VALIDATED", "MAPPED"].includes(job.status)) {
@@ -264,12 +264,17 @@ export async function runImport(
 
     const results = await importData(companyId, dedupedOutput);
 
+    const finalStatus = results.errors.length > 0 ? "COMPLETED_WITH_ERRORS" : "COMPLETED";
+
     await db
       .update(migrationJobsTable)
       .set({
-        status: results.errors.length > 0 ? "COMPLETED" : "COMPLETED",
+        status: finalStatus as any,
         importResults: results,
         importedRows: results.customersCreated + results.shipmentsCreated + results.invoicesCreated + results.lineItemsCreated,
+        errorMessage: results.errors.length > 0
+          ? `${results.errors.length} error(s) during import. First: ${results.errors[0]}`
+          : null,
         updatedAt: new Date(),
       })
       .where(eq(migrationJobsTable.id, jobId));

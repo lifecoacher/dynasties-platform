@@ -77,19 +77,19 @@ export async function runDecisionEngine(
   const [compliance] = await db
     .select()
     .from(complianceScreeningsTable)
-    .where(eq(complianceScreeningsTable.shipmentId, shipmentId))
+    .where(and(eq(complianceScreeningsTable.shipmentId, shipmentId), eq(complianceScreeningsTable.companyId, companyId)))
     .limit(1);
 
   const [riskScore] = await db
     .select()
     .from(riskScoresTable)
-    .where(eq(riskScoresTable.shipmentId, shipmentId))
+    .where(and(eq(riskScoresTable.shipmentId, shipmentId), eq(riskScoresTable.companyId, companyId)))
     .limit(1);
 
   const [insurance] = await db
     .select()
     .from(insuranceQuotesTable)
-    .where(eq(insuranceQuotesTable.shipmentId, shipmentId))
+    .where(and(eq(insuranceQuotesTable.shipmentId, shipmentId), eq(insuranceQuotesTable.companyId, companyId)))
     .limit(1);
 
   const exceptions = await db
@@ -125,7 +125,7 @@ export async function runDecisionEngine(
       count: sql<string>`COUNT(*)`,
     })
     .from(shipmentChargesTable)
-    .where(eq(shipmentChargesTable.shipmentId, shipmentId));
+    .where(and(eq(shipmentChargesTable.shipmentId, shipmentId), eq(shipmentChargesTable.companyId, companyId)));
 
   if (charges[0]) {
     pricing = {
@@ -457,19 +457,19 @@ export async function runAIAnalysis(
   const [compliance] = await db
     .select()
     .from(complianceScreeningsTable)
-    .where(eq(complianceScreeningsTable.shipmentId, shipmentId))
+    .where(and(eq(complianceScreeningsTable.shipmentId, shipmentId), eq(complianceScreeningsTable.companyId, companyId)))
     .limit(1);
 
   const [riskScore] = await db
     .select()
     .from(riskScoresTable)
-    .where(eq(riskScoresTable.shipmentId, shipmentId))
+    .where(and(eq(riskScoresTable.shipmentId, shipmentId), eq(riskScoresTable.companyId, companyId)))
     .limit(1);
 
   const [insurance] = await db
     .select()
     .from(insuranceQuotesTable)
-    .where(eq(insuranceQuotesTable.shipmentId, shipmentId))
+    .where(and(eq(insuranceQuotesTable.shipmentId, shipmentId), eq(insuranceQuotesTable.companyId, companyId)))
     .limit(1);
 
   const exceptions = await db
@@ -505,7 +505,7 @@ export async function runAIAnalysis(
       count: sql<string>`COUNT(*)`,
     })
     .from(shipmentChargesTable)
-    .where(eq(shipmentChargesTable.shipmentId, shipmentId));
+    .where(and(eq(shipmentChargesTable.shipmentId, shipmentId), eq(shipmentChargesTable.companyId, companyId)));
 
   if (charges[0]) {
     pricing = {

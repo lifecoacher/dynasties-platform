@@ -14,16 +14,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (autoLoginAttempted) return;
     setAutoLoginAttempted(true);
-
-    const isDev = import.meta.env.DEV;
-    const manuallyLoggedOut = localStorage.getItem("dynasties_manual_logout") === "true";
-    if (isDev && !manuallyLoggedOut) {
-      setIsSubmitting(true);
-      login("admin@dynasties.io", "DynastiesAdmin2026!").catch(() => {
-        setIsSubmitting(false);
-      });
-    }
-  }, [autoLoginAttempted, login]);
+  }, [autoLoginAttempted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +28,7 @@ export default function LoginPage() {
     }
   };
 
-  if (authLoading || (import.meta.env.DEV && isSubmitting && !error)) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <motion.div

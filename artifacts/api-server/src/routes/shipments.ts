@@ -548,6 +548,9 @@ router.post("/shipments/:id/shipment-events", requireMinRole("OPERATOR"), async 
   }
 });
 
+const MAX_BATCH_SIZE = 100;
+const MAX_BATCH_PAYLOAD_BYTES = 2 * 1024 * 1024;
+
 router.post("/shipments/:id/shipment-events/batch", requireMinRole("OPERATOR"), async (req, res) => {
   const companyId = getCompanyId(req);
   const id = paramId(req);
@@ -558,9 +561,25 @@ router.post("/shipments/:id/shipment-events/batch", requireMinRole("OPERATOR"), 
     return;
   }
 
+  if (rawEvents.length > MAX_BATCH_SIZE) {
+    res.status(400).json({ error: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} events` });
+    return;
+  }
+
+  const payloadSize = JSON.stringify(rawEvents).length;
+  if (payloadSize > MAX_BATCH_PAYLOAD_BYTES) {
+    res.status(413).json({ error: `Payload size exceeds maximum of ${MAX_BATCH_PAYLOAD_BYTES / 1024}KB` });
+    return;
+  }
+
   try {
     const results = await ingestBatch(companyId, id, rawEvents);
-    res.json({ data: results });
+    const succeeded = results.filter((r: any) => !r.error).length;
+    const failed = results.filter((r: any) => r.error).length;
+    res.json({
+      data: results,
+      summary: { total: rawEvents.length, succeeded, failed },
+    });
   } catch (err: any) {
     console.error("[event-ingestion] Batch ingest failed:", err);
     res.status(500).json({ error: err.message });

@@ -98,6 +98,12 @@ export const reconciliationResultsTable = pgTable(
     reconciliationStatus: reconciliationStatusEnum("reconciliation_status").notNull(),
     discrepancyDetails: jsonb("discrepancy_details").$type<DiscrepancyDetails>(),
     reconciledBy: text("reconciled_by"),
+    resolutionStatus: text("resolution_status", {
+      enum: ["PENDING", "ACCEPTED", "DISPUTED", "ADJUSTED", "ESCALATED"],
+    }).notNull().default("PENDING"),
+    resolutionNote: text("resolution_note"),
+    resolvedBy: text("resolved_by"),
+    resolvedAt: timestamp("resolved_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [

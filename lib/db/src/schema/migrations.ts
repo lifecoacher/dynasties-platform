@@ -11,6 +11,7 @@ export const migrationJobStatusEnum = pgEnum("migration_job_status", [
   "VALIDATED",
   "IMPORTING",
   "COMPLETED",
+  "COMPLETED_WITH_ERRORS",
   "FAILED",
 ]);
 

@@ -1,0 +1,348 @@
+You are the acting CTO and Staff-level Principal Engineer for Dynasties.
+
+Your task is to execute a focused production-hardening sprint against the current codebase at commit 6cb8d1a.
+
+This is NOT a feature sprint.
+
+This sprint is about eliminating the highest-risk production blockers identified in the latest code audit:
+	•	forged billing state
+	•	cross-tenant data leakage
+	•	disconnected billing systems
+	•	secret exposure
+	•	billing enforcement bypass
+	•	lack of money-path test coverage
+
+Implement all items below cleanly, with no placeholders.
+
+⸻
+
+SECTION 1 — STRIPE WEBHOOK SIGNATURE VERIFICATION (P0)
+
+Problem
+
+Business logic currently processes Stripe webhook payloads without verified Stripe signatures.
+
+Required fix
+
+In the Stripe webhook entry path:
+	•	use stripe.webhooks.constructEvent() with the webhook signing secret
+	•	verify the raw request body before any business logic runs
+	•	reject invalid signatures immediately
+	•	ensure business logic only receives verified Stripe events
+	•	do NOT parse raw JSON directly for billing state updates
+
+Requirements
+	•	preserve idempotent webhook handling
+	•	support these event types at minimum:
+	•	checkout.session.completed
+	•	invoice.paid
+	•	invoice.payment_failed
+	•	customer.subscription.updated
+	•	customer.subscription.deleted
+
+Return
+	•	exact files changed
+	•	confirmation forged webhook payloads are rejected
+
+⸻
+
+SECTION 2 — REMOVE HARDCODED ADMIN CREDENTIALS + SECRET HYGIENE (P0)
+
+Problem
+
+Frontend source still contains hardcoded admin credentials, and .env is not in .gitignore.
+
+Required fix
+	•	remove all hardcoded credentials from frontend source
+	•	remove any demo autofill logic that exposes privileged access
+	•	add .env* to .gitignore
+	•	audit repository for obvious committed secrets and stale references
+	•	ensure runtime secrets are loaded only from proper secret stores/environment
+
+Requirements
+	•	no user-facing source file may expose privileged credentials
+	•	no fallback demo admin credentials in production code paths
+
+Return
+	•	exact files changed
+	•	any additional secret exposure found
+
+⸻
+
+SECTION 3 — MULTI-TENANT FILTER HARDENING (P0)
+
+Problem
+
+Audit found missing companyId filters in exception-management and decision-engine queries.
+
+Required fix
+
+Audit and patch all queries in:
+	•	exception-management
+	•	decision-engine
+	•	document engine entity/invoice lookup paths
+	•	any other queried-by-shipmentId or queried-by-id paths uncovered during this sprint
+
+Pattern must be:
+	•	every tenant-owned query includes companyId
+	•	no shipmentId-only lookups where tenant data is involved
+
+Requirements
+	•	use a consistent helper or pattern where practical
+	•	add explicit comments/tests where a query is platform/global by design
+	•	produce a list of every query patched
+
+Return
+	•	files changed
+	•	query list patched
+	•	any remaining tenant-risk areas found
+
+⸻
+
+SECTION 4 — POSTGRES RLS FOUNDATION (P0/P1)
+
+Problem
+
+There is no database-level tenant isolation.
+
+Required fix
+
+Start implementing PostgreSQL Row-Level Security on tenant-owned tables, beginning with the most sensitive ones:
+	•	companies/tenants
+	•	invoices
+	•	receivables
+	•	billing accounts / customer billing profiles
+	•	shipment decisions
+	•	shipment events
+	•	generated documents
+	•	reconciliation tables
+	•	accounting sync tables
+	•	shipments
+	•	compliance / risk / insurance if tenant-owned
+
+Requirements
+	•	create a practical RLS rollout plan in code/migrations
+	•	set tenant context at request level
+	•	do not break local development
+	•	if full rollout cannot be completed safely in one pass, implement the first wave and clearly mark the next wave
+
+Return
+	•	migrations added
+	•	tables protected
+	•	how tenant context is set
+
+⸻
+
+SECTION 5 — CONSOLIDATE BILLING SYSTEMS (P0)
+
+Problem
+
+Two disconnected billing systems coexist:
+	•	old text-file invoice generator in services/billing
+	•	new Stripe-backed billing schema/routes
+
+Required fix
+	•	remove, disable, or fully redirect the old billing service
+	•	ensure no queue consumer or workflow can trigger the old text-based invoice generation
+	•	verify all billing flows route only to the new billing system
+	•	remove random 4-digit invoice number generation from any live path
+
+Requirements
+	•	no dead legacy billing code on active execution path
+	•	no phantom invoice generation
+	•	no old billing queue consumer still registered
+
+Return
+	•	exact files changed
+	•	what was removed/disabled
+	•	proof active billing path is singular
+
+⸻
+
+SECTION 6 — BILLING ENFORCEMENT HARDENING (P0)
+
+Problem
+
+Billing enforcement can be bypassed by:
+	•	DEMO_MODE
+	•	only checking POST
+	•	swallowing DB errors and calling next()
+
+Required fix
+	•	remove DEMO_MODE bypass from production billing enforcement path
+	•	enforce billing restrictions on all write methods:
+	•	POST
+	•	PUT
+	•	PATCH
+	•	DELETE
+	•	if billing enforcement lookup fails, fail closed, not open
+	•	verify active/trial/expired/canceled states behave correctly
+
+Requirements
+	•	read-only access can remain available if intended
+	•	all restricted actions must be blocked server-side when tenant is inactive
+	•	no silent pass-through on enforcement failure
+
+Return
+	•	exact files changed
+	•	matrix of which methods are enforced
+	•	matrix of which billing states permit which actions
+
+⸻
+
+SECTION 7 — MONEY-PATH TEST COVERAGE (P0/P1)
+
+Problem
+
+The systems that touch money have effectively no meaningful automated coverage.
+
+Required tests
+
+Add automated tests for at least:
+
+Billing
+	•	valid verified webhook activates tenant
+	•	invalid webhook signature rejected
+	•	invoice.payment_failed updates billing state
+	•	canceled subscription restricts access
+	•	inactive tenant blocked from restricted write actions
+
+Enforcement
+	•	PUT/PATCH/DELETE blocked when inactive
+	•	trial tenant allowed
+	•	enforcement fails closed on DB error
+
+Reconciliation
+	•	matched invoice
+	•	major variance
+	•	unmatched / ambiguous matching behavior
+
+Migration
+	•	partial failure causes rollback if transaction added
+	•	duplicate import protection works
+
+Requirements
+	•	prioritize integration tests where appropriate
+	•	tests must run in CI
+	•	no fake “tests” that only assert constants
+
+Return
+	•	files added
+	•	test scenarios covered
+	•	current passing results
+
+⸻
+
+SECTION 8 — MIGRATION TRANSACTION + STATUS FIX (P1)
+
+Problem
+
+Migration import currently lacks transaction boundaries and marks status as COMPLETED regardless of errors.
+
+Required fix
+	•	wrap bulk import in transaction(s) with safe rollback behavior
+	•	distinguish:
+	•	COMPLETED
+	•	COMPLETED_WITH_ERRORS
+	•	FAILED
+	•	ensure partial imports do not silently persist corrupt state
+	•	avoid huge raw row payload bloat where practical
+
+Return
+	•	exact files changed
+	•	final migration status model
+	•	rollback behavior description
+
+⸻
+
+SECTION 9 — EVENT INGESTION RATE LIMIT + BATCH SAFETY (P1)
+
+Problem
+
+Batch event ingestion lacks rate limiting and transaction safety.
+
+Required fix
+	•	add reasonable rate limiting / batch size caps
+	•	validate payload size
+	•	ensure batch failures are visible and do not silently produce misleading “success”
+
+Return
+	•	endpoint protections added
+	•	limits chosen
+
+⸻
+
+SECTION 10 — DOCUMENT ENGINE HARDENING (P1)
+
+Problem
+
+Document engine is HTML-only and storage failures silently degrade.
+
+Required fix
+	•	add clear error/reporting behavior if storage fails
+	•	do not silently fall back without visibility
+	•	if PDF rendering is feasible in this sprint, implement it for at least:
+	•	Commercial Invoice
+	•	Packing List
+	•	Bill of Lading
+	•	if not feasible, structure the PDF rendering layer cleanly for next sprint and improve current HTML document handling
+
+Return
+	•	what was improved now
+	•	what remains for next sprint
+
+⸻
+
+SECTION 11 — RECONCILIATION APPROVAL WORKFLOW (P1)
+
+Problem
+
+Major variances set requiresAttention but there is no real operator resolution path.
+
+Required fix
+
+Implement a minimal workflow for:
+	•	MAJOR_VARIANCE review
+	•	status update / acknowledgment
+	•	audit event on resolution
+	•	operator note / disposition
+
+Do not overbuild. Just make it operationally real.
+
+⸻
+
+SECTION 12 — ACCOUNTING SYNC HONESTY (P1)
+
+Problem
+
+Accounting sync is demo-adapter-based and can create false confidence.
+
+Required fix
+	•	clearly separate DEMO accounting mode from real integration mode
+	•	ensure UI and audit messages do not imply real QuickBooks sync when running in demo mode
+	•	make demo-mode state explicit in connection status and sync results
+
+⸻
+
+SECTION 13 — OUTPUT FORMAT
+
+Return:
+	1.	Executive summary of what was fixed
+	2.	Exact files changed
+	3.	Exact critical issues fully resolved
+	4.	Exact high-priority issues partially resolved
+	5.	Tests added and results
+	6.	Remaining blockers after this sprint
+	7.	Recommended next sprint order
+
+⸻
+
+FINAL INSTRUCTION
+
+This sprint is about making Dynasties safe enough to keep building on.
+
+Do not add new product surface area.
+Do not redesign working modules.
+Do not paper over risk in the UI.
+
+Fix the trust, tenancy, billing, and safety foundations first.

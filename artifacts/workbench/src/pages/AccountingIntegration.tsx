@@ -86,6 +86,16 @@ export default function AccountingIntegration() {
           </button>
         </div>
 
+        {status?.isDemoMode && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <p className="text-[13px] text-amber-300 font-medium">Demo Mode</p>
+            </div>
+            <p className="text-[12px] text-amber-400/70 mt-1 ml-6">{status.demoWarning}</p>
+          </motion.div>
+        )}
+
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-card-border rounded-xl p-6 mb-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">

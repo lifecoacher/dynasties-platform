@@ -580,6 +580,8 @@ export async function getConnectionStatus(companyId: string) {
     .from(invoicesTable)
     .where(eq(invoicesTable.companyId, companyId));
 
+  const isDemoMode = process.env.VITE_DEMO_MODE === "true";
+
   return {
     connection: {
       id: connection.id,
@@ -591,6 +593,10 @@ export async function getConnectionStatus(companyId: string) {
       lastSyncStatus: connection.lastSyncStatus,
       lastSyncError: connection.lastSyncError,
     },
+    isDemoMode,
+    demoWarning: isDemoMode
+      ? "Accounting sync is running in DEMO mode. No real QuickBooks connection is active. All sync operations are simulated locally."
+      : null,
     stats: {
       totalCustomers: Number(totalCustomers?.cnt ?? 0),
       mappedCustomers: Number(customerStats?.cnt ?? 0),

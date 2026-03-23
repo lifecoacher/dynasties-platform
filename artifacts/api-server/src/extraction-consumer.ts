@@ -56,7 +56,7 @@ import {
   riskScoresTable,
   insuranceQuotesTable,
 } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { publishDecisionJob } from "@workspace/queue";
 
@@ -64,19 +64,19 @@ async function tryTriggerDecisionEngine(shipmentId: string, companyId: string): 
   const [compliance] = await db
     .select({ id: complianceScreeningsTable.id })
     .from(complianceScreeningsTable)
-    .where(eq(complianceScreeningsTable.shipmentId, shipmentId))
+    .where(and(eq(complianceScreeningsTable.shipmentId, shipmentId), eq(complianceScreeningsTable.companyId, companyId)))
     .limit(1);
 
   const [risk] = await db
     .select({ id: riskScoresTable.id })
     .from(riskScoresTable)
-    .where(eq(riskScoresTable.shipmentId, shipmentId))
+    .where(and(eq(riskScoresTable.shipmentId, shipmentId), eq(riskScoresTable.companyId, companyId)))
     .limit(1);
 
   const [insurance] = await db
     .select({ id: insuranceQuotesTable.id })
     .from(insuranceQuotesTable)
-    .where(eq(insuranceQuotesTable.shipmentId, shipmentId))
+    .where(and(eq(insuranceQuotesTable.shipmentId, shipmentId), eq(insuranceQuotesTable.companyId, companyId)))
     .limit(1);
 
   if (compliance && risk && insurance) {

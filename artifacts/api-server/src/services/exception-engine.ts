@@ -200,7 +200,7 @@ export async function detectExceptionsForShipment(
   const shipmentEvents = await db
     .select()
     .from(shipmentEventsTable)
-    .where(eq(shipmentEventsTable.shipmentId, shipmentId))
+    .where(and(eq(shipmentEventsTable.shipmentId, shipmentId), eq(shipmentEventsTable.companyId, companyId)))
     .orderBy(desc(shipmentEventsTable.createdAt));
 
   for (const evt of shipmentEvents) {
@@ -450,7 +450,7 @@ export async function assignException(
   const [updated] = await db
     .update(exceptionsTable)
     .set({ assignedToUserId, status: newStatus })
-    .where(eq(exceptionsTable.id, exceptionId))
+    .where(and(eq(exceptionsTable.id, exceptionId), eq(exceptionsTable.companyId, companyId)))
     .returning();
 
   await db.insert(eventsTable).values({
@@ -483,7 +483,7 @@ export async function escalateException(
   const [updated] = await db
     .update(exceptionsTable)
     .set({ status: "ESCALATED", requiresEscalation: true })
-    .where(eq(exceptionsTable.id, exceptionId))
+    .where(and(eq(exceptionsTable.id, exceptionId), eq(exceptionsTable.companyId, companyId)))
     .returning();
 
   await db.insert(eventsTable).values({
@@ -521,7 +521,7 @@ export async function resolveException(
       resolvedBy: actorUserId,
       resolutionNotes,
     })
-    .where(eq(exceptionsTable.id, exceptionId))
+    .where(and(eq(exceptionsTable.id, exceptionId), eq(exceptionsTable.companyId, companyId)))
     .returning();
 
   await db.insert(eventsTable).values({

@@ -1,8 +1,12 @@
-import { getStripeSync, getUncachableStripeClient } from './stripeClient.js';
+import Stripe from 'stripe';
+import { getStripeSync, getUncachableStripeClient, getStripeSecretKey } from './stripeClient.js';
 import { stripeService } from './services/stripe-service.js';
 import { db } from "@workspace/db";
 import { companiesTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
+
+const processedEventIds = new Set<string>();
+const MAX_PROCESSED_CACHE = 10000;
 
 async function findCompanyByStripeCustomer(customerId: string): Promise<string | null> {
   const [company] = await db.select({ id: companiesTable.id })
@@ -22,12 +26,34 @@ export class WebhookHandlers {
       );
     }
 
+    const secretKey = await getStripeSecretKey();
+    const stripe = new Stripe(secretKey, { apiVersion: '2025-08-27.basil' as any });
+
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    let event: Stripe.Event;
+
+    if (webhookSecret) {
+      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    } else {
+      console.warn('[webhook] STRIPE_WEBHOOK_SECRET not set — signature verification skipped (development only)');
+      event = JSON.parse(payload.toString()) as Stripe.Event;
+    }
+
+    if (processedEventIds.has(event.id)) {
+      console.log(`[webhook] Duplicate event ${event.id}, skipping`);
+      return;
+    }
+    processedEventIds.add(event.id);
+    if (processedEventIds.size > MAX_PROCESSED_CACHE) {
+      const first = processedEventIds.values().next().value;
+      if (first) processedEventIds.delete(first);
+    }
+
     const sync = await getStripeSync();
     await sync.processWebhook(payload, signature);
 
     try {
-      const event = JSON.parse(payload.toString());
-      await WebhookHandlers.handleBusinessLogic(event);
+      await WebhookHandlers.handleBusinessLogic(event as any);
     } catch (err: any) {
       console.error('[webhook] Business logic error:', err.message);
     }
