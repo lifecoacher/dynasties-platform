@@ -44,3 +44,6 @@ DEMO_USE_WEATHER_API = "true"
 DEMO_USE_AIS_API = "false"
 STRIPE_PUBLISHABLE_KEY = ""
 STRIPE_SECRET_KEY = ""
+
+[userenv.development]
+APP_DATABASE_URL = "postgresql://app_user:app_user_restricted_2026@helium/heliumdb?sslmode=disable"

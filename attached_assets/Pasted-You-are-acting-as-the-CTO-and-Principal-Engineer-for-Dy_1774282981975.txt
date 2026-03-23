@@ -1,0 +1,155 @@
+You are acting as the CTO and Principal Engineer for Dynasties.
+
+This is Production Hardening Sprint 2.
+
+The goal is to convert current "best-effort safety" into enforced, system-level guarantees.
+
+Do NOT add new features.
+
+--------------------------------------------------
+SECTION 1 — ACTIVATE RLS ENFORCEMENT (P0)
+--------------------------------------------------
+
+Current state:
+- RLS policies exist but are NOT enforced (superuser bypass)
+
+Required:
+
+1. Create a restricted DB role (non-superuser) for application queries
+2. Update DB connection to use this restricted role
+3. Implement request-level tenant context:
+   - SET app.current_company_id = <companyId> per request
+4. Ensure all RLS policies use current_setting('app.current_company_id')
+
+5. Validate:
+   - queries WITHOUT companyId filter still cannot access other tenants
+   - cross-tenant access is impossible even if application code is wrong
+
+Return:
+- role created
+- middleware implementation
+- proof RLS is actively enforced
+
+--------------------------------------------------
+SECTION 2 — STRIPE WEBHOOK TRUST (P0)
+--------------------------------------------------
+
+If not already fully implemented:
+
+- enforce stripe.webhooks.constructEvent()
+- reject invalid signatures
+- ensure ONLY verified events mutate billing state
+
+Add explicit test:
+- forged webhook → rejected
+
+--------------------------------------------------
+SECTION 3 — BILLING SYSTEM SINGLE SOURCE OF TRUTH (P0)
+--------------------------------------------------
+
+Audit entire codebase:
+
+- remove any remaining legacy billing execution paths
+- confirm:
+  - only Stripe-backed system updates billing state
+  - no alternate invoice generation paths exist
+  - no duplicate state sources
+
+Return:
+- confirmation of single billing pipeline
+
+--------------------------------------------------
+SECTION 4 — BILLING ENFORCEMENT FAIL-CLOSED (P0)
+--------------------------------------------------
+
+Ensure:
+
+- ALL write methods enforced:
+  POST, PUT, PATCH, DELETE
+
+- if billing lookup fails → request is BLOCKED
+
+- remove any DEMO_MODE bypass from server enforcement
+
+Return:
+- enforcement matrix (method vs state)
+
+--------------------------------------------------
+SECTION 5 — MONEY-PATH TEST SUITE (P0)
+--------------------------------------------------
+
+Implement real tests for:
+
+Billing:
+- valid webhook activates tenant
+- invalid webhook rejected
+- payment failure restricts access
+- cancellation blocks writes
+
+Enforcement:
+- inactive tenant cannot POST/PUT/PATCH/DELETE
+- trial tenant allowed
+
+Reconciliation:
+- major variance triggers attention
+- resolution updates state correctly
+
+Migration:
+- failure triggers rollback
+- partial imports handled safely
+
+Requirements:
+- tests must run in CI
+- no mock-only meaningless assertions
+
+Return:
+- test files
+- coverage summary
+
+--------------------------------------------------
+SECTION 6 — MIGRATION TRANSACTION GUARANTEES (P1)
+--------------------------------------------------
+
+- wrap import flows in DB transactions
+- ensure:
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+
+- no silent partial success
+
+--------------------------------------------------
+SECTION 7 — QUERY SAFETY ABSTRACTION (P1)
+--------------------------------------------------
+
+Reduce reliance on manual filters:
+
+- create a helper or pattern that automatically injects companyId
+- apply to:
+  decision engine
+  exception system
+  document lookups
+  reconciliation
+
+Goal:
+- eliminate “forgot to add filter” class of bugs
+
+--------------------------------------------------
+SECTION 8 — EVENT INGESTION SAFETY (P1)
+--------------------------------------------------
+
+- enforce batch size limits
+- validate payload size
+- prevent system overload via large ingestion
+
+--------------------------------------------------
+SECTION 9 — OUTPUT
+--------------------------------------------------
+
+Return:
+
+1. What is now ENFORCED vs previously best-effort
+2. Files changed
+3. Tests added + results
+4. Remaining risks
+5. Whether platform is now safe for controlled beta
