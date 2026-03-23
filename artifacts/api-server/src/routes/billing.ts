@@ -1041,7 +1041,27 @@ router.get("/billing/receivables/overview", async (req, res) => {
   const paidThisMonth = paidInvoices
     .filter((i) => i.paidAt && i.paidAt.getMonth() === now.getMonth() && i.paidAt.getFullYear() === now.getFullYear())
     .reduce((s, i) => s + Number(i.grandTotal), 0);
-  const totalInvoiced = allInvoices.reduce((s, i) => s + Number(i.grandTotal || 0), 0);
+  const activeInvoices = allInvoices.filter((i) => i.status !== "CANCELLED" && i.status !== "DRAFT");
+  const totalInvoiced = activeInvoices.reduce((s, i) => s + Number(i.grandTotal || 0), 0);
+
+  const totalCollected = paidInvoices.reduce((s, i) => s + Number(i.grandTotal || 0), 0);
+  const partiallyPaidInvoices = allInvoices.filter((i) => i.status === "PARTIALLY_PAID");
+  const partialCollected = partiallyPaidInvoices.reduce((s, i) => {
+    const receivable = receivables.find((r: any) => r.invoiceId === i.id);
+    if (receivable) {
+      return s + (Number(i.grandTotal || 0) - Number(receivable.outstandingAmount || 0));
+    }
+    return s;
+  }, 0);
+  const totalCollectedAll = totalCollected + partialCollected;
+
+  const computedOutstanding = Math.max(0, totalInvoiced - totalCollectedAll);
+  if (totalOutstanding === 0 && computedOutstanding > 0) {
+    totalOutstanding = computedOutstanding;
+  }
+  if (Math.abs((totalCollectedAll + totalOutstanding) - totalInvoiced) > 0.01) {
+    totalOutstanding = Math.max(0, totalInvoiced - totalCollectedAll);
+  }
 
   const financedRecords = await db
     .select()
@@ -1085,7 +1105,8 @@ router.get("/billing/receivables/overview", async (req, res) => {
       countOverdueInvoices: countOverdue,
       paidThisMonth,
       totalInvoiced,
-      totalInvoiceCount: allInvoices.length,
+      totalCollected: totalCollectedAll,
+      totalInvoiceCount: activeInvoices.length,
       totalFinanced,
       totalFinancingFees,
       totalSpread,

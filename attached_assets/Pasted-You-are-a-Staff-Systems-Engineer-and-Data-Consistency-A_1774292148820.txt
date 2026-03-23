@@ -1,0 +1,205 @@
+You are a Staff+ Systems Engineer and Data Consistency Architect.
+
+You are executing a FINAL PRE-DEMO FIX SPRINT.
+
+This is not feature work.
+This is not polish.
+
+This is eliminating contradictions and enforcing a single system truth across all surfaces.
+
+If two parts of the system disagree, the system is wrong.
+
+--------------------------------------------------
+PRIORITY (STRICT)
+--------------------------------------------------
+
+1. RISK SCORE CONSISTENCY (CRITICAL)
+2. BILLING MATH CORRECTION (CRITICAL)
+3. COMPLIANCE METRIC CONSISTENCY (HIGH)
+4. 404 UX FIX (MEDIUM)
+5. DATA NORMALIZATION CLEANUP (MEDIUM)
+
+--------------------------------------------------
+T001 — RISK SCORE SINGLE SOURCE OF TRUTH (CRITICAL)
+--------------------------------------------------
+
+Problem:
+- Shipment list shows risk = 35
+- Shipment detail shows risk = 0 (AUTO APPROVE)
+
+This is unacceptable.
+
+Fix:
+
+1. Define canonical source:
+   shipment_decisions.finalRiskScore
+   shipment_decisions.finalRiskLevel
+
+2. Enforce:
+   ALL UI components must read from this source ONLY:
+   - shipment list
+   - shipment detail
+   - control tower
+   - any risk badge
+
+3. Remove:
+   - legacy risk calculations
+   - frontend-derived scores
+   - duplicate risk fields
+
+4. Add backend guarantee:
+   - whenever shipment loads → decision must exist or be computed
+
+5. Add invariant:
+   - if UI attempts to render mismatched values → log error
+
+6. Migration:
+   - backfill decisions for all existing shipments
+
+Output:
+Every surface shows identical risk score.
+
+--------------------------------------------------
+T002 — BILLING MATH INTEGRITY (CRITICAL)
+--------------------------------------------------
+
+Problem:
+Outstanding = $0 while invoices clearly unpaid.
+
+Fix:
+
+1. Define formulas:
+
+   totalInvoiced = SUM(invoices.amount)
+   totalCollected = SUM(invoices.amount WHERE status = PAID)
+   outstanding = totalInvoiced - totalCollected
+
+2. Rebuild backend endpoint:
+   /api/billing/stats must compute values from DB (not cached, not partial)
+
+3. Validate:
+   outstanding >= 0
+   totalCollected <= totalInvoiced
+
+4. Remove:
+   any UI-side calculations
+
+5. Add invariant:
+   if totalCollected + outstanding ≠ totalInvoiced → log ERROR
+
+6. Ensure:
+   partial payments handled correctly (if applicable)
+
+Output:
+Billing numbers always reconcile.
+
+--------------------------------------------------
+T003 — COMPLIANCE METRIC UNIFICATION (HIGH)
+--------------------------------------------------
+
+Problem:
+- "1 of 30 compliant"
+- "0 clear"
+
+Two truths = no truth.
+
+Fix:
+
+1. Define canonical:
+   compliance_status per shipment:
+     CLEAR
+     FLAGGED
+     UNKNOWN
+
+2. Aggregate:
+
+   compliantCount = COUNT(shipments WHERE compliance = CLEAR)
+   totalCount = COUNT(shipments)
+
+3. All UI must read from same aggregation:
+   - dashboard
+   - compliance panel
+   - control tower
+
+4. Remove:
+   any independent compliance counters
+
+5. Add invariant:
+   if two compliance displays differ → log ERROR
+
+Output:
+Compliance metrics agree everywhere.
+
+--------------------------------------------------
+T004 — 404 UX FIX (MEDIUM)
+--------------------------------------------------
+
+Problem:
+Blank white screen on invalid routes.
+
+Fix:
+
+1. Create global NotFound component:
+   - "Resource not found"
+   - link to dashboard
+   - link to previous page
+
+2. Ensure:
+   all 404 API responses trigger this UI
+
+3. Add fallback timeout:
+   if loading > threshold and no data → show error state
+
+Output:
+No blank states. No infinite loading.
+
+--------------------------------------------------
+T005 — DATA NORMALIZATION CLEANUP (MEDIUM)
+--------------------------------------------------
+
+Problem:
+- weight unit shows numeric values
+- "Unknown" entities clutter UI
+
+Fix:
+
+1. Units:
+   - enforce ENUM: KG, LB, CBM, etc.
+   - fix incorrect mappings during ingestion
+
+2. Backfill:
+   - correct existing records where possible
+
+3. Unknown values:
+   - for DRAFT: allow but visually mark as "Incomplete"
+   - for ACTIVE shipments: must not show "Unknown"
+
+4. UI:
+   - show validation warnings for incomplete data
+
+Output:
+No obviously broken or nonsensical data in demo.
+
+--------------------------------------------------
+SUCCESS CRITERIA
+--------------------------------------------------
+
+System must:
+
+1. Show identical risk score across all views
+2. Have billing numbers that reconcile mathematically
+3. Show consistent compliance metrics everywhere
+4. Never render blank or infinite loading states
+5. Never display obviously invalid units or placeholder data
+
+--------------------------------------------------
+FINAL INSTRUCTION
+--------------------------------------------------
+
+You are not improving the product.
+
+You are removing contradictions.
+
+A system that contradicts itself cannot be trusted.
+
+After this sprint, there must be exactly one version of truth per concept.

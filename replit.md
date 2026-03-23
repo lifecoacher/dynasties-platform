@@ -78,6 +78,13 @@ The system automates various freight forwarding stages, including:
 - **Money-path test suite**: 21 API-level tests covering invoice lifecycle (create→send→paid→cancel), tenant isolation, charge rules, reconciliation validation, and billing enforcement. Located at `tests/money-path/run.ts`. Run with `npx tsx tests/money-path/run.ts`.
 - **Test suites**: `npx tsx tests/money-path/run.ts` (21 tests), `npx tsx tests/rls-enforcement/run.ts` (15 tests), `npx tsx tests/beta-path/run.ts` (28 tests). Total: 64 passing.
 
+## Pre-Demo Data Consistency Sprint (Complete)
+- **T001 Risk Score Single Source of Truth**: Shipment list endpoint now enriches with `shipment_decisions` data. Canonical risk score = `decision.finalRiskScore` (preferred) → `risk_scores.compositeScore` (fallback). All frontend surfaces reading `risk.compositeScore` from the list API automatically get the canonical score. Dashboard stats also use decision-first risk aggregation.
+- **T002 Billing Math Integrity**: `totalOutstanding` derived from invoice statuses (not receivables table). Handles partial payments via receivable delta. Invariant enforced: `collected + outstanding = invoiced`. Response includes `totalCollected`. Invoice count excludes CANCELLED/DRAFT.
+- **T003 Compliance Metric Unification**: Dashboard compliance stats count per-shipment (not per-screening). Each shipment classified as CLEAR/FLAGGED/UNSCREENED based on screening existence. Frontend type updated with `unscreened` field.
+- **T004 404 UX**: ShipmentDetail shows "Shipment Not Found" page (not infinite spinner) when shipment doesn't exist or user lacks access. Includes back-navigation link.
+- **T005 Data Normalization**: Verified — `formatWeight`, `formatCurrency`, entity name fallbacks already handle null/undefined gracefully.
+
 ## Critical Fix Sprint (Complete)
 - **T001 Billing Usage Counter**: `getActualShipmentCount()` uses `COUNT(*) FROM shipments` instead of stale counter. Drift detection logs divergence.
 - **T002 Risk + Decision Engine**: Block threshold=70, `enforceInvariants()` on ALL return paths, Zod schemas (`DecisionInputSchema`, `DecisionOutputSchema`) for input validation, terminal status fix (DELIVERED→APPROVED+releaseAllowed=true), frontend risk reconciliation (decision.unifiedRisk.finalScore preferred).
