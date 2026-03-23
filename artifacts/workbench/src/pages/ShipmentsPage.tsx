@@ -14,7 +14,7 @@ import {
   Filter,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { normalizeRiskScore, riskColor, formatCurrency } from "@/lib/format";
+import { normalizeRiskScore, riskColor, formatCurrency, formatPortCode } from "@/lib/format";
 
 type FilterTab = "ALL" | "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "REJECTED";
 
@@ -198,13 +198,19 @@ export default function ShipmentsPage() {
                       </div>
 
                       <div className="flex items-center gap-4 text-[12px] text-muted-foreground mb-3">
-                        <span className="truncate max-w-[200px]">{s.shipper?.name || "Unknown shipper"}</span>
-                        <span className="text-primary/40">→</span>
-                        <span className="truncate max-w-[200px]">{s.consignee?.name || "Unknown consignee"}</span>
+                        {s.shipper?.name || s.consignee?.name ? (
+                          <>
+                            <span className="truncate max-w-[200px]">{s.shipper?.name || "Pending"}</span>
+                            <span className="text-primary/40">→</span>
+                            <span className="truncate max-w-[200px]">{s.consignee?.name || "Pending"}</span>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground/60 italic">Incomplete Shipment</span>
+                        )}
                         {s.portOfLoading && (
                           <>
                             <span className="text-border">|</span>
-                            <span>{s.portOfLoading} → {s.portOfDischarge || "?"}</span>
+                            <span>{formatPortCode(s.portOfLoading)} → {formatPortCode(s.portOfDischarge)}</span>
                           </>
                         )}
                       </div>

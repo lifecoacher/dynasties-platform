@@ -1,0 +1,237 @@
+You are a Staff Product Designer and Frontend Systems Engineer.
+
+You are restructuring the Dynasties UI into an operator-first control system.
+
+You are NOT adding features.
+You are reorganizing existing information to reduce cognitive load and improve decision speed.
+
+--------------------------------------------------
+PRIORITY ORDER
+--------------------------------------------------
+
+1. SHIPMENT DETAIL RESTRUCTURE
+2. DECISION SIGNAL FIX
+3. ACTIVITY PANEL REMOVAL
+4. NAVIGATION + JUMP SYSTEM
+5. LIST + DATA SCANNABILITY
+
+--------------------------------------------------
+T001 — SHIPMENT SUMMARY HEADER (CRITICAL)
+--------------------------------------------------
+
+Problem:
+Operators land on raw extracted data instead of actionable info.
+
+Fix:
+
+Create a top summary bar (always visible above the fold):
+
+Display:
+
+- Status (DELIVERED / IN TRANSIT / etc)
+- Decision (APPROVED / REVIEW / BLOCKED)
+- Risk Level (Low / Medium / High)
+- Compliance (Clear / Flagged / Unscreened)
+- Readiness %
+- Open Exceptions (count + severity)
+
+Layout:
+- horizontal card
+- large typography
+- color-coded statuses
+
+Requirement:
+User understands the shipment in <2 seconds without scrolling.
+
+Move:
+- Extracted Fields BELOW this section
+- make Extracted Fields collapsible
+
+--------------------------------------------------
+T002 — DECISION SIGNAL FIX (CRITICAL)
+--------------------------------------------------
+
+Problem:
+"APPROVED" + "Release Blocked" creates contradiction
+
+Fix:
+
+1. For terminal states (DELIVERED):
+   - Replace decision with:
+     "DELIVERED — No action required"
+   - Remove approval/block signals
+
+2. For active shipments:
+   - Only ONE status allowed:
+     APPROVED OR REVIEW OR BLOCKED
+
+3. Remove:
+   - dual badges
+   - conflicting color signals
+
+4. Add:
+   short explanation line:
+   "Why this decision exists"
+
+--------------------------------------------------
+T003 — COLLAPSIBLE SECTIONS + PROGRESSIVE DISCLOSURE
+--------------------------------------------------
+
+Problem:
+15+ sections visible at once
+
+Fix:
+
+1. Default visible:
+   - Summary
+   - Decision
+   - Exceptions
+   - Documents (if blocked)
+
+2. Collapse by default:
+   - Extracted Fields
+   - Routing
+   - Weather
+   - Scenario Comparison
+   - Agent timelines
+
+3. Expand on click
+
+Requirement:
+No more than 4 sections visible on initial load.
+
+--------------------------------------------------
+T004 — STICKY NAV / SECTION JUMP
+--------------------------------------------------
+
+Problem:
+No way to navigate long page
+
+Fix:
+
+Add sticky navigation bar below summary:
+
+Tabs:
+- Overview
+- Decision
+- Documents
+- Compliance
+- Risk
+- Journey
+- Financials
+
+Click scrolls to section.
+
+--------------------------------------------------
+T005 — REMOVE / COLLAPSE ACTIVITY PANEL
+--------------------------------------------------
+
+Problem:
+Right panel wastes space
+
+Fix:
+
+1. Remove panel from default layout
+
+2. Replace with:
+   - small icon (top-right)
+   - expandable drawer
+
+3. Default state:
+   hidden
+
+Result:
++30% usable width returned
+
+--------------------------------------------------
+T006 — EXCEPTION → ACTION FLOW
+--------------------------------------------------
+
+Problem:
+User sees exception but doesn't know what to do
+
+Fix:
+
+Each exception must include:
+
+- description
+- severity
+- linked shipment
+- PRIMARY ACTION BUTTON:
+  - "Resolve"
+  - "Review Shipment"
+  - "Upload Document"
+
+Click goes directly to resolution view.
+
+--------------------------------------------------
+T007 — SHIPMENT LIST CLEANUP
+--------------------------------------------------
+
+Problem:
+"Unknown shi... → Unknown consi..."
+
+Fix:
+
+1. Replace with:
+   - "Incomplete Shipment" label for drafts
+
+2. Show:
+   - progress indicator prominently
+
+3. De-emphasize missing fields
+
+--------------------------------------------------
+T008 — PORT CODE READABILITY
+--------------------------------------------------
+
+Fix:
+
+Display:
+Mumbai (INMUN)
+Abu Dhabi (AEAUH)
+
+Not just codes.
+
+--------------------------------------------------
+T009 — INFORMATION PRIORITY ENFORCEMENT
+--------------------------------------------------
+
+Rule:
+
+Critical:
+- status
+- risk
+- exceptions
+
+Medium:
+- financials
+- documents
+
+Low:
+- raw shipment data
+
+Reflect in:
+- font size
+- placement
+- color
+
+--------------------------------------------------
+SUCCESS CRITERIA
+--------------------------------------------------
+
+1. User can understand a shipment in <2 seconds
+2. User does not scroll to find critical info
+3. No conflicting signals exist visually
+4. Page feels 50% lighter cognitively
+5. Operator always knows next action
+
+--------------------------------------------------
+FINAL INSTRUCTION
+--------------------------------------------------
+
+You are not simplifying the product.
+
+You are making it usable under pressure.
+
+If the user has to scroll to understand, you failed.
