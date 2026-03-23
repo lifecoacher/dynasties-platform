@@ -85,9 +85,9 @@ export default function CommandCenter() {
           className="grid grid-cols-4 gap-3 mb-8"
         >
           <MetricCard label="Active" value={metricsLoading ? null : activeShipments} sub={metricsLoading ? undefined : `of ${totalShipments}`} icon={<Ship className="w-4 h-4" />} color="text-primary" />
-          <MetricCard label="Compliant" value={metricsLoading ? null : complianceClear} sub={metricsLoading ? undefined : `of ${totalShipments}`} icon={<Shield className="w-4 h-4" />} color="text-primary" />
+          <MetricCard label="Screened Clear" value={metricsLoading ? null : complianceClear} sub={metricsLoading ? undefined : `of ${totalShipments}`} icon={<Shield className="w-4 h-4" />} color="text-primary" />
           <MetricCard label="Risk Alerts" value={metricsLoading ? null : highRisk} icon={<TrendingUp className="w-4 h-4" />} color={highRisk > 0 ? "text-[#D4A24C]" : "text-primary"} />
-          <MetricCard label="Compliance" value={metricsLoading ? null : complianceAlerts} sub={complianceAlerts > 0 ? "alerts" : "clear"} icon={<AlertCircle className="w-4 h-4" />} color={complianceAlerts > 0 ? "text-[#E05252]" : "text-primary"} />
+          <MetricCard label="Flagged" value={metricsLoading ? null : complianceAlerts} sub={complianceAlerts > 0 ? "compliance alerts" : "all clear"} icon={<AlertCircle className="w-4 h-4" />} color={complianceAlerts > 0 ? "text-[#E05252]" : "text-primary"} />
         </motion.div>
 
         {alertsSummary && alertsSummary.total > 0 && (

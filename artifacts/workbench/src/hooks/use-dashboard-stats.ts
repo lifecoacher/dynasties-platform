@@ -16,6 +16,7 @@ export interface DashboardStats {
     total: number;
     clear: number;
     flagged: number;
+    unscreened: number;
   };
   risk: {
     total: number;

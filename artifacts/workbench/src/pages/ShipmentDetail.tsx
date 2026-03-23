@@ -180,7 +180,7 @@ export default function ShipmentDetail() {
   const [, params] = useRoute("/shipments/:id");
   const id = params?.id || "";
 
-  const { data: shipmentRes, isLoading: loadingShipment } = useGetShipment(id);
+  const { data: shipmentRes, isLoading: loadingShipment, isError: shipmentError } = useGetShipment(id);
   const { data: complianceRes } = useGetShipmentCompliance(id);
   const { data: riskRes } = useGetShipmentRisk(id);
   const { data: docValRes } = useQuery({
@@ -566,11 +566,28 @@ export default function ShipmentDetail() {
     ? Math.round(decision.unifiedRisk.finalScore)
     : normalizeRiskScore(risk?.compositeScore);
 
-  if (loadingShipment || !shipment) {
+  if (loadingShipment) {
     return (
       <AppLayout hideRightPanel>
         <div className="flex items-center justify-center h-full">
           <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!shipment || shipmentError) {
+    return (
+      <AppLayout hideRightPanel>
+        <div className="flex flex-col items-center justify-center h-full gap-4">
+          <div className="w-12 h-12 rounded-xl bg-card border border-card-border flex items-center justify-center">
+            <Ship className="w-6 h-6 text-muted-foreground/50" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-foreground mb-1">Shipment Not Found</h2>
+            <p className="text-sm text-muted-foreground">This shipment doesn't exist or you don't have access to it.</p>
+          </div>
+          <Link href="/shipments" className="text-sm text-primary hover:underline">Back to Shipments</Link>
         </div>
       </AppLayout>
     );

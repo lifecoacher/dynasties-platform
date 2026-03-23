@@ -81,7 +81,7 @@ router.get("/shipments", async (req, res) => {
     ),
   ];
 
-  const [complianceRows, riskRows, insuranceRows, entityRows] =
+  const [complianceRows, riskRows, insuranceRows, entityRows, decisionRows] =
     await Promise.all([
       db
         .select()
@@ -121,6 +121,15 @@ router.get("/shipments", async (req, res) => {
               ),
             )
         : Promise.resolve([]),
+      db
+        .select()
+        .from(shipmentDecisionsTable)
+        .where(
+          and(
+            inArray(shipmentDecisionsTable.shipmentId, shipmentIds),
+            eq(shipmentDecisionsTable.companyId, companyId),
+          ),
+        ),
     ]);
 
   const complianceMap = new Map(
@@ -131,17 +140,26 @@ router.get("/shipments", async (req, res) => {
     insuranceRows.map((i: any) => [i.shipmentId, i]),
   );
   const entityMap = new Map(entityRows.map((e: any) => [e.id, e]));
+  const decisionMap = new Map(
+    decisionRows.map((d: any) => [d.shipmentId, d]),
+  );
 
   const enriched = shipments.map((shipment: any) => {
     const compliance = complianceMap.get(shipment.id);
     const risk = riskMap.get(shipment.id);
     const insurance = insuranceMap.get(shipment.id);
+    const decision = decisionMap.get(shipment.id);
     const shipper = shipment.shipperId
       ? entityMap.get(shipment.shipperId)
       : null;
     const consignee = shipment.consigneeId
       ? entityMap.get(shipment.consigneeId)
       : null;
+
+    const canonicalRiskScore = decision?.finalRiskScore != null
+      ? Math.round(Number(decision.finalRiskScore))
+      : risk ? Number(risk.compositeScore) : null;
+    const canonicalRiskLevel = risk?.recommendedAction || null;
 
     return {
       ...shipment,
@@ -156,10 +174,14 @@ router.get("/shipments", async (req, res) => {
             screenedParties: compliance.screenedParties,
           }
         : null,
-      risk: risk
+      risk: {
+        compositeScore: canonicalRiskScore,
+        recommendedAction: canonicalRiskLevel,
+      },
+      decision: decision
         ? {
-            compositeScore: Number(risk.compositeScore),
-            recommendedAction: risk.recommendedAction,
+            finalStatus: decision.finalStatus,
+            releaseAllowed: decision.releaseAllowed,
           }
         : null,
       insurance: insurance
