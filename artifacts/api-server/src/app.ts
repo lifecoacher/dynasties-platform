@@ -8,7 +8,7 @@ import healthRouter from "./routes/health.js";
 import demoRouter from "./routes/demo.js";
 import { loginLimiter, apiLimiter } from "./middlewares/rate-limit.js";
 import { requestLogger } from "./middlewares/request-logger.js";
-import { globalErrorHandler } from "./middlewares/error-handler.js";
+import { globalErrorHandler, notFoundHandler } from "./middlewares/error-handler.js";
 import { WebhookHandlers } from "./webhookHandlers.js";
 
 const app: Express = express();
@@ -74,6 +74,7 @@ app.use("/api", adminRouter);
 app.use("/api", demoRouter);
 app.use("/api", router);
 
+app.use("/api", notFoundHandler);
 app.use(globalErrorHandler);
 
 export default app;
