@@ -27,6 +27,25 @@ export interface SubscriptionInfo {
   deploymentFeeCents: number | null;
   deploymentFeeRequirement: string | null;
   subscription: any;
+  stripeConnectAccountId: string | null;
+  connectOnboardingStarted: boolean;
+  connectOnboardingCompleted: boolean;
+  connectChargesEnabled: boolean;
+  connectPayoutsEnabled: boolean;
+}
+
+export interface ConnectStatusInfo {
+  stripeConnectAccountId: string | null;
+  connectOnboardingStarted: boolean;
+  connectOnboardingCompleted: boolean;
+  connectChargesEnabled: boolean;
+  connectPayoutsEnabled: boolean;
+  requirements?: {
+    currentlyDue: string[];
+    eventuallyDue: string[];
+    pastDue: string[];
+    disabledReason: string | null;
+  };
 }
 
 export interface PlanConfigInfo {
@@ -229,4 +248,109 @@ export function useStartTrial() {
   };
 
   return { startTrial, isLoading };
+}
+
+export function useConnectStatus() {
+  const { token } = useAuth();
+  const [data, setData] = useState<ConnectStatusInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const refetch = useCallback(() => {
+    if (!token) return;
+    setIsLoading(true);
+    fetch(`${getBaseUrl()}/api/stripe/connect/status`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((body) => setData(body.data ?? null))
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [token]);
+
+  useEffect(() => { refetch(); }, [refetch]);
+  return { data, isLoading, refetch };
+}
+
+export function useConnectSync() {
+  const { token } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const sync = async (): Promise<ConnectStatusInfo | null> => {
+    if (!token) return null;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${getBaseUrl()}/api/stripe/connect/sync`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+      const body = await res.json();
+      return body.data ?? null;
+    } catch {
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { sync, isLoading };
+}
+
+export function useConnectCreateAccount() {
+  const { token } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const createAccount = async () => {
+    if (!token) return null;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${getBaseUrl()}/api/stripe/connect/create-account`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+      return await res.json();
+    } catch {
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { createAccount, isLoading };
+}
+
+export function useConnectOnboarding() {
+  const { token } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const startOnboarding = async () => {
+    if (!token) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${getBaseUrl()}/api/stripe/connect/onboarding-link`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+      const body = await res.json();
+      if (body.data?.url) {
+        window.location.href = body.data.url;
+      }
+    } catch {
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { startOnboarding, isLoading };
 }

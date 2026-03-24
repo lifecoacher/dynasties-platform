@@ -176,6 +176,11 @@ router.get("/stripe/subscription", async (req, res) => {
       deploymentFeeCents: planConfig ? planConfig.deploymentFeeCents : null,
       deploymentFeeRequirement: planConfig ? planConfig.deploymentFeeRequirement : null,
       subscription,
+      stripeConnectAccountId: company.stripeConnectAccountId ?? null,
+      connectOnboardingStarted: company.connectOnboardingStarted ?? false,
+      connectOnboardingCompleted: company.connectOnboardingCompleted ?? false,
+      connectChargesEnabled: company.connectChargesEnabled ?? false,
+      connectPayoutsEnabled: company.connectPayoutsEnabled ?? false,
     },
   });
 });
