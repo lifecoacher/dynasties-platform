@@ -1,0 +1,109 @@
+You are not working on UI or layout.
+
+You are fixing AI decision correctness and system integrity.
+
+The platform is now UX-clean. The remaining risk is incorrect or misleading AI behavior.
+
+--------------------------------------------------
+OBJECTIVE
+--------------------------------------------------
+
+Eliminate all cases where the system:
+
+- makes decisions without required inputs
+- displays outputs that are not causally linked
+- shows confidence without sufficient data
+- allows user actions that bypass AI safeguards
+
+--------------------------------------------------
+PRIORITY FIXES (STRICT ORDER)
+--------------------------------------------------
+
+1. RISK ENGINE INTEGRITY
+
+- Final risk score MUST be computed from sub-scores
+- Remove any override where decision engine sets an independent risk score
+- If sub-scores exist, they must mathematically determine final score
+- If not, remove sub-scores from output entirely
+
+No dual systems.
+
+--------------------------------------------------
+
+2. DECISION ENGINE PRECONDITIONS
+
+Decision engine MUST NOT return APPROVED / BLOCKED / REVIEW unless:
+
+- compliance has been executed
+- risk has been computed
+- document validation has been completed
+
+If any are missing:
+
+Return:
+decision = "INCOMPLETE"
+reason = "Required checks not completed"
+
+--------------------------------------------------
+
+3. ACTION GUARDRAILS (CRITICAL)
+
+Approve / Reject must be blocked unless:
+
+- decision !== INCOMPLETE
+- compliance === CLEAR with full coverage
+- no critical exceptions exist
+
+Enforce this in backend, not UI.
+
+--------------------------------------------------
+
+4. COMPLIANCE TRUTH MODEL
+
+- If screening not run → status = NOT_RUN
+- If partial → status = INCOMPLETE
+- Only full screening can be CLEAR
+
+Never allow:
+- ALERT without screening
+- CLEAR with partial coverage
+
+--------------------------------------------------
+
+5. DECISION EXPLANATION
+
+Replace internal labels with operator-readable output.
+
+Every decision must include:
+
+- clear reason
+- what triggered it
+- what action is required
+
+No system codes like COMPLIANCE_BLOCK exposed.
+
+--------------------------------------------------
+
+6. FAIL-SAFE LOGIC
+
+If:
+- data missing
+- signals conflict
+- model uncertain
+
+Then:
+decision = REVIEW
+
+Remove AUTO APPROVE unless:
+- risk low
+- compliance fully clear
+- documents ready
+
+--------------------------------------------------
+
+OUTPUT
+
+- Updated decision engine logic
+- Enforced invariants across risk, compliance, and decisions
+- No contradictory states possible
+- System defaults to safe behavior under uncertainty

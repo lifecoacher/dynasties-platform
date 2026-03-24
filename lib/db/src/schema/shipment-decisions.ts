@@ -22,7 +22,7 @@ export const shipmentDecisionsTable = pgTable(
       .notNull()
       .references(() => shipmentsTable.id),
     finalStatus: text("final_status", {
-      enum: ["APPROVED", "BLOCKED", "REJECTED", "REVIEW"],
+      enum: ["APPROVED", "BLOCKED", "REJECTED", "REVIEW", "INCOMPLETE"],
     }).notNull(),
     releaseAllowed: boolean("release_allowed").notNull(),
     decisionReason: text("decision_reason").notNull(),

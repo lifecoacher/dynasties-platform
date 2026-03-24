@@ -21,7 +21,7 @@ export const complianceScreeningsTable = pgTable(
       .notNull()
       .references(() => shipmentsTable.id),
     status: text("status", {
-      enum: ["CLEAR", "ALERT", "BLOCKED"],
+      enum: ["CLEAR", "ALERT", "BLOCKED", "INCOMPLETE"],
     }).notNull(),
     screenedParties: integer("screened_parties").notNull(),
     matchCount: integer("match_count").notNull().default(0),

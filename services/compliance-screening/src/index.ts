@@ -13,8 +13,9 @@ import { validateComplianceOutput, type ComplianceResolution } from "./validator
 
 export interface ComplianceResult {
   screeningId: string | null;
-  status: "CLEAR" | "ALERT" | "BLOCKED";
+  status: "CLEAR" | "ALERT" | "BLOCKED" | "INCOMPLETE";
   matchCount: number;
+  screenedParties: number;
   agentResolutions: ComplianceResolution[];
   success: boolean;
   error: string | null;
@@ -35,26 +36,33 @@ export async function runComplianceScreening(
   if (!shipment || shipment.companyId !== companyId) {
     return {
       screeningId: null,
-      status: "CLEAR",
+      status: "INCOMPLETE",
       matchCount: 0,
+      screenedParties: 0,
       agentResolutions: [],
       success: false,
       error: "Shipment not found or company mismatch",
     };
   }
 
-  const existing = await db
-    .select({ id: complianceScreeningsTable.id })
+  const [existingScreening] = await db
+    .select({
+      id: complianceScreeningsTable.id,
+      status: complianceScreeningsTable.status,
+      matchCount: complianceScreeningsTable.matchCount,
+      screenedParties: complianceScreeningsTable.screenedParties,
+    })
     .from(complianceScreeningsTable)
     .where(eq(complianceScreeningsTable.shipmentId, shipmentId))
     .limit(1);
 
-  if (existing.length > 0) {
-    console.log(`[compliance] screening already exists for shipment=${shipmentId}, skipping`);
+  if (existingScreening) {
+    console.log(`[compliance] screening already exists for shipment=${shipmentId}, returning stored result (status=${existingScreening.status})`);
     return {
-      screeningId: existing[0]!.id,
-      status: "CLEAR",
-      matchCount: 0,
+      screeningId: existingScreening.id,
+      status: existingScreening.status as ComplianceResult["status"],
+      matchCount: existingScreening.matchCount,
+      screenedParties: existingScreening.screenedParties,
       agentResolutions: [],
       success: true,
       error: null,
@@ -84,14 +92,14 @@ export async function runComplianceScreening(
   }
 
   if (parties.length === 0) {
-    console.log(`[compliance] no parties to screen for shipment=${shipmentId}`);
+    console.log(`[compliance] no parties to screen for shipment=${shipmentId} — marking INCOMPLETE`);
     const screeningId = generateId();
     await db.transaction(async (tx) => {
       await tx.insert(complianceScreeningsTable).values({
         id: screeningId,
         companyId,
         shipmentId,
-        status: "CLEAR",
+        status: "INCOMPLETE",
         screenedParties: 0,
         matchCount: 0,
         matches: [],
@@ -109,18 +117,20 @@ export async function runComplianceScreening(
         serviceId: "compliance-screening",
         metadata: {
           screeningId,
-          status: "CLEAR",
+          status: "INCOMPLETE",
           screenedParties: 0,
           matchCount: 0,
           listsChecked: [],
+          reason: "No parties available to screen — shipment data incomplete",
         },
       });
     });
 
     return {
       screeningId,
-      status: "CLEAR",
+      status: "INCOMPLETE",
       matchCount: 0,
+      screenedParties: 0,
       agentResolutions: [],
       success: true,
       error: null,
@@ -259,6 +269,7 @@ export async function runComplianceScreening(
     screeningId,
     status: screenResult.status,
     matchCount: screenResult.matchCount,
+    screenedParties: screenResult.screenedParties,
     agentResolutions,
     success: true,
     error: null,
