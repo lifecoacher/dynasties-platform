@@ -26,12 +26,35 @@ const TABS: { value: FilterTab; label: string }[] = [
   { value: "REJECTED", label: "Rejected" },
 ];
 
+function deriveVoice(shipments: any[]) {
+  const pendingReview = shipments.filter((s) => s.status === "PENDING_REVIEW").length;
+  const flagged = shipments.filter((s) => s.compliance?.status === "FLAGGED" || s.compliance?.status === "ALERT").length;
+  const highRisk = shipments.filter((s) => {
+    const score = normalizeRiskScore(s.risk?.compositeScore);
+    return score != null && score >= 60;
+  }).length;
+
+  if (flagged > 0) return { text: `${flagged} shipment${flagged > 1 ? "s" : ""} flagged for compliance review`, color: "text-[#D4A24C]" };
+  if (highRisk > 0) return { text: `${highRisk} shipment${highRisk > 1 ? "s" : ""} with elevated risk`, color: "text-[#D4A24C]" };
+  if (pendingReview > 0) return { text: `${pendingReview} shipment${pendingReview > 1 ? "s" : ""} awaiting your review`, color: "text-foreground" };
+  return { text: "All shipments on track", color: "text-primary/70" };
+}
+
+function needsCare(s: any) {
+  const score = normalizeRiskScore(s.risk?.compositeScore);
+  return s.status === "PENDING_REVIEW"
+    || s.compliance?.status === "FLAGGED"
+    || s.compliance?.status === "ALERT"
+    || (score != null && score >= 60);
+}
+
 export default function ShipmentsPage() {
   const { data: response, isLoading } = useListShipments();
   const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
   const [search, setSearch] = useState("");
 
   const shipments = (response?.data || []) as any[];
+  const voice = deriveVoice(shipments);
 
   const filtered = shipments.filter((s) => {
     const matchesTab = activeTab === "ALL" || s.status === activeTab;
@@ -48,14 +71,8 @@ export default function ShipmentsPage() {
   return (
     <AppLayout>
       <div className="px-6 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Shipments</h1>
-            <p className="text-[13px] text-muted-foreground mt-1">
-              {shipments.length} total
-            </p>
-          </div>
-
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Shipments</h1>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input
@@ -67,6 +84,10 @@ export default function ShipmentsPage() {
             />
           </div>
         </div>
+
+        {!isLoading && shipments.length > 0 && (
+          <p className={`text-[13px] ${voice.color} mb-6`}>{voice.text}</p>
+        )}
 
         <div className="flex items-center gap-1 mb-6 border-b border-card-border">
           {TABS.map((tab) => {
@@ -116,6 +137,7 @@ export default function ShipmentsPage() {
           <div className="space-y-px">
             {filtered.map((s: any, i: number) => {
               const score = normalizeRiskScore(s.risk?.compositeScore);
+              const important = needsCare(s);
 
               return (
                 <motion.div
@@ -125,7 +147,7 @@ export default function ShipmentsPage() {
                   transition={{ delay: i * 0.02 }}
                 >
                   <Link href={`/shipments/${s.id}`}>
-                    <div className="flex items-center gap-4 px-4 py-4 -mx-4 rounded-lg hover:bg-white/[0.02] transition-colors cursor-pointer group border-b border-white/[0.03] last:border-b-0">
+                    <div className={`flex items-center gap-4 px-4 py-4 -mx-4 rounded-lg hover:bg-white/[0.03] transition-all cursor-pointer group border-b border-white/[0.03] last:border-b-0 active:scale-[0.995] ${important ? "" : "opacity-50 hover:opacity-90"}`}>
                       <StatusIndicator status={s.status} />
 
                       <div className="flex-1 min-w-0">

@@ -16,7 +16,13 @@ Do not make changes to the `tests/` folder without prior discussion.
 The core architectural principle is that AI models do not directly write to the system of record. Instead, agents produce structured JSON outputs processed by deterministic services with validation and approval mechanisms. The system is built as a monorepo using pnpm workspaces.
 
 **UI/UX Decisions:**
-The design features an AI-native operating system with a three-zone layout (left sidebar, central workspace, right context panel). The design system uses Dynasties branding with specific fonts (Space Grotesk, Inter), a dark infrastructure palette, primary teal, warning amber, destructive red, and various shades for text. It uses an 8px grid system and Framer Motion for animations.
+The design features an AI-native decision system with a three-zone layout (left sidebar, central workspace, right intelligence panel). The system is designed around a core principle: **every screen answers "What should I do right now?" within 2 seconds**. Key UX patterns:
+- **System Voice**: Every page has a plain-language AI statement at the top (e.g., "2 shipments require your attention", "All clear")
+- **Opacity-based attention**: List rows that need care are full opacity; quiet rows are dimmed (opacity-50/60), becoming visible on hover
+- **Decision-first hierarchy**: Status/decision is the dominant element, not data. Command Center leads with system status card (Face ID / Tesla autopilot feel)
+- **Calm empty states**: "System operating normally" instead of "No data found"
+- **Microinteractions**: active:scale-[0.97] on CTAs, hover transitions, 150ms timing
+- The design system uses Dynasties branding with specific fonts (Space Grotesk, Inter), a dark infrastructure palette with subtle gradient background, primary teal (#00BFA6), warning amber (#D4A24C), destructive red (#E05252). Uses an 8px grid system and Framer Motion for animations.
 
 **Technical Implementations:**
 - **Backend:** Node.js 24, TypeScript 5.9, Express 5.

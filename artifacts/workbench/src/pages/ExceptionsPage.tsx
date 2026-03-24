@@ -34,6 +34,17 @@ function humanizeType(type: string) {
   return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function deriveVoice(summary: any) {
+  const critical = summary?.bySeverity?.CRITICAL ?? 0;
+  const high = summary?.bySeverity?.HIGH ?? 0;
+  const total = summary?.needsAttention ?? 0;
+
+  if (critical > 0) return { text: `${critical} critical exception${critical > 1 ? "s" : ""} — resolve immediately`, color: "text-red-400" };
+  if (high > 0) return { text: `${high} exception${high > 1 ? "s" : ""} need your attention`, color: "text-[#D4A24C]" };
+  if (total > 0) return { text: `${total} exception${total > 1 ? "s" : ""} to review`, color: "text-foreground/70" };
+  return { text: "No exceptions detected. System operating normally.", color: "text-primary/70" };
+}
+
 export default function ExceptionsPage() {
   const [statusFilter, setStatusFilter] = useState("ACTIVE");
   const { data: exceptionsRes, isLoading } = useListExceptions({ status: statusFilter || undefined });
@@ -42,9 +53,7 @@ export default function ExceptionsPage() {
   const exceptions = exceptionsRes?.data || [];
   const summary = summaryRes?.data;
 
-  const criticalCount = summary?.bySeverity?.CRITICAL ?? 0;
-  const highCount = summary?.bySeverity?.HIGH ?? 0;
-  const totalActive = summary?.needsAttention ?? 0;
+  const voice = deriveVoice(summary);
 
   const critical = exceptions.filter((e: any) => e.severity === "CRITICAL");
   const high = exceptions.filter((e: any) => e.severity === "HIGH");
@@ -53,20 +62,11 @@ export default function ExceptionsPage() {
   return (
     <AppLayout>
       <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="mb-8">
+        <div className="mb-2">
           <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Exceptions</h1>
-          <div className="flex items-center gap-4 mt-2 text-[13px]">
-            {criticalCount > 0 && (
-              <span className="text-red-400 font-medium">{criticalCount} critical</span>
-            )}
-            {highCount > 0 && (
-              <span className="text-orange-400 font-medium">{highCount} high</span>
-            )}
-            <span className="text-muted-foreground">
-              {totalActive > 0 ? `${totalActive} need attention` : "All clear"}
-            </span>
-          </div>
         </div>
+
+        <p className={`text-[13px] ${voice.color} mb-6`}>{voice.text}</p>
 
         <div className="flex items-center gap-1 mb-6 border-b border-card-border">
           {FILTER_TABS.map((tab) => (
@@ -91,7 +91,8 @@ export default function ExceptionsPage() {
         ) : exceptions.length === 0 ? (
           <div className="text-center py-16">
             <CheckCircle2 className="w-6 h-6 text-primary/30 mx-auto mb-2" />
-            <p className="text-[14px] text-muted-foreground">No exceptions matching this filter.</p>
+            <p className="text-[14px] text-foreground/70 mb-1">All clear</p>
+            <p className="text-[13px] text-muted-foreground/60">No exceptions matching this filter.</p>
           </div>
         ) : (
           <div className="space-y-8">
@@ -102,7 +103,7 @@ export default function ExceptionsPage() {
               <ExceptionGroup label="Needs Attention" count={high.length} exceptions={high} />
             )}
             {rest.length > 0 && (
-              <ExceptionGroup label="Other" count={rest.length} exceptions={rest} />
+              <ExceptionGroup label="Other" count={rest.length} exceptions={rest} isMinor />
             )}
           </div>
         )}
@@ -111,7 +112,7 @@ export default function ExceptionsPage() {
   );
 }
 
-function ExceptionGroup({ label, count, exceptions }: { label: string; count: number; exceptions: any[] }) {
+function ExceptionGroup({ label, count, exceptions, isMinor }: { label: string; count: number; exceptions: any[]; isMinor?: boolean }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-3">
@@ -129,7 +130,7 @@ function ExceptionGroup({ label, count, exceptions }: { label: string; count: nu
               transition={{ delay: i * 0.02 }}
             >
               <Link href={exc.shipmentId ? `/shipments/${exc.shipmentId}` : "#"}>
-                <div className="flex items-start gap-3 px-4 py-4 -mx-4 rounded-lg hover:bg-white/[0.02] transition-colors cursor-pointer group border-b border-white/[0.03] last:border-b-0">
+                <div className={`flex items-start gap-3 px-4 py-4 -mx-4 rounded-lg hover:bg-white/[0.03] transition-all cursor-pointer group border-b border-white/[0.03] last:border-b-0 active:scale-[0.998] ${isMinor ? "opacity-50 hover:opacity-90" : ""}`}>
                   <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${sev.dot}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
@@ -146,7 +147,14 @@ function ExceptionGroup({ label, count, exceptions }: { label: string; count: nu
                       </span>
                     </div>
                   </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/20 group-hover:text-muted-foreground transition-colors shrink-0 mt-1" />
+                  <div className="flex items-center gap-2 shrink-0 mt-1">
+                    {exc.shipmentId && !isMinor && (
+                      <span className="text-[11px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                        Review
+                      </span>
+                    )}
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/20 group-hover:text-muted-foreground transition-colors" />
+                  </div>
                 </div>
               </Link>
             </motion.div>

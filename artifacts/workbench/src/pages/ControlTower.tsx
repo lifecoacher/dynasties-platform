@@ -130,7 +130,14 @@ export default function ControlTower() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Control Tower</h1>
-            <p className="text-[13px] text-muted-foreground mt-1">Operational intelligence & intervention</p>
+            <p className="text-[13px] text-muted-foreground/70 mt-1">
+              {criticalRecs.length > 0
+                ? `${criticalRecs.length} critical recommendation${criticalRecs.length > 1 ? "s" : ""} — review now`
+                : complianceAlerts.length > 0 || delayWarnings.length > 0
+                  ? "Active warnings detected"
+                  : "No active threats. Monitoring all routes."
+              }
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center rounded-lg overflow-hidden">
