@@ -1,0 +1,67 @@
+You are implementing Stripe Connect for QA validation in Dynasties.
+
+This is not a full marketplace build.
+This is the minimum real Stripe Connect slice required for end-to-end sandbox testing.
+
+OBJECTIVE:
+Make Stripe Connect testable from start to finish in sandbox so Comet can validate the commercial lifecycle honestly.
+
+Implement the following:
+
+1. CONNECT ACCOUNT CREATION
+- Add backend endpoint to create a Stripe Connect connected account for a workspace/company/admin
+- Store the Stripe connected account ID on the workspace/company record
+
+2. CONNECT ONBOARDING FLOW
+- Add backend endpoint to generate a Stripe account onboarding link
+- Redirect user to Stripe Connect onboarding in test mode
+- Handle return URL back into the app
+- Persist onboarding progress/state
+
+3. CONNECT STATUS TRACKING
+Persist and expose at minimum:
+- stripe_connect_account_id
+- onboarding_started
+- onboarding_completed
+- charges_enabled
+- payouts_enabled
+
+4. UI SURFACE
+Add a clear Stripe Connect section in the appropriate billing/settings area that shows:
+- Not connected
+- Onboarding in progress
+- Connected
+- Any missing requirements if available from Stripe
+
+5. GATING LOGIC
+If a product flow depends on Connect, gate it correctly:
+- if not connected, show clear blocked state
+- if connected, allow progression
+
+If no current product flow truly depends on Connect yet, still expose the status honestly and clearly for QA.
+
+6. QA WORKSPACES
+Prepare and return:
+- one workspace with Connect not onboarded
+- one workspace with Connect fully onboarded in test mode
+
+For each, return:
+- workspace name
+- login credentials
+- expected Connect state
+- what actions should be allowed/blocked
+
+7. QA HANDOFF
+Return exactly:
+- start URL for Connect setup UI
+- endpoints added
+- fields added to schema/model
+- test credentials
+- two workspace states
+- expected behavior for incomplete vs complete onboarding
+
+RULES:
+- Use Stripe test mode only
+- Do not fake completion states
+- Do not overbuild marketplace logic
+- Make the flow real enough that Comet can audit it behaviorally end-to-end

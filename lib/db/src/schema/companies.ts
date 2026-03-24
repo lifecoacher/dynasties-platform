@@ -43,6 +43,12 @@ export const companiesTable = pgTable(
     onboardingPaid: boolean("onboarding_paid").notNull().default(false),
     onboardingCompletedAt: timestamp("onboarding_completed_at"),
 
+    stripeConnectAccountId: text("stripe_connect_account_id"),
+    connectOnboardingStarted: boolean("connect_onboarding_started").notNull().default(false),
+    connectOnboardingCompleted: boolean("connect_onboarding_completed").notNull().default(false),
+    connectChargesEnabled: boolean("connect_charges_enabled").notNull().default(false),
+    connectPayoutsEnabled: boolean("connect_payouts_enabled").notNull().default(false),
+
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()

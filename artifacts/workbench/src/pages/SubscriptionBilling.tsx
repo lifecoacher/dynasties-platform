@@ -17,6 +17,9 @@ import {
   Clock,
   Shield,
   FileCheck,
+  Link2,
+  RefreshCw,
+  CircleDot,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
@@ -26,9 +29,15 @@ import {
   usePortal,
   useDemoActivate,
   useStartTrial,
+  useConnectStatus,
+  useConnectSync,
+  useConnectCreateAccount,
+  useConnectOnboarding,
   type PlanConfigInfo,
+  type ConnectStatusInfo,
 } from "@/hooks/use-stripe-billing";
 import { DEMO_MODE } from "@/hooks/use-demo";
+import { useAuth } from "@/hooks/use-auth";
 
 const PLAN_ICONS: Record<string, any> = {
   STARTER: Zap,
@@ -140,6 +149,184 @@ function UsageBar({ used, limit, label, warningLevel }: { used: number; limit: n
         </p>
       )}
     </div>
+  );
+}
+
+function ConnectStatusIndicator({ label, enabled }: { label: string; enabled: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      <CircleDot className={`w-3.5 h-3.5 ${enabled ? "text-emerald-400" : "text-zinc-500"}`} />
+      <span className="text-[12px] text-muted-foreground">{label}</span>
+      <span className={`text-[11px] font-medium ${enabled ? "text-emerald-400" : "text-zinc-500"}`}>
+        {enabled ? "Enabled" : "Not ready"}
+      </span>
+    </div>
+  );
+}
+
+function ConnectSection({
+  connectData,
+  onCreateAccount,
+  onStartOnboarding,
+  onSync,
+  isCreating,
+  isOnboarding,
+  isSyncing,
+  userRole,
+}: {
+  connectData: ConnectStatusInfo | null;
+  onCreateAccount: () => void;
+  onStartOnboarding: () => void;
+  onSync: () => void;
+  isCreating: boolean;
+  isOnboarding: boolean;
+  isSyncing: boolean;
+  userRole: string | undefined;
+}) {
+  const isAdmin = userRole === "ADMIN";
+  const hasAccount = !!connectData?.stripeConnectAccountId;
+  const isComplete = connectData?.connectOnboardingCompleted;
+  const chargesEnabled = connectData?.connectChargesEnabled;
+  const payoutsEnabled = connectData?.connectPayoutsEnabled;
+  const fullyConnected = chargesEnabled && payoutsEnabled;
+
+  const connectState = !hasAccount
+    ? "NOT_CONNECTED"
+    : fullyConnected
+      ? "CONNECTED"
+      : isComplete
+        ? "PENDING_VERIFICATION"
+        : "ONBOARDING_IN_PROGRESS";
+
+  const stateConfig: Record<string, { color: string; bg: string; border: string; label: string; icon: any }> = {
+    NOT_CONNECTED: { color: "text-zinc-400", bg: "bg-zinc-500/10", border: "border-zinc-500/30", label: "Not Connected", icon: Link2 },
+    ONBOARDING_IN_PROGRESS: { color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", label: "Onboarding In Progress", icon: Clock },
+    PENDING_VERIFICATION: { color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30", label: "Pending Verification", icon: Clock },
+    CONNECTED: { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", label: "Connected", icon: CheckCircle2 },
+  };
+
+  const state = stateConfig[connectState];
+  const StateIcon = state.icon;
+
+  const requirements = connectData?.requirements;
+  const hasMissingRequirements = requirements && (
+    (requirements.currentlyDue?.length ?? 0) > 0 ||
+    (requirements.pastDue?.length ?? 0) > 0
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-8 rounded-xl bg-card border border-card-border overflow-hidden"
+    >
+      <div className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Link2 className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-[14px] font-semibold text-foreground">Stripe Connect</h3>
+              <p className="text-[12px] text-muted-foreground">
+                Receive payments and manage payouts
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasAccount && (
+              <button
+                onClick={onSync}
+                disabled={isSyncing}
+                className="p-2 rounded-lg bg-card-border/50 text-muted-foreground hover:text-foreground hover:bg-card-border transition-colors"
+                title="Refresh status from Stripe"
+              >
+                {isSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              </button>
+            )}
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${state.bg} ${state.color} ${state.border}`}>
+              <StateIcon className="w-3 h-3" />
+              {state.label}
+            </span>
+          </div>
+        </div>
+
+        {hasAccount && (
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <ConnectStatusIndicator label="Charges" enabled={!!chargesEnabled} />
+            <ConnectStatusIndicator label="Payouts" enabled={!!payoutsEnabled} />
+          </div>
+        )}
+
+        {hasAccount && connectData?.stripeConnectAccountId && (
+          <div className="mb-4 px-3 py-2 rounded-lg bg-card-border/30">
+            <span className="text-[11px] text-muted-foreground">Account ID: </span>
+            <span className="text-[11px] font-mono text-foreground">{connectData.stripeConnectAccountId}</span>
+          </div>
+        )}
+
+        {hasMissingRequirements && (
+          <div className="mb-4 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+            <div className="flex items-center gap-2 mb-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[12px] font-medium text-amber-400">Missing Requirements</span>
+            </div>
+            {requirements!.pastDue && requirements!.pastDue.length > 0 && (
+              <p className="text-[11px] text-amber-400/70 mb-1">
+                Past due: {requirements!.pastDue.join(", ")}
+              </p>
+            )}
+            {requirements!.currentlyDue && requirements!.currentlyDue.length > 0 && (
+              <p className="text-[11px] text-muted-foreground">
+                Currently due: {requirements!.currentlyDue.join(", ")}
+              </p>
+            )}
+            {requirements!.disabledReason && (
+              <p className="text-[11px] text-red-400 mt-1">
+                Disabled: {requirements!.disabledReason}
+              </p>
+            )}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="flex items-center gap-3">
+            {!hasAccount && (
+              <button
+                onClick={onCreateAccount}
+                disabled={isCreating}
+                className="px-4 py-2 rounded-lg bg-primary text-black text-[12px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
+                Set Up Stripe Connect
+              </button>
+            )}
+            {hasAccount && !fullyConnected && (
+              <button
+                onClick={onStartOnboarding}
+                disabled={isOnboarding}
+                className="px-4 py-2 rounded-lg bg-primary text-black text-[12px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isOnboarding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                {connectData?.connectOnboardingStarted ? "Continue Onboarding" : "Start Onboarding"}
+              </button>
+            )}
+            {fullyConnected && (
+              <div className="flex items-center gap-2 text-[12px] text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="font-medium">Fully connected and ready to receive payments</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!isAdmin && !hasAccount && (
+          <p className="text-[12px] text-muted-foreground">
+            Contact your workspace admin to set up Stripe Connect.
+          </p>
+        )}
+      </div>
+    </motion.div>
   );
 }
 
@@ -260,17 +447,29 @@ export default function SubscriptionBilling() {
   const { openPortal, isLoading: portalLoading } = usePortal();
   const { activate, isLoading: activateLoading } = useDemoActivate();
   const { startTrial, isLoading: trialLoading } = useStartTrial();
+  const { data: connectData, refetch: refetchConnect } = useConnectStatus();
+  const { sync: syncConnect, isLoading: syncLoading } = useConnectSync();
+  const { createAccount, isLoading: createAccountLoading } = useConnectCreateAccount();
+  const { startOnboarding, isLoading: onboardingLoading } = useConnectOnboarding();
+  const { user } = useAuth();
   const [checkoutStatus, setCheckoutStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const status = params.get("checkout") || params.get("deployment");
+    const connectStatus = params.get("connect");
     if (status) {
       setCheckoutStatus(status);
       setTimeout(() => refetch(), 2000);
+    }
+    if (connectStatus === "return") {
+      handleConnectSync();
+    }
+    if (status || connectStatus) {
       const url = new URL(window.location.href);
       url.searchParams.delete("checkout");
       url.searchParams.delete("deployment");
+      url.searchParams.delete("connect");
       window.history.replaceState({}, "", url.toString());
     }
   }, [refetch]);
@@ -287,6 +486,16 @@ export default function SubscriptionBilling() {
   const handleDemoActivate = async (planType: string) => {
     await activate(planType);
     refetch();
+  };
+
+  const handleConnectCreate = async () => {
+    await createAccount();
+    refetchConnect();
+  };
+
+  const handleConnectSync = async () => {
+    const result = await syncConnect();
+    if (result) refetchConnect();
   };
 
   const isLoading = subLoading || configsLoading;
@@ -471,6 +680,17 @@ export default function SubscriptionBilling() {
                 </button>
               </motion.div>
             )}
+
+            <ConnectSection
+              connectData={connectData}
+              onCreateAccount={handleConnectCreate}
+              onStartOnboarding={startOnboarding}
+              onSync={handleConnectSync}
+              isCreating={createAccountLoading}
+              isOnboarding={onboardingLoading}
+              isSyncing={syncLoading}
+              userRole={user?.role}
+            />
 
             {DEMO_MODE && sub?.billingStatus === "INACTIVE" && (
               <motion.div
