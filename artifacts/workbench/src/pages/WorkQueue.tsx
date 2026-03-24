@@ -239,11 +239,8 @@ export default function WorkQueue() {
       <div className="p-6 max-w-[1400px] space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <ClipboardList className="w-6 h-6 text-primary" />
-              Work Queue
-            </h1>
-            <p className="text-sm text-white/50 mt-1">Task management and workflow orchestration</p>
+            <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Work Queue</h1>
+            <p className="text-[13px] text-muted-foreground mt-1">Task management & orchestration</p>
           </div>
           <div className="flex gap-2">
             <button
@@ -346,9 +343,9 @@ export default function WorkQueue() {
                 {isLoading && <div className="text-white/30 text-sm py-8 text-center">Loading tasks...</div>}
                 {!isLoading && filteredTasks.length === 0 && (
                   <div className="text-center py-16">
-                    <ClipboardList className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                    <h3 className="text-[15px] font-semibold text-foreground mb-1">No tasks in this queue</h3>
-                    <p className="text-[13px] text-muted-foreground">Tasks will appear here as shipments are processed and policies trigger actions.</p>
+                    <CheckCircle2 className="w-6 h-6 text-primary/30 mx-auto mb-2" />
+                    <h3 className="text-[15px] font-medium text-foreground mb-1">System operating normally</h3>
+                    <p className="text-[13px] text-muted-foreground/60">No actions required. Tasks will appear when shipments need intervention.</p>
                   </div>
                 )}
                 {filteredTasks.map((task: any) => {

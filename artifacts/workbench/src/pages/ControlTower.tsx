@@ -126,54 +126,85 @@ export default function ControlTower() {
 
   return (
     <AppLayout>
-      <div className="p-6 space-y-6 max-w-[1200px]">
+      <div className="p-6 space-y-8 max-w-[1000px]">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Control Tower</h1>
-            <p className="text-sm text-muted-foreground mt-1">AI-powered operational intelligence and intervention center</p>
+            <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Control Tower</h1>
+            <p className="text-[13px] text-muted-foreground mt-1">Operational intelligence & intervention</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-secondary rounded-lg border border-border overflow-hidden">
+            <div className="flex items-center rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode("urgency")}
-                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 text-[12px] font-medium transition-colors ${
                   viewMode === "urgency" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                By Urgency
+                Urgency
               </button>
               <button
                 onClick={() => setViewMode("impact")}
-                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 text-[12px] font-medium transition-colors ${
                   viewMode === "impact" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                By Impact
+                Impact
               </button>
             </div>
             <button
               onClick={handleIngestAll}
               disabled={ingesting}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary rounded-lg border border-primary/20 hover:bg-primary/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50"
             >
-              <Download size={14} className={ingesting ? "animate-pulse" : ""} />
-              {ingesting ? "Ingesting..." : "Ingest Intel"}
+              <Download size={13} className={ingesting ? "animate-pulse" : ""} />
+              {ingesting ? "Ingesting..." : "Ingest"}
             </button>
             <button
               onClick={handleRefresh}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-secondary text-muted-foreground rounded-lg border border-border hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-muted-foreground rounded-lg hover:text-foreground transition-colors"
             >
-              <RefreshCw size={14} /> Refresh
+              <RefreshCw size={13} />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={AlertTriangle} label="Critical" value={criticalRecs.length} color="bg-[#E05252]/5 border-[#E05252]/20" />
-          <StatCard icon={Shield} label="Compliance" value={complianceAlerts.length} color="bg-[#D4A24C]/5 border-[#D4A24C]/20" />
-          <StatCard icon={Clock} label="Delay Risk" value={delayWarnings.length} color="bg-[#D4A24C]/5 border-[#D4A24C]/20" />
-          <StatCard icon={DollarSign} label="Margin Risk" value={marginWarnings.length} color="bg-primary/5 border-primary/20" />
-        </div>
+        {(criticalRecs.length > 0 || complianceAlerts.length > 0 || delayWarnings.length > 0 || marginWarnings.length > 0) && (
+          <div className="flex items-center gap-6 text-[13px]">
+            {criticalRecs.length > 0 && (
+              <div>
+                <span className="text-muted-foreground">Critical</span>
+                <span className="ml-2 text-[18px] font-bold text-red-400 tabular-nums">{criticalRecs.length}</span>
+              </div>
+            )}
+            {complianceAlerts.length > 0 && (
+              <>
+                <div className="w-px h-5 bg-border" />
+                <div>
+                  <span className="text-muted-foreground">Compliance</span>
+                  <span className="ml-2 text-[18px] font-bold text-[#D4A24C] tabular-nums">{complianceAlerts.length}</span>
+                </div>
+              </>
+            )}
+            {delayWarnings.length > 0 && (
+              <>
+                <div className="w-px h-5 bg-border" />
+                <div>
+                  <span className="text-muted-foreground">Delay Risk</span>
+                  <span className="ml-2 text-[18px] font-bold text-[#D4A24C] tabular-nums">{delayWarnings.length}</span>
+                </div>
+              </>
+            )}
+            {marginWarnings.length > 0 && (
+              <>
+                <div className="w-px h-5 bg-border" />
+                <div>
+                  <span className="text-muted-foreground">Margin</span>
+                  <span className="ml-2 text-[18px] font-bold text-foreground tabular-nums">{marginWarnings.length}</span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {viewMode === "impact" ? (
           <ImpactPriorityView
@@ -195,12 +226,9 @@ export default function ControlTower() {
           />
         )}
 
-        <div className="border-t border-border pt-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Globe size={16} className="text-primary" />
-            <h2 className="text-lg font-bold text-foreground">External Intelligence</h2>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="pt-6">
+          <h2 className="text-[15px] font-semibold text-foreground font-heading mb-4">External Intelligence</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <HighRiskPortsWidget />
             <ActiveDisruptionsWidget />
             <SanctionsAlertsWidget />
