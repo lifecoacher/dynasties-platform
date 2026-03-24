@@ -1,0 +1,65 @@
+The Replit Stripe integration has been successfully reconnected to the correct Stripe test account.
+
+New Stripe account now in use:
+acct_1TCjL3KtOJeOKUfk
+
+Connect is enabled on this account.
+
+Now do the required cleanup and full Stripe re-validation.
+
+Tasks:
+
+1. Clear the old Stripe customer reference for the Lorian workspace so it does not point to the previous Stripe account:
+- set stripe_customer_id = NULL for slug = 'lorian-freight'
+
+2. Re-run Stripe billing validation and return:
+- exact Stripe account ID now detected by the app
+- whether checkout works
+- whether customer portal works
+- whether start-trial works
+- whether plans endpoint works
+
+3. Re-run Stripe Connect validation and return exact results for:
+- POST /api/stripe/connect/create-account
+- POST /api/stripe/connect/onboarding-link
+- GET /api/stripe/connect/status
+- POST /api/stripe/connect/sync
+
+4. Create at least one REAL Stripe-backed Standard connected account in test mode
+
+5. Replace fake DB-only Connect fixtures with real QA states where possible, and return a new QA matrix for:
+- Not Connected
+- Onboarding In Progress (if feasible)
+- Connected
+
+For each Connect QA workspace return:
+- workspace name
+- workspace ID
+- login email
+- password
+- Stripe connected account ID
+- expected state
+- what actions should be allowed
+- what actions should be blocked
+
+6. Verify the full sandbox flow:
+- admin opens /settings/billing
+- clicks Set Up Stripe Connect
+- account is created
+- onboarding link is generated
+- user can return to the app
+- sync updates charges_enabled / payouts_enabled / onboarding state
+- UI reflects the real state honestly
+- no silent failures
+
+7. Return only:
+- Stripe account ID now in use
+- exact DB/code changes made
+- endpoint test results
+- real Connect QA workspace matrix
+- whether Comet can now test billing + Connect end-to-end honestly
+- any remaining blockers, if any
+
+Do not include unrelated UI summaries.
+Do not include code review commentary.
+Only return the requested Stripe and Connect validation details.
