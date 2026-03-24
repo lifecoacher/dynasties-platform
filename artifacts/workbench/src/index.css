@@ -133,6 +133,10 @@
   * {
     transition-timing-function: ease-out;
   }
+
+  ::selection {
+    background: hsl(172 100% 32% / 0.12);
+  }
 }
 
 ::-webkit-scrollbar {
@@ -158,7 +162,7 @@
 .surface-card {
   @apply bg-card border border-card-border;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-base);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
 }
 .surface-card:hover {
   box-shadow: var(--shadow-card-hover);

@@ -45,6 +45,19 @@ function deriveVoice(summary: any) {
   return { text: "No exceptions detected. System operating normally.", color: "text-primary/60" };
 }
 
+function deriveImpact(exc: any) {
+  const type = exc.exceptionType?.toLowerCase() || "";
+  if (type.includes("customs") || type.includes("compliance")) return "May delay clearance";
+  if (type.includes("delay") || type.includes("schedule")) return "Delivery timeline at risk";
+  if (type.includes("document") || type.includes("missing")) return "Missing documentation";
+  if (type.includes("rate") || type.includes("cost") || type.includes("billing")) return "Cost impact";
+  if (type.includes("carrier") || type.includes("vessel")) return "Routing affected";
+  if (type.includes("damage") || type.includes("cargo")) return "Cargo integrity concern";
+  if (exc.severity === "CRITICAL") return "Immediate action needed";
+  if (exc.severity === "HIGH") return "Needs prompt resolution";
+  return null;
+}
+
 export default function ExceptionsPage() {
   const [statusFilter, setStatusFilter] = useState("ACTIVE");
   const { data: exceptionsRes, isLoading } = useListExceptions({ status: statusFilter || undefined });
@@ -69,29 +82,29 @@ export default function ExceptionsPage() {
           <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Exceptions</h1>
         </div>
 
-        <p className={`text-[13px] ${voice.color} mb-6`}>{voice.text}</p>
+        <p className={`text-[13px] ${voice.color} mb-5`}>{voice.text}</p>
 
         {(totalCritical > 0 || totalHigh > 0 || totalMedium > 0) && (
-          <div className="flex items-center gap-6 mb-6 text-[13px]">
+          <div className="flex items-center gap-5 mb-6 text-[13px]">
             {totalCritical > 0 && (
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#E05252]" />
-                <span className="text-muted-foreground/60">Critical</span>
-                <span className="text-[18px] font-bold text-[#E05252] tabular-nums">{totalCritical}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E05252]" />
+                <span className="text-muted-foreground/60 text-[12px]">Critical</span>
+                <span className="text-[17px] font-bold text-[#E05252] tabular-nums">{totalCritical}</span>
               </div>
             )}
             {totalHigh > 0 && (
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#D4A24C]" />
-                <span className="text-muted-foreground/60">High</span>
-                <span className="text-[18px] font-bold text-[#D4A24C] tabular-nums">{totalHigh}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D4A24C]" />
+                <span className="text-muted-foreground/60 text-[12px]">High</span>
+                <span className="text-[17px] font-bold text-[#D4A24C] tabular-nums">{totalHigh}</span>
               </div>
             )}
             {totalMedium > 0 && (
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#C9A227]" />
-                <span className="text-muted-foreground/60">Medium</span>
-                <span className="text-[18px] font-bold text-[#B5932B] tabular-nums">{totalMedium}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C9A227]" />
+                <span className="text-muted-foreground/60 text-[12px]">Medium</span>
+                <span className="text-[17px] font-bold text-[#B5932B] tabular-nums">{totalMedium}</span>
               </div>
             )}
           </div>
@@ -151,6 +164,7 @@ function TriageGroup({ label, count, exceptions, isMinor }: { label: string; cou
       <div>
         {exceptions.map((exc: any, i: number) => {
           const sev = SEVERITY_META[exc.severity] || SEVERITY_META.LOW;
+          const impact = deriveImpact(exc);
           return (
             <motion.div
               key={exc.id}
@@ -159,7 +173,7 @@ function TriageGroup({ label, count, exceptions, isMinor }: { label: string; cou
               transition={{ delay: i * 0.02 }}
             >
               <Link href={exc.shipmentId ? `/shipments/${exc.shipmentId}` : "#"}>
-                <div className={`flex items-start gap-3 px-4 py-4 -mx-4 rounded-xl hover:bg-card transition-all cursor-pointer group border-b border-border/30 last:border-b-0 active:scale-[0.998] ${isMinor ? "opacity-40 hover:opacity-80" : ""}`}>
+                <div className={`flex items-start gap-3 px-4 py-3.5 -mx-4 rounded-xl hover:bg-card transition-all cursor-pointer group border-b border-border/30 last:border-b-0 active:scale-[0.998] ${isMinor ? "opacity-40 hover:opacity-80" : ""}`}>
                   <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${sev.dot}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
@@ -167,18 +181,24 @@ function TriageGroup({ label, count, exceptions, isMinor }: { label: string; cou
                       <span className={`text-[10px] font-medium ${sev.text}`}>{exc.severity}</span>
                       <StatusBadge status={exc.status} />
                     </div>
-                    <p className="text-[12px] text-muted-foreground/50 line-clamp-1 mb-1.5">{exc.description}</p>
+                    <p className="text-[12px] text-muted-foreground/50 line-clamp-1 mb-1">{exc.description}</p>
                     <div className="flex items-center gap-3 text-[11px] text-muted-foreground/35">
                       <span>{humanizeType(exc.exceptionType)}</span>
+                      {impact && (
+                        <>
+                          <span className="text-muted-foreground/15">·</span>
+                          <span className={!isMinor ? "text-foreground/40" : ""}>{impact}</span>
+                        </>
+                      )}
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {new Date(exc.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 mt-1.5">
+                  <div className="flex items-center gap-2 shrink-0 mt-1">
                     {exc.shipmentId && !isMinor && (
-                      <span className="text-[11px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[11px] font-medium text-primary transition-colors">
                         Resolve
                       </span>
                     )}

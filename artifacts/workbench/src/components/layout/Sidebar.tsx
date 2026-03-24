@@ -78,14 +78,14 @@ export function Sidebar() {
 
   return (
     <aside className="w-[220px] h-screen flex flex-col bg-sidebar shrink-0 sticky top-0" style={{ boxShadow: '1px 0 0 hsl(220 12% 93%)' }}>
-      <div className="px-5 py-5">
+      <div className="px-5 pt-5 pb-4">
         <div className="flex items-center gap-2.5">
           <div className="relative">
             <span className="font-heading text-[15px] font-medium text-foreground" style={{ letterSpacing: '0.22em' }}>DYNASTIES</span>
             <div className="absolute -bottom-1 left-0 w-[1.2em] h-[2px] rounded-full bg-primary" />
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground/50 leading-none mt-2.5">
+        <p className="text-[11px] text-muted-foreground/50 leading-none mt-2">
           {user?.companyName || "Trade Intelligence OS"}
         </p>
       </div>
@@ -96,7 +96,7 @@ export function Sidebar() {
           return (
             <Link key={item.href} href={item.href}>
               <motion.div
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium cursor-pointer relative ${
+                className={`flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium cursor-pointer relative ${
                   active
                     ? "bg-primary/8 text-primary"
                     : "text-sidebar-foreground/70 hover:text-foreground hover:bg-black/[0.02]"
@@ -125,7 +125,7 @@ export function Sidebar() {
 
         {!DEMO_MODE && (
           <Link href="/demo">
-            <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-sidebar-foreground/50 hover:text-foreground hover:bg-black/[0.02] cursor-pointer mt-2">
+            <div className="flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium text-sidebar-foreground/50 hover:text-foreground hover:bg-black/[0.02] cursor-pointer mt-2">
               <Zap className="w-4 h-4 shrink-0" />
               Demo Pipeline
             </div>
@@ -133,8 +133,8 @@ export function Sidebar() {
         )}
 
         {recentShipments.length > 0 && (
-          <div className="mt-6 pt-4 border-t border-sidebar-border/60">
-            <p className="px-3 text-[10px] font-medium text-muted-foreground/40 uppercase tracking-wider mb-2">Recent</p>
+          <div className="mt-5 pt-3 border-t border-sidebar-border/60">
+            <p className="px-3 text-[10px] font-medium text-muted-foreground/40 uppercase tracking-wider mb-1.5">Recent</p>
             {recentShipments.map((s: any) => (
               <Link key={s.id} href={`/shipments/${s.id}`}>
                 <div className="flex items-center justify-between px-3 py-1.5 rounded-md text-[12px] text-sidebar-foreground/50 hover:text-foreground hover:bg-black/[0.02] cursor-pointer group">
@@ -148,7 +148,7 @@ export function Sidebar() {
       </nav>
 
       <div className="px-3 py-3 border-t border-sidebar-border/60">
-        <div className="flex items-center gap-2.5 px-3 py-2">
+        <div className="flex items-center gap-2.5 px-3 py-1.5">
           <div className="w-7 h-7 rounded-full bg-primary/8 flex items-center justify-center text-[11px] font-semibold text-primary">
             {user?.name?.charAt(0)?.toUpperCase() || "U"}
           </div>

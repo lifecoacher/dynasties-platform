@@ -20,6 +20,7 @@ import {
   Link2,
   RefreshCw,
   CircleDot,
+  XCircle,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
@@ -173,6 +174,7 @@ function ConnectSection({
   isOnboarding,
   isSyncing,
   userRole,
+  connectError,
 }: {
   connectData: ConnectStatusInfo | null;
   onCreateAccount: () => void;
@@ -182,6 +184,7 @@ function ConnectSection({
   isOnboarding: boolean;
   isSyncing: boolean;
   userRole: string | undefined;
+  connectError: string | null;
 }) {
   const isAdmin = userRole === "ADMIN";
   const hasAccount = !!connectData?.stripeConnectAccountId;
@@ -293,6 +296,15 @@ function ConnectSection({
                 Disabled: {requirements!.disabledReason}
               </p>
             )}
+          </div>
+        )}
+
+        {connectError && (
+          <div className="mb-4 px-3 py-2.5 rounded-lg bg-[#E05252]/5 border border-[#E05252]/15">
+            <div className="flex items-start gap-2">
+              <XCircle className="w-3.5 h-3.5 text-[#E05252] shrink-0 mt-0.5" />
+              <p className="text-[12px] text-[#E05252]/80">{connectError}</p>
+            </div>
           </div>
         )}
 
@@ -495,14 +507,30 @@ export default function SubscriptionBilling() {
     refetch();
   };
 
+  const [connectError, setConnectError] = useState<string | null>(null);
+
   const handleConnectCreate = async () => {
-    await createAccount();
-    refetchConnect();
+    setConnectError(null);
+    const result = await createAccount();
+    if (result?.error) {
+      const msg = result.code === "CONNECT_NOT_ENABLED"
+        ? "Stripe Connect is not enabled on this Stripe account. Contact support."
+        : result.error || "Unable to create connected account. Try again.";
+      setConnectError(msg);
+    } else {
+      refetchConnect();
+    }
   };
 
   const handleConnectSync = async () => {
+    setConnectError(null);
     const result = await syncConnect();
-    if (result) refetchConnect();
+    if (!result) return;
+    if ("error" in result && result.error) {
+      setConnectError(result.error);
+    } else {
+      refetchConnect();
+    }
   };
 
   const isLoading = subLoading || configsLoading;
@@ -697,6 +725,7 @@ export default function SubscriptionBilling() {
               isOnboarding={onboardingLoading}
               isSyncing={syncLoading}
               userRole={user?.role}
+              connectError={connectError}
             />
 
             {DEMO_MODE && sub?.billingStatus === "INACTIVE" && (

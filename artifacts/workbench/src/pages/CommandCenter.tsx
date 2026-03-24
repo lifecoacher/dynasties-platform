@@ -28,7 +28,7 @@ function deriveSystemStatus(stats: any, alertsSummary: any) {
       level: "critical" as const,
       headline: alert.title || "Critical Issue Detected",
       detail: `${criticalAlerts} critical alert${criticalAlerts > 1 ? "s" : ""} require immediate action.`,
-      recommendation: "Recommended: Resolve the highest-severity alert first.",
+      recommendation: "Resolve the highest-severity alert first.",
       action: "Resolve Now",
       actionHref: "/exceptions",
     };
@@ -39,7 +39,7 @@ function deriveSystemStatus(stats: any, alertsSummary: any) {
       level: "warning" as const,
       headline: `${flagged} Compliance Flag${flagged > 1 ? "s" : ""} Active`,
       detail: "Review before these shipments can proceed.",
-      recommendation: "Recommended: Clear compliance flags to unblock operations.",
+      recommendation: "Clear compliance flags to unblock operations.",
       action: "Review Flags",
       actionHref: "/shipments",
     };
@@ -50,7 +50,7 @@ function deriveSystemStatus(stats: any, alertsSummary: any) {
       level: "warning" as const,
       headline: `${highRisk} High-Risk Shipment${highRisk > 1 ? "s" : ""}`,
       detail: "Elevated risk detected. Review before approving.",
-      recommendation: "Recommended: Assess risk factors before proceeding.",
+      recommendation: "Assess risk factors before proceeding.",
       action: "Review Risk",
       actionHref: "/shipments",
     };
@@ -109,7 +109,7 @@ export default function CommandCenter() {
 
   return (
     <AppLayout>
-      <div className="max-w-[640px] mx-auto px-6 py-12">
+      <div className="max-w-[640px] mx-auto px-6 py-10">
 
         {!ready && (
           <div className="flex items-center justify-center py-32">
@@ -120,19 +120,19 @@ export default function CommandCenter() {
         {ready && (
           <>
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className={`rounded-2xl ${accent.bg} border ${accent.border} px-8 py-8 mb-12`}
+              transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className={`rounded-2xl ${accent.bg} border ${accent.border} px-7 py-7 mb-10`}
             >
-              <div className="flex items-center gap-2 mb-5">
+              <div className="flex items-center gap-2 mb-4">
                 <Icon className={`w-4 h-4 ${accent.text}`} />
                 <span className={`text-[11px] font-semibold uppercase tracking-[0.15em] ${accent.text}`}>
                   {status.level === "clear" ? "System Status" : "Action Required"}
                 </span>
               </div>
 
-              <h1 className={`text-[28px] font-bold ${accent.text} font-heading leading-tight tracking-tight mb-2`}>
+              <h1 className={`text-[26px] font-bold ${accent.text} font-heading leading-tight tracking-tight mb-1.5`}>
                 {status.headline}
               </h1>
 
@@ -141,12 +141,12 @@ export default function CommandCenter() {
               </p>
 
               {status.recommendation && (
-                <p className="text-[13px] text-foreground/50 italic mb-6">
-                  {status.recommendation}
+                <p className="text-[13px] text-foreground/40 mb-5">
+                  Recommended: {status.recommendation}
                 </p>
               )}
 
-              {!status.recommendation && <div className="mb-6" />}
+              {!status.recommendation && <div className="mb-5" />}
 
               {status.action && status.actionHref && (
                 <Link href={status.actionHref}>
@@ -157,10 +157,10 @@ export default function CommandCenter() {
               )}
 
               {status.level !== "clear" && alertsSummary?.criticalAlerts?.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-border/40 space-y-1">
+                <div className="mt-5 pt-4 border-t border-border/30 space-y-0.5">
                   {alertsSummary.criticalAlerts.slice(0, 3).map((alert: any) => (
                     <Link key={alert.id} href={alert.shipmentId ? `/shipments/${alert.shipmentId}` : "/exceptions"}>
-                      <div className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-lg hover:bg-black/[0.02] transition-colors cursor-pointer group">
+                      <div className="flex items-center gap-3 py-1.5 px-3 -mx-3 rounded-lg hover:bg-black/[0.02] transition-colors cursor-pointer group">
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                           alert.severity === "CRITICAL" ? "bg-[#E05252]" : "bg-[#D4A24C]"
                         }`} />
@@ -176,32 +176,16 @@ export default function CommandCenter() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.12 }}
-              className="flex items-center gap-10 mb-12 text-[13px]"
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="flex items-center gap-8 mb-10 text-[13px]"
             >
-              <div>
-                <span className="text-muted-foreground/60 text-[11px] uppercase tracking-wider">Active</span>
-                <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-[22px] font-bold text-foreground tabular-nums">{activeShipments}</span>
-                  <span className="text-muted-foreground/40 text-[13px]">/ {totalShipments}</span>
-                </div>
-              </div>
-              <div className="w-px h-8 bg-border/60" />
-              <div>
-                <span className="text-muted-foreground/60 text-[11px] uppercase tracking-wider">Compliant</span>
-                <div className="mt-0.5">
-                  <span className="text-[22px] font-bold text-primary tabular-nums">{complianceClear}</span>
-                </div>
-              </div>
+              <Signal label="Active" value={activeShipments} sub={`/ ${totalShipments}`} color="text-foreground" />
+              <div className="w-px h-7 bg-border/50" />
+              <Signal label="Compliant" value={complianceClear} color="text-primary" />
               {highRisk > 0 && (
                 <>
-                  <div className="w-px h-8 bg-border/60" />
-                  <div>
-                    <span className="text-muted-foreground/60 text-[11px] uppercase tracking-wider">High Risk</span>
-                    <div className="mt-0.5">
-                      <span className="text-[22px] font-bold text-[#D4A24C] tabular-nums">{highRisk}</span>
-                    </div>
-                  </div>
+                  <div className="w-px h-7 bg-border/50" />
+                  <Signal label="High Risk" value={highRisk} color="text-[#D4A24C]" />
                 </>
               )}
             </motion.div>
@@ -209,8 +193,8 @@ export default function CommandCenter() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.18 }}
-              className="mb-12"
+              transition={{ duration: 0.4, delay: 0.15 }}
+              className="mb-10"
             >
               <CommandInput />
             </motion.div>
@@ -218,9 +202,9 @@ export default function CommandCenter() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.24 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
             >
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-[14px] font-semibold text-foreground font-heading">Recent Shipments</h2>
                 <Link href="/shipments" className="text-[12px] text-primary/70 hover:text-primary font-medium flex items-center gap-1 transition-colors">
                   View all <ArrowRight className="w-3 h-3" />
@@ -240,7 +224,7 @@ export default function CommandCenter() {
                         key={s.id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: 0.24 + i * 0.03 }}
+                        transition={{ delay: 0.2 + i * 0.025 }}
                       >
                         <Link href={`/shipments/${s.id}`}>
                           <div className={`flex items-center gap-4 px-4 py-3 -mx-4 rounded-xl hover:bg-card transition-all cursor-pointer group ${needsCare ? "" : "opacity-40 hover:opacity-80"}`}>
@@ -288,6 +272,18 @@ export default function CommandCenter() {
         )}
       </div>
     </AppLayout>
+  );
+}
+
+function Signal({ label, value, sub, color }: { label: string; value: number; sub?: string; color: string }) {
+  return (
+    <div>
+      <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">{label}</span>
+      <div className="flex items-baseline gap-1 mt-0.5">
+        <span className={`text-[20px] font-bold tabular-nums ${color}`}>{value}</span>
+        {sub && <span className="text-muted-foreground/35 text-[13px]">{sub}</span>}
+      </div>
+    </div>
   );
 }
 
