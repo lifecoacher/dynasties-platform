@@ -180,11 +180,11 @@ function App() {
         publishableKey={CLERK_PUBLISHABLE_KEY}
         appearance={{
           variables: {
-            colorPrimary: "#00BFA6",
-            colorBackground: "#121821",
-            colorText: "#F0F2F5",
-            colorInputBackground: "#080C12",
-            colorInputText: "#F0F2F5",
+            colorPrimary: "#00A692",
+            colorBackground: "#FFFFFF",
+            colorText: "#1E2330",
+            colorInputBackground: "#F2F4F7",
+            colorInputText: "#1E2330",
           },
         }}
       >

@@ -73,7 +73,7 @@ function CustomersList() {
     <div className="px-8 py-8 max-w-[1400px] mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/billing">
-          <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors">
+          <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
         </Link>
@@ -183,7 +183,7 @@ function CustomerDetail() {
     <div className="px-8 py-8 max-w-[1200px] mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/billing/customers">
-          <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors">
+          <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
         </Link>
@@ -254,7 +254,7 @@ function CustomerDetail() {
           <div className="divide-y divide-card-border">
             {invoices.map((inv: any) => (
               <Link key={inv.id} href={`/billing/invoices/${inv.id}`}>
-                <div className="flex items-center px-6 py-3.5 hover:bg-white/[0.02] transition-colors cursor-pointer">
+                <div className="flex items-center px-6 py-3.5 hover:bg-black/[0.02] transition-colors cursor-pointer">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
                       <span className="text-[13px] font-mono font-medium text-primary">{inv.invoiceNumber}</span>

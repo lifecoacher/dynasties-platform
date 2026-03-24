@@ -96,13 +96,13 @@ const QUEUE_TABS: { value: QueueFilter; label: string; icon: any }[] = [
 const STATUS_COLORS: Record<string, string> = {
   OPEN: "bg-primary/20 text-primary border-primary/30",
   IN_PROGRESS: "bg-[#D4A24C]/20 text-[#D4A24C] border-[#D4A24C]/30",
-  BLOCKED: "bg-[#E05252]/20 text-red-300 border-red-500/30",
+  BLOCKED: "bg-[#E05252]/20 text-[#E05252] border-red-500/30",
   COMPLETED: "bg-primary/20 text-primary border-primary/30",
   CANCELLED: "bg-slate-500/20 text-slate-400 border-slate-500/30",
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  CRITICAL: "bg-[#E05252]/20 text-red-300",
+  CRITICAL: "bg-[#E05252]/20 text-[#E05252]",
   HIGH: "bg-[#D4A24C]/20 text-[#D4A24C]",
   MEDIUM: "bg-[#D4A24C]/20 text-[#D4A24C]",
   LOW: "bg-slate-500/20 text-slate-400",
@@ -261,7 +261,7 @@ export default function WorkQueue() {
             </button>
             <button
               onClick={() => refetch()}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-white/5 text-white/60 rounded-lg border border-white/10 hover:bg-white/10"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-black/[0.03] text-foreground/60 rounded-lg border border-black/[0.06] hover:bg-black/[0.05]"
             >
               <RefreshCw size={13} /> Refresh
             </button>
@@ -274,7 +274,7 @@ export default function WorkQueue() {
               key={tab}
               onClick={() => setViewTab(tab)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg ${
-                viewTab === tab ? "bg-primary/20 text-primary border border-primary/30" : "text-white/40 hover:text-white/60"
+                viewTab === tab ? "bg-primary/20 text-primary border border-primary/30" : "text-foreground/40 hover:text-foreground/60"
               }`}
             >
               {tab === "queue" && <ClipboardList size={12} />}
@@ -303,7 +303,7 @@ export default function WorkQueue() {
                 <SummaryCard label="Overdue" value={summary.totals?.overdue ?? 0} color="text-[#E05252]" />
                 <SummaryCard label="My Tasks" value={summary.totals?.myTasks ?? 0} color="text-primary" />
                 <SummaryCard label="Escalated" value={summary.byPriority?.filter((p: any) => p.priority === "CRITICAL").reduce((s: number, p: any) => s + p.total, 0) ?? 0} color="text-[#D4A24C]" />
-                <SummaryCard label="Total" value={summary.totals?.total ?? 0} color="text-white/60" />
+                <SummaryCard label="Total" value={summary.totals?.total ?? 0} color="text-foreground/60" />
               </div>
             )}
 
@@ -315,7 +315,7 @@ export default function WorkQueue() {
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
                     activeQueue === tab.value
                       ? "bg-primary/20 text-primary border border-primary/30"
-                      : "text-white/50 hover:text-white/70 border border-transparent"
+                      : "text-foreground/50 hover:text-foreground/70 border border-transparent"
                   }`}
                 >
                   <tab.icon size={12} />
@@ -330,7 +330,7 @@ export default function WorkQueue() {
                   key={s}
                   onClick={() => setStatusFilter(s)}
                   className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
-                    statusFilter === s ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60"
+                    statusFilter === s ? "bg-black/[0.05] text-foreground font-medium" : "text-foreground/40 hover:text-foreground/60"
                   }`}
                 >
                   {s === "active" ? "Active" : s === "all" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
@@ -340,7 +340,7 @@ export default function WorkQueue() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-2">
-                {isLoading && <div className="text-white/30 text-sm py-8 text-center">Loading tasks...</div>}
+                {isLoading && <div className="text-foreground/30 text-sm py-8 text-center">Loading tasks...</div>}
                 {!isLoading && filteredTasks.length === 0 && (
                   <div className="text-center py-16">
                     <CheckCircle2 className="w-6 h-6 text-primary/30 mx-auto mb-2" />
@@ -364,18 +364,18 @@ export default function WorkQueue() {
                             ? "border-red-500/30 bg-[#E05252]/5 hover:bg-[#E05252]/10"
                             : isEscalated
                               ? "border-[#D4A24C]/30 bg-[#D4A24C]/5 hover:bg-[#D4A24C]/10"
-                              : "border-white/10 bg-white/[0.02] hover:bg-white/5"
+                              : "border-black/[0.06] bg-black/[0.02] hover:bg-black/[0.03]"
                       }`}
                       whileHover={{ x: 2 }}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0 mt-0.5">
-                            <TaskIcon size={14} className="text-white/60" />
+                          <div className="w-8 h-8 rounded-lg bg-black/[0.03] flex items-center justify-center shrink-0 mt-0.5">
+                            <TaskIcon size={14} className="text-foreground/60" />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-medium text-white truncate">{task.title}</span>
+                              <span className="text-sm font-medium text-foreground truncate">{task.title}</span>
                               <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded border ${STATUS_COLORS[task.status] || ""}`}>
                                 {task.status.replace(/_/g, " ")}
                               </span>
@@ -398,7 +398,7 @@ export default function WorkQueue() {
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 mt-1 text-[11px] text-white/40">
+                            <div className="flex items-center gap-3 mt-1 text-[11px] text-foreground/40">
                               <span>{TASK_TYPE_LABELS[task.taskType] || task.taskType}</span>
                               {task.shipmentId && (
                                 <Link href={`/shipments/${task.shipmentId}`} onClick={(e: any) => e.stopPropagation()}>
@@ -411,12 +411,12 @@ export default function WorkQueue() {
                                 </span>
                               )}
                               {task.priorityScore != null && usePrioritizedQueue && (
-                                <span className="text-white/30">Score: {Number(task.priorityScore).toFixed(0)}</span>
+                                <span className="text-foreground/30">Score: {Number(task.priorityScore).toFixed(0)}</span>
                               )}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight size={14} className="text-white/20 shrink-0 mt-2" />
+                        <ChevronRight size={14} className="text-foreground/20 shrink-0 mt-2" />
                       </div>
                     </motion.div>
                   );
@@ -434,9 +434,9 @@ export default function WorkQueue() {
                     currentUserId={userId}
                   />
                 ) : (
-                  <div className="border border-white/10 rounded-lg p-6 text-center">
-                    <ClipboardList size={24} className="mx-auto text-white/20 mb-2" />
-                    <p className="text-sm text-white/30">Select a task to view details</p>
+                  <div className="border border-black/[0.06] rounded-lg p-6 text-center">
+                    <ClipboardList size={24} className="mx-auto text-foreground/20 mb-2" />
+                    <p className="text-sm text-foreground/30">Select a task to view details</p>
                   </div>
                 )}
               </div>
@@ -460,8 +460,8 @@ export default function WorkQueue() {
 
 function SummaryCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="border border-white/10 rounded-lg p-3 bg-white/[0.02]">
-      <div className="text-[10px] uppercase tracking-wider text-white/40">{label}</div>
+    <div className="border border-black/[0.06] rounded-lg p-3 bg-black/[0.02]">
+      <div className="text-[10px] uppercase tracking-wider text-foreground/40">{label}</div>
       <div className={`text-xl font-bold mt-1 ${color}`}>{value}</div>
     </div>
   );
@@ -489,11 +489,11 @@ function TaskDetailPanel({
   const isAutoCreated = task.creationSource === "AUTO_POLICY";
 
   return (
-    <div className="border border-white/10 rounded-lg bg-white/[0.02] overflow-hidden">
-      <div className="p-4 border-b border-white/10">
+    <div className="border border-black/[0.06] rounded-lg bg-black/[0.02] overflow-hidden">
+      <div className="p-4 border-b border-black/[0.06]">
         <div className="flex items-center gap-2 mb-2">
           <TaskIcon size={14} className="text-primary" />
-          <span className="text-xs text-white/40">{TASK_TYPE_LABELS[task.taskType] || task.taskType}</span>
+          <span className="text-xs text-foreground/40">{TASK_TYPE_LABELS[task.taskType] || task.taskType}</span>
           {isAutoCreated && (
             <span className="px-1.5 py-0.5 text-[9px] font-bold bg-primary/20 text-primary rounded">Auto-Created</span>
           )}
@@ -503,9 +503,9 @@ function TaskDetailPanel({
             </span>
           )}
         </div>
-        <h3 className="text-sm font-semibold text-white">{task.title}</h3>
+        <h3 className="text-sm font-semibold text-foreground">{task.title}</h3>
         {task.description && (
-          <p className="text-[11px] text-white/50 mt-1 line-clamp-3">{task.description}</p>
+          <p className="text-[11px] text-foreground/50 mt-1 line-clamp-3">{task.description}</p>
         )}
         <div className="flex items-center gap-2 mt-3">
           <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${STATUS_COLORS[task.status] || ""}`}>
@@ -520,17 +520,17 @@ function TaskDetailPanel({
       <div className="p-4 space-y-3 text-[11px]">
         {task.executionNotes && (
           <div>
-            <span className="text-white/40">Action Required:</span>
-            <p className="text-white/70 mt-0.5">{task.executionNotes}</p>
+            <span className="text-foreground/40">Action Required:</span>
+            <p className="text-foreground/70 mt-0.5">{task.executionNotes}</p>
           </div>
         )}
         <div className="flex justify-between items-center">
-          <span className="text-white/40">Due</span>
+          <span className="text-foreground/40">Due</span>
           {editingDue ? (
             <div className="flex items-center gap-1">
               <input
                 type="datetime-local"
-                className="bg-white/5 border border-white/10 rounded px-1 py-0.5 text-[10px] text-white/70 outline-none"
+                className="bg-black/[0.03] border border-black/[0.06] rounded px-1 py-0.5 text-[10px] text-foreground/70 outline-none"
                 value={dueInput}
                 onChange={(e) => setDueInput(e.target.value)}
               />
@@ -541,19 +541,19 @@ function TaskDetailPanel({
                 }}
                 className="text-[9px] text-primary hover:text-primary"
               >Save</button>
-              <button onClick={() => setEditingDue(false)} className="text-[9px] text-white/30">X</button>
+              <button onClick={() => setEditingDue(false)} className="text-[9px] text-foreground/30">X</button>
             </div>
           ) : (
             <span
               onClick={() => { if (isActive) { setDueInput(task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : ""); setEditingDue(true); } }}
-              className={`font-medium cursor-pointer hover:underline ${task.dueAt && new Date(task.dueAt) < new Date() && isActive ? "text-[#E05252]" : "text-white/70"}`}
+              className={`font-medium cursor-pointer hover:underline ${task.dueAt && new Date(task.dueAt) < new Date() && isActive ? "text-[#E05252]" : "text-foreground/70"}`}
             >
               {task.dueAt ? format(new Date(task.dueAt), "MMM d, yyyy h:mm a") : "Not set"}
             </span>
           )}
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-white/40">Priority</span>
+          <span className="text-foreground/40">Priority</span>
           {editingPriority && isActive ? (
             <div className="flex gap-1">
               {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const).map((p) => (
@@ -576,21 +576,21 @@ function TaskDetailPanel({
           )}
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-white/40">Assigned</span>
+          <span className="text-foreground/40">Assigned</span>
           {isActive ? (
             <button
               onClick={() => onUpdate({ assignedTo: task.assignedTo ? null : currentUserId })}
-              className="text-white/60 text-[10px] hover:text-white/80"
+              className="text-foreground/60 text-[10px] hover:text-foreground/80"
             >
               {task.assignedTo ? "Unassign" : "Assign to me"}
             </button>
           ) : (
-            <span className="text-white/60">{task.assignedTo ? task.assignedTo.slice(0, 12) + "..." : "Unassigned"}</span>
+            <span className="text-foreground/60">{task.assignedTo ? task.assignedTo.slice(0, 12) + "..." : "Unassigned"}</span>
           )}
         </div>
         {task.shipmentId && (
           <div className="flex justify-between">
-            <span className="text-white/40">Shipment</span>
+            <span className="text-foreground/40">Shipment</span>
             <Link href={`/shipments/${task.shipmentId}`}>
               <span className="text-primary hover:text-primary font-mono">{task.shipmentId.slice(0, 12)}...</span>
             </Link>
@@ -598,24 +598,24 @@ function TaskDetailPanel({
         )}
         {task.policyDecisionId && (
           <div className="flex justify-between">
-            <span className="text-white/40">Policy</span>
+            <span className="text-foreground/40">Policy</span>
             <span className="text-primary font-mono text-[9px]">{task.policyDecisionId.slice(0, 12)}...</span>
           </div>
         )}
         <div className="flex justify-between">
-          <span className="text-white/40">Created</span>
-          <span className="text-white/60">{format(new Date(task.createdAt), "MMM d, h:mm a")}</span>
+          <span className="text-foreground/40">Created</span>
+          <span className="text-foreground/60">{format(new Date(task.createdAt), "MMM d, h:mm a")}</span>
         </div>
         {task.completionNotes && (
           <div>
-            <span className="text-white/40">Completion Notes:</span>
-            <p className="text-white/70 mt-0.5">{task.completionNotes}</p>
+            <span className="text-foreground/40">Completion Notes:</span>
+            <p className="text-foreground/70 mt-0.5">{task.completionNotes}</p>
           </div>
         )}
       </div>
 
       {isActive && (
-        <div className="p-4 border-t border-white/10 space-y-3">
+        <div className="p-4 border-t border-black/[0.06] space-y-3">
           <div className="flex gap-1.5 flex-wrap">
             {task.status === "OPEN" && (
               <button
@@ -655,7 +655,7 @@ function TaskDetailPanel({
 
           <div>
             <textarea
-              className="w-full p-2 rounded-lg bg-white/5 border border-white/10 focus:border-primary/40 outline-none resize-none h-16 text-[11px] text-white/70 placeholder:text-white/20"
+              className="w-full p-2 rounded-lg bg-black/[0.03] border border-black/[0.06] focus:border-primary/40 outline-none resize-none h-16 text-[11px] text-foreground/70 placeholder:text-foreground/20"
               placeholder="Completion notes..."
               value={completionNotes}
               onChange={(e) => setCompletionNotes(e.target.value)}
@@ -674,7 +674,7 @@ function TaskDetailPanel({
 
           <div>
             <textarea
-              className="w-full p-2 rounded-lg bg-white/5 border border-white/10 focus:border-primary/40 outline-none resize-none h-12 text-[11px] text-white/70 placeholder:text-white/20"
+              className="w-full p-2 rounded-lg bg-black/[0.03] border border-black/[0.06] focus:border-primary/40 outline-none resize-none h-12 text-[11px] text-foreground/70 placeholder:text-foreground/20"
               placeholder="Add a note..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -696,25 +696,25 @@ function TaskDetailPanel({
       )}
 
       {task.events && task.events.length > 0 && (
-        <div className="p-4 border-t border-white/10">
-          <h4 className="text-[10px] font-semibold text-white/50 uppercase tracking-wider mb-2">Audit Trail</h4>
+        <div className="p-4 border-t border-black/[0.06]">
+          <h4 className="text-[10px] font-semibold text-foreground/50 uppercase tracking-wider mb-2">Audit Trail</h4>
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {task.events.map((evt: any) => (
-              <div key={evt.id} className="text-[10px] text-white/40">
+              <div key={evt.id} className="text-[10px] text-foreground/40">
                 <div className="flex items-center justify-between">
                   <span className={`font-medium ${
                     evt.eventType === "ESCALATED" ? "text-[#D4A24C]" :
                     evt.eventType === "AUTO_CREATED" ? "text-primary" :
                     evt.eventType === "COMPLETED" ? "text-primary" :
                     evt.eventType === "CANCELLED" ? "text-[#E05252]" :
-                    "text-white/60"
+                    "text-foreground/60"
                   }`}>{evt.eventType.replace(/_/g, " ")}</span>
                   <span>{format(new Date(evt.createdAt), "MMM d, h:mm a")}</span>
                 </div>
                 {evt.beforeValue && evt.afterValue && (
-                  <span className="text-white/30">{evt.beforeValue} → {evt.afterValue}</span>
+                  <span className="text-foreground/30">{evt.beforeValue} → {evt.afterValue}</span>
                 )}
-                {evt.notes && <p className="text-white/50 mt-0.5">{evt.notes}</p>}
+                {evt.notes && <p className="text-foreground/50 mt-0.5">{evt.notes}</p>}
               </div>
             ))}
           </div>
@@ -725,7 +725,7 @@ function TaskDetailPanel({
 }
 
 function WorkflowAnalyticsPanel({ analytics }: { analytics: any }) {
-  if (!analytics) return <div className="text-white/30 text-sm py-8 text-center">Loading analytics...</div>;
+  if (!analytics) return <div className="text-foreground/30 text-sm py-8 text-center">Loading analytics...</div>;
 
   const { totals, byType, rates, avgAssignmentHours, policyOutcomes, funnel } = analytics;
 
@@ -739,8 +739,8 @@ function WorkflowAnalyticsPanel({ analytics }: { analytics: any }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="border border-white/10 rounded-lg p-4 bg-white/[0.02]">
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+        <div className="border border-black/[0.06] rounded-lg p-4 bg-black/[0.02]">
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <TrendingUp size={14} className="text-primary" /> Recommendation → Task Funnel
           </h3>
           <div className="space-y-2 text-[11px]">
@@ -751,60 +751,60 @@ function WorkflowAnalyticsPanel({ analytics }: { analytics: any }) {
           </div>
         </div>
 
-        <div className="border border-white/10 rounded-lg p-4 bg-white/[0.02]">
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+        <div className="border border-black/[0.06] rounded-lg p-4 bg-black/[0.02]">
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <Bot size={14} className="text-primary" /> Policy Outcomes
           </h3>
           {policyOutcomes && policyOutcomes.length > 0 ? (
             <div className="space-y-1.5">
               {policyOutcomes.map((p: any) => (
                 <div key={p.outcome} className="flex justify-between text-[11px]">
-                  <span className="text-white/50">{p.outcome.replace(/_/g, " ")}</span>
-                  <span className="text-white/70 font-medium">{p.count}</span>
+                  <span className="text-foreground/50">{p.outcome.replace(/_/g, " ")}</span>
+                  <span className="text-foreground/70 font-medium">{p.count}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-[11px] text-white/30">No policy decisions yet. Click "Auto-Process Recs" to evaluate pending recommendations.</p>
+            <p className="text-[11px] text-foreground/30">No policy decisions yet. Click "Auto-Process Recs" to evaluate pending recommendations.</p>
           )}
         </div>
       </div>
 
-      <div className="border border-white/10 rounded-lg p-4 bg-white/[0.02]">
-        <h3 className="text-sm font-semibold text-white mb-3">Completion by Task Type</h3>
+      <div className="border border-black/[0.06] rounded-lg p-4 bg-black/[0.02]">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Completion by Task Type</h3>
         <div className="space-y-2">
           {(byType || []).map((t: any) => (
             <div key={t.taskType} className="flex items-center justify-between text-[11px]">
-              <span className="text-white/50">{TASK_TYPE_LABELS[t.taskType] || t.taskType}</span>
+              <span className="text-foreground/50">{TASK_TYPE_LABELS[t.taskType] || t.taskType}</span>
               <div className="flex gap-4">
-                <span className="text-white/40">Active: {t.active}</span>
+                <span className="text-foreground/40">Active: {t.active}</span>
                 <span className="text-primary">Done: {t.completed}</span>
                 <span className="text-primary">Auto: {t.autoCreated}</span>
                 {t.avgCompletionHours != null && (
-                  <span className="text-white/30">Avg: {Number(t.avgCompletionHours).toFixed(1)}h</span>
+                  <span className="text-foreground/30">Avg: {Number(t.avgCompletionHours).toFixed(1)}h</span>
                 )}
               </div>
             </div>
           ))}
           {(!byType || byType.length === 0) && (
-            <p className="text-[11px] text-white/30">No task data yet.</p>
+            <p className="text-[11px] text-foreground/30">No task data yet.</p>
           )}
         </div>
       </div>
 
-      <div className="border border-white/10 rounded-lg p-4 bg-white/[0.02]">
-        <h3 className="text-sm font-semibold text-white mb-3">Auto vs Manual Creation</h3>
+      <div className="border border-black/[0.06] rounded-lg p-4 bg-black/[0.02]">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Auto vs Manual Creation</h3>
         <div className="flex gap-8 text-[11px]">
           <div>
-            <span className="text-white/40">Auto-Created: </span>
+            <span className="text-foreground/40">Auto-Created: </span>
             <span className="text-primary font-bold">{totals?.autoCreated ?? 0}</span>
           </div>
           <div>
-            <span className="text-white/40">Manual/Recommendation: </span>
-            <span className="text-white/70 font-bold">{totals?.manualCreated ?? 0}</span>
+            <span className="text-foreground/40">Manual/Recommendation: </span>
+            <span className="text-foreground/70 font-bold">{totals?.manualCreated ?? 0}</span>
           </div>
           <div>
-            <span className="text-white/40">Escalated: </span>
+            <span className="text-foreground/40">Escalated: </span>
             <span className="text-[#D4A24C] font-bold">{totals?.escalated ?? 0}</span>
           </div>
         </div>
@@ -815,8 +815,8 @@ function WorkflowAnalyticsPanel({ analytics }: { analytics: any }) {
 
 function AnalyticsCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="border border-white/10 rounded-lg p-4 bg-white/[0.02]">
-      <div className="text-[10px] uppercase tracking-wider text-white/40">{label}</div>
+    <div className="border border-black/[0.06] rounded-lg p-4 bg-black/[0.02]">
+      <div className="text-[10px] uppercase tracking-wider text-foreground/40">{label}</div>
       <div className={`text-2xl font-bold mt-1 ${color}`}>{value}</div>
     </div>
   );
@@ -826,11 +826,11 @@ function FunnelRow({ label, value, max, color }: { label: string; value: number;
   const pct = max > 0 ? (value / max) * 100 : 0;
   return (
     <div>
-      <div className="flex justify-between text-white/50 mb-0.5">
+      <div className="flex justify-between text-foreground/50 mb-0.5">
         <span>{label}</span>
-        <span className="text-white/70 font-medium">{value}</span>
+        <span className="text-foreground/70 font-medium">{value}</span>
       </div>
-      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-black/[0.03] rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(pct, 2)}%` }} />
       </div>
     </div>
@@ -849,7 +849,7 @@ function NotificationsPanel({
   const SEVERITY_COLORS: Record<string, string> = {
     CRITICAL: "border-red-500/30 bg-[#E05252]/5",
     WARNING: "border-[#D4A24C]/30 bg-[#D4A24C]/5",
-    INFO: "border-white/10 bg-white/[0.02]",
+    INFO: "border-black/[0.06] bg-black/[0.02]",
   };
 
   const EVENT_ICONS: Record<string, any> = {
@@ -865,7 +865,7 @@ function NotificationsPanel({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-sm font-semibold text-white">Operational Notifications</h3>
+        <h3 className="text-sm font-semibold text-foreground">Operational Notifications</h3>
         <button
           onClick={onMarkAllRead}
           disabled={isMarking}
@@ -875,7 +875,7 @@ function NotificationsPanel({
         </button>
       </div>
       {notifications.length === 0 && (
-        <div className="text-white/30 text-sm py-8 text-center">No notifications</div>
+        <div className="text-foreground/30 text-sm py-8 text-center">No notifications</div>
       )}
       <div className="space-y-2 max-h-[600px] overflow-y-auto">
         {notifications.map((n: any) => {
@@ -886,14 +886,14 @@ function NotificationsPanel({
               className={`border rounded-lg p-3 ${SEVERITY_COLORS[n.severity] || SEVERITY_COLORS.INFO} ${!n.read ? "ring-1 ring-primary/20" : ""}`}
             >
               <div className="flex items-start gap-2">
-                <Icon size={14} className={`shrink-0 mt-0.5 ${n.severity === "CRITICAL" ? "text-[#E05252]" : n.severity === "WARNING" ? "text-[#D4A24C]" : "text-white/40"}`} />
+                <Icon size={14} className={`shrink-0 mt-0.5 ${n.severity === "CRITICAL" ? "text-[#E05252]" : n.severity === "WARNING" ? "text-[#D4A24C]" : "text-foreground/40"}`} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-white">{n.title}</span>
+                    <span className="text-xs font-medium text-foreground">{n.title}</span>
                     {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
                   </div>
-                  {n.message && <p className="text-[11px] text-white/50 mt-0.5">{n.message}</p>}
-                  <div className="flex gap-3 mt-1 text-[10px] text-white/30">
+                  {n.message && <p className="text-[11px] text-foreground/50 mt-0.5">{n.message}</p>}
+                  <div className="flex gap-3 mt-1 text-[10px] text-foreground/30">
                     <span>{n.eventType.replace(/_/g, " ")}</span>
                     <span>{format(new Date(n.createdAt), "MMM d, h:mm a")}</span>
                   </div>

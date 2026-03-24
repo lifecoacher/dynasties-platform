@@ -1007,7 +1007,7 @@ export default function ShipmentDetail() {
                   {activeRecs.map((rec: any) => {
                     const urgencyBorder = rec.urgency === "CRITICAL" ? "border-red-500/30 bg-red-500/5" :
                       rec.urgency === "HIGH" ? "border-[#D4A24C]/30 bg-[#D4A24C]/5" :
-                      rec.urgency === "MEDIUM" ? "border-[#D4A24C]/20 bg-[#D4A24C]/3" : "border-white/10 bg-white/[0.02]";
+                      rec.urgency === "MEDIUM" ? "border-[#D4A24C]/20 bg-[#D4A24C]/3" : "border-black/[0.06] bg-black/[0.02]";
                     const urgencyBadge = rec.urgency === "CRITICAL" ? "bg-red-500/20 text-red-300" :
                       rec.urgency === "HIGH" ? "bg-[#D4A24C]/20 text-[#D4A24C]" :
                       rec.urgency === "MEDIUM" ? "bg-[#D4A24C]/15 text-[#D4A24C]/80" : "bg-primary/15 text-primary/80";
@@ -1057,7 +1057,7 @@ export default function ShipmentDetail() {
                     <div className="pt-2 border-t border-card-border">
                       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Decided</p>
                       {decidedRecs.map((rec: any) => (
-                        <div key={rec.id} className="border border-white/10 rounded-lg p-3 bg-white/[0.02] mb-1.5">
+                        <div key={rec.id} className="border border-black/[0.06] rounded-lg p-3 bg-black/[0.02] mb-1.5">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-[12px] font-medium text-foreground">{rec.title}</span>
                             <span className={`px-1 py-0.5 text-[9px] uppercase rounded ${rec.status === "ACCEPTED" ? "bg-primary/20 text-primary" : "bg-primary/15 text-primary/80"}`}>
@@ -2006,7 +2006,7 @@ export default function ShipmentDetail() {
                   {(diffData?.diffs || []).map((diff: any) => {
                     const hasChanges = Object.values(diff.changes || {}).some(Boolean);
                     return (
-                      <div key={diff.type} className={`border rounded-lg p-3 ${hasChanges ? "border-primary/20 bg-primary/5" : "border-white/10 bg-white/[0.02]"}`}>
+                      <div key={diff.type} className={`border rounded-lg p-3 ${hasChanges ? "border-primary/20 bg-primary/5" : "border-black/[0.06] bg-black/[0.02]"}`}>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[11px] font-mono font-medium text-foreground">{diff.type}</span>
                           {hasChanges && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">CHANGED</span>}
@@ -2307,7 +2307,7 @@ function StatusPill({ status }: { status: string }) {
     DRAFT: "bg-primary/10 text-primary",
     PENDING_REVIEW: "bg-[#D4A24C]/10 text-[#D4A24C]",
     APPROVED: "bg-primary/10 text-primary",
-    REJECTED: "bg-[#E05252]/10 text-red-400",
+    REJECTED: "bg-[#E05252]/10 text-[#E05252]",
   };
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[status] || "bg-muted text-muted-foreground"}`}>

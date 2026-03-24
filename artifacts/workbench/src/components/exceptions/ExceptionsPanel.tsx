@@ -148,7 +148,7 @@ export function ExceptionsPanel({ shipmentId }: { shipmentId: string }) {
                 >
                   <button
                     onClick={() => setExpanded(isExpanded ? null : exc.id)}
-                    className="w-full flex items-start gap-3 p-3 text-left hover:bg-white/[0.02] transition-colors"
+                    className="w-full flex items-start gap-3 p-3 text-left hover:bg-black/[0.02] transition-colors"
                   >
                     <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${style.bg}`}>
                       <Icon className={`w-3.5 h-3.5 ${style.text}`} />
@@ -175,7 +175,7 @@ export function ExceptionsPanel({ shipmentId }: { shipmentId: string }) {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="px-3 pb-3 border-t border-white/5 pt-2">
+                        <div className="px-3 pb-3 border-t border-black/5 pt-2">
                           <p className="text-[11px] text-muted-foreground mb-3">{exc.description}</p>
 
                           {exc.recommendedActions && (exc.recommendedActions as any[]).length > 0 && (

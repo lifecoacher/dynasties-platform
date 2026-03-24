@@ -130,7 +130,7 @@ function ExceptionGroup({ label, count, exceptions, isMinor }: { label: string; 
               transition={{ delay: i * 0.02 }}
             >
               <Link href={exc.shipmentId ? `/shipments/${exc.shipmentId}` : "#"}>
-                <div className={`flex items-start gap-3 px-4 py-4 -mx-4 rounded-lg hover:bg-white/[0.03] transition-all cursor-pointer group border-b border-white/[0.03] last:border-b-0 active:scale-[0.998] ${isMinor ? "opacity-50 hover:opacity-90" : ""}`}>
+                <div className={`flex items-start gap-3 px-4 py-4 -mx-4 rounded-lg hover:bg-black/[0.03] transition-all cursor-pointer group border-b border-black/[0.04] last:border-b-0 active:scale-[0.998] ${isMinor ? "opacity-50 hover:opacity-90" : ""}`}>
                   <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${sev.dot}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">

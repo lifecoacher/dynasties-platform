@@ -130,7 +130,7 @@ export default function BillingInvoiceDetail() {
       <div className="px-8 py-8 max-w-[1200px] mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/billing/invoices">
-            <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors">
+            <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-colors">
               <ChevronLeft className="w-4 h-4" />
             </button>
           </Link>
@@ -284,7 +284,7 @@ export default function BillingInvoiceDetail() {
                   <button
                     onClick={() => handleAction("mark-paid")}
                     disabled={!!acting}
-                    className="px-6 py-3.5 rounded-xl text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+                    className="px-6 py-3.5 rounded-xl text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-colors disabled:opacity-50"
                   >
                     Pay Manually Instead
                   </button>
@@ -524,7 +524,7 @@ export default function BillingInvoiceDetail() {
                   <tr key={li.id || idx}>
                     <td className="px-5 py-3 text-[13px] text-foreground">{li.description}</td>
                     <td className="px-5 py-3">
-                      <span className="text-[11px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded">{li.lineType}</span>
+                      <span className="text-[11px] text-muted-foreground bg-black/[0.03] px-2 py-0.5 rounded">{li.lineType}</span>
                     </td>
                     <td className="px-5 py-3 text-right text-[13px] text-muted-foreground">{li.quantity}</td>
                     <td className="px-5 py-3 text-right text-[13px] text-muted-foreground">{formatCurrency(li.unitPrice)}</td>

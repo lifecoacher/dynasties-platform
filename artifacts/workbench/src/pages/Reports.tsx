@@ -192,7 +192,7 @@ export default function ReportsPage() {
                 <button
                   key={r.id}
                   onClick={() => setSelectedReport(r)}
-                  className={`w-full text-left p-3 hover:bg-white/[0.02] transition-colors ${selectedReport?.id === r.id ? "bg-primary/5" : ""}`}
+                  className={`w-full text-left p-3 hover:bg-black/[0.02] transition-colors ${selectedReport?.id === r.id ? "bg-primary/5" : ""}`}
                 >
                   <div className="flex items-center gap-2">
                     <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />

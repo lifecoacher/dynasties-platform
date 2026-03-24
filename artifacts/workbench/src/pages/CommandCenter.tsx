@@ -146,10 +146,10 @@ export default function CommandCenter() {
               )}
 
               {status.level !== "clear" && alertsSummary?.criticalAlerts?.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-white/5 space-y-1.5">
+                <div className="mt-6 pt-5 border-t border-black/5 space-y-1.5">
                   {alertsSummary.criticalAlerts.slice(0, 3).map((alert: any) => (
                     <Link key={alert.id} href={alert.shipmentId ? `/shipments/${alert.shipmentId}` : "/exceptions"}>
-                      <div className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                      <div className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-lg hover:bg-black/[0.03] transition-colors cursor-pointer group">
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                           alert.severity === "CRITICAL" ? "bg-red-400" : "bg-orange-400"
                         }`} />
@@ -226,7 +226,7 @@ export default function CommandCenter() {
                         transition={{ delay: 0.25 + i * 0.03 }}
                       >
                         <Link href={`/shipments/${s.id}`}>
-                          <div className={`flex items-center gap-4 px-4 py-3.5 -mx-4 rounded-lg hover:bg-white/[0.03] transition-all cursor-pointer group ${needsCare ? "" : "opacity-60 hover:opacity-100"}`}>
+                          <div className={`flex items-center gap-4 px-4 py-3.5 -mx-4 rounded-lg hover:bg-black/[0.03] transition-all cursor-pointer group ${needsCare ? "" : "opacity-60 hover:opacity-100"}`}>
                             <StatusIndicator status={s.status} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2.5">

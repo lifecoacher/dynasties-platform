@@ -37,7 +37,7 @@ export default function BillingSettings() {
       <div className="px-8 py-8 max-w-[1000px] mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <Link href="/billing">
-            <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors">
+            <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-colors">
               <ChevronLeft className="w-4 h-4" />
             </button>
           </Link>
@@ -160,7 +160,7 @@ export default function BillingSettings() {
                   className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border ${
                     opt.enabled
                       ? "bg-primary/5 border-primary/20 text-primary"
-                      : "bg-white/[0.02] border-card-border text-muted-foreground"
+                      : "bg-black/[0.02] border-card-border text-muted-foreground"
                   }`}
                 >
                   {opt.enabled && <CheckCircle2 className="w-3 h-3 inline mr-1 -mt-0.5" />}
@@ -189,7 +189,7 @@ export default function BillingSettings() {
           {(chargeRules || []).length > 0 ? (
             <div className="space-y-2">
               {(chargeRules || []).map((rule: any) => (
-                <div key={rule.id} className="flex items-center justify-between px-4 py-3 rounded-lg bg-white/[0.02] border border-card-border">
+                <div key={rule.id} className="flex items-center justify-between px-4 py-3 rounded-lg bg-black/[0.02] border border-card-border">
                   <div>
                     <p className="text-[13px] font-medium text-foreground">{rule.name}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">

@@ -1,0 +1,246 @@
+You are implementing a complete UI/UX system for a production SaaS platform.
+
+This is NOT a redesign.
+This is a full system unification.
+
+The product must be:
+- light-first (for readability)
+- system-driven (for consistency)
+- Apple-level (for refinement)
+
+----------------------------------
+CORE OBJECTIVE
+----------------------------------
+
+Create an interface that is:
+
+- effortless to read for long periods
+- visually consistent across all pages
+- calm, precise, and decision-focused
+- impossible to degrade as the product grows
+
+----------------------------------
+PART 1 — LIGHT-FIRST VISUAL SYSTEM
+----------------------------------
+
+Replace dark-primary UI with a light-first system.
+
+BACKGROUND:
+
+- bg-base: soft neutral (not pure white)
+- bg-surface: near-white
+- bg-elevated: slightly contrasted surface
+
+Avoid:
+- pure white glare
+- harsh contrast jumps
+
+TEXT:
+
+- text-primary: near-black
+- text-secondary: medium gray
+- text-muted: lighter gray (still readable)
+
+Goal:
+Readable, low-fatigue interface for long usage.
+
+Dark mode remains optional, not primary.
+
+----------------------------------
+PART 2 — DESIGN SYSTEM (STRICT TOKENS)
+----------------------------------
+
+SPACING (8-point grid only):
+
+- space-1: 4px
+- space-2: 8px
+- space-3: 12px
+- space-4: 16px
+- space-5: 20px
+- space-6: 24px
+- space-8: 32px
+- space-10: 40px
+- space-12: 48px
+- space-16: 64px
+
+RULES:
+- No arbitrary values
+- Internal spacing < external spacing
+- Section spacing ≥ space-8
+
+----------------------------------
+
+TYPOGRAPHY:
+
+HEADLINE:
+- 32px / line-height 1.1 / -0.03em tracking
+
+SECTION TITLE:
+- 20px / 1.2 / -0.02em
+
+BODY:
+- 14–16px / 1.5
+
+SECONDARY:
+- 12–13px / 1.4
+
+RULES:
+- Max 5 sizes
+- No custom sizes
+- Use weight before size
+
+----------------------------------
+
+COLOR SYSTEM:
+
+- bg-base / bg-surface / bg-elevated
+- text-primary / secondary / muted
+- success / warning / danger / info
+
+RULES:
+- Color = meaning only
+- No decorative colors
+- Maintain accessibility contrast
+
+----------------------------------
+
+DEPTH:
+
+3 levels ONLY:
+- base
+- surface
+- elevated
+
+Use:
+- subtle gradients
+- inset highlights (1px low opacity)
+
+NO heavy shadows
+NO layered card stacking
+
+----------------------------------
+
+MOTION:
+
+- fast: 120ms
+- normal: 150ms
+- slow: 180ms
+- ease-out only
+
+Hover:
+- slight lift OR brightness
+
+Click:
+- scale 0.97–0.98
+
+RULES:
+- No idle animations
+- No bounce
+- Motion must feel minimal
+
+----------------------------------
+
+COMPONENT RULES:
+
+ALL components MUST:
+- use tokens only
+- follow elevation system
+- follow motion rules
+
+NO component may:
+- introduce custom spacing
+- introduce new colors
+- introduce new motion
+
+----------------------------------
+
+LAYOUT:
+
+- single-column for decision-heavy pages
+- multi-column only when necessary
+- consistent max width
+- consistent padding (space-6 or space-8)
+
+----------------------------------
+
+----------------------------------
+PART 3 — APPLE-LEVEL REFINEMENT
+----------------------------------
+
+STILLNESS:
+
+- Remove all idle animations
+- Motion only on interaction or state change
+
+----------------------------------
+
+TYPOGRAPHY PRECISION:
+
+- tighten headline tracking (-0.025 to -0.035em)
+- body line-height 1.4–1.6
+- reduce opacity slightly for secondary text
+- align baselines across components
+
+----------------------------------
+
+DEPTH POLISH:
+
+- remove visible borders
+- use inset highlights instead
+- subtle gradient backgrounds (very low contrast)
+
+----------------------------------
+
+VISUAL DISCIPLINE:
+
+- primary signals dominate
+- secondary info quieter (contrast, opacity)
+- eliminate redundant labels and clutter
+
+----------------------------------
+
+CONFIDENCE LAYER:
+
+Every screen must communicate system state:
+
+Examples:
+- “All systems operating normally”
+- “2 shipments require attention”
+- “No action required”
+
+RULES:
+- short
+- clear
+- non-technical
+
+----------------------------------
+
+MICROINTERACTIONS:
+
+- instant feedback
+- subtle, not animated
+- no exaggeration
+
+----------------------------------
+
+----------------------------------
+ENFORCEMENT
+----------------------------------
+
+Reject any implementation that:
+
+- breaks spacing scale
+- introduces new colors
+- adds unnecessary motion
+- weakens hierarchy
+
+----------------------------------
+
+SUCCESS CRITERIA
+----------------------------------
+
+- readable for long sessions without fatigue
+- visually consistent across all pages
+- no randomness in spacing or styling
+- feels calm, precise, and intentional
+- new features integrate without redesign

@@ -55,45 +55,45 @@
 }
 
 :root {
-  --background: 216 27% 5%;
-  --foreground: 216 25% 95%;
+  --background: 220 14% 96%;
+  --foreground: 220 15% 14%;
 
-  --card: 218 24% 10%;
-  --card-foreground: 216 25% 95%;
-  --card-border: 215 15% 22%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 15% 14%;
+  --card-border: 220 10% 90%;
 
-  --popover: 218 24% 10%;
-  --popover-foreground: 216 25% 95%;
-  --popover-border: 215 15% 22%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 15% 14%;
+  --popover-border: 220 10% 90%;
 
-  --primary: 172 100% 37%;
-  --primary-foreground: 216 27% 5%;
+  --primary: 172 100% 32%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 217 19% 12%;
-  --secondary-foreground: 216 10% 72%;
+  --secondary: 220 10% 95%;
+  --secondary-foreground: 220 10% 40%;
 
-  --muted: 215 15% 22%;
-  --muted-foreground: 218 10% 55%;
+  --muted: 220 10% 93%;
+  --muted-foreground: 220 8% 48%;
 
-  --accent: 172 100% 25%;
-  --accent-foreground: 216 25% 95%;
+  --accent: 172 60% 28%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 70% 60%;
-  --destructive-foreground: 216 25% 95%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
 
-  --success: 172 100% 37%;
-  --success-foreground: 216 27% 5%;
+  --success: 172 100% 32%;
+  --success-foreground: 0 0% 100%;
 
-  --warning: 38 61% 56%;
-  --warning-foreground: 216 27% 5%;
+  --warning: 38 65% 48%;
+  --warning-foreground: 220 15% 14%;
 
-  --sidebar: 216 27% 5%;
-  --sidebar-foreground: 216 10% 65%;
-  --sidebar-border: 215 15% 16%;
+  --sidebar: 220 14% 98%;
+  --sidebar-foreground: 220 10% 42%;
+  --sidebar-border: 220 10% 91%;
 
-  --border: 215 15% 22%;
-  --input: 215 15% 22%;
-  --ring: 172 100% 37%;
+  --border: 220 10% 90%;
+  --input: 220 10% 90%;
+  --ring: 172 100% 32%;
 
   --radius: 0.5rem;
 }
@@ -108,18 +108,17 @@
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: linear-gradient(180deg, hsl(216 27% 5%) 0%, hsl(216 27% 6.5%) 100%);
     min-height: 100vh;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     @apply font-semibold;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
 
   button, a {
-    transition: all 0.15s ease;
+    transition: all 0.15s ease-out;
   }
 }
 
@@ -139,7 +138,7 @@
 }
 
 .glass-panel {
-  @apply bg-card/80 backdrop-blur-xl border border-card-border;
+  @apply bg-card/90 backdrop-blur-xl border border-card-border;
 }
 
 @keyframes shimmer {
@@ -148,7 +147,7 @@
 }
 
 .shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.02), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
@@ -163,8 +162,8 @@
 }
 
 @keyframes agent-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 191, 166, 0); }
-  50% { box-shadow: 0 0 8px 2px rgba(0, 191, 166, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 166, 145, 0); }
+  50% { box-shadow: 0 0 8px 2px rgba(0, 166, 145, 0.1); }
 }
 
 .agent-glow {
@@ -185,19 +184,19 @@
 }
 
 .cl-socialButtonsBlockButton {
-  background-color: hsl(215 25% 7%) !important;
-  border: 1px solid hsl(215 15% 22%) !important;
+  background-color: hsl(220 14% 96%) !important;
+  border: 1px solid hsl(220 10% 90%) !important;
   min-height: 44px !important;
   padding: 10px 16px !important;
   border-radius: 8px !important;
-  transition: background-color 0.15s ease !important;
+  transition: background-color 0.15s ease-out !important;
 }
 .cl-socialButtonsBlockButton:hover {
-  background-color: hsl(215 20% 12%) !important;
+  background-color: hsl(220 10% 93%) !important;
 }
 .cl-socialButtonsBlockButton__google .cl-socialButtonsBlockButtonText__google,
 .cl-socialButtonsBlockButtonText {
-  color: #F0F2F5 !important;
+  color: #1E2330 !important;
   font-size: 15px !important;
   font-weight: 500 !important;
   letter-spacing: 0.01em !important;

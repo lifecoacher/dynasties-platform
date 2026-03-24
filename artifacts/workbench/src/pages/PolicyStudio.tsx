@@ -113,7 +113,7 @@ export default function PolicyStudio() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                tab === t.key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
+                tab === t.key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-black/[0.04]"
               }`}
             >
               <t.icon className="w-3.5 h-3.5" />
@@ -221,7 +221,7 @@ function PoliciesTab({ headers }: { headers: Record<string, string> }) {
                     setEditing(isEditing ? null : p.policyKey);
                     setEditValue(JSON.stringify(p.value, null, 2));
                   }}
-                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors"
+                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-colors"
                 >
                   <Sliders className="w-3.5 h-3.5" />
                 </button>
@@ -564,7 +564,7 @@ function HistoryTab({ headers }: { headers: Record<string, string> }) {
           <div className="p-8 text-center text-sm text-muted-foreground">No policy changes recorded</div>
         )}
         {history.map((h: any, i: number) => (
-          <div key={i} className="p-3 hover:bg-white/[0.02] transition-colors">
+          <div key={i} className="p-3 hover:bg-black/[0.02] transition-colors">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono text-primary">{h.policyKey}</span>
               <span className="text-[10px] text-muted-foreground">v{h.version}</span>

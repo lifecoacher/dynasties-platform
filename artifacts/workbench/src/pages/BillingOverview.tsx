@@ -62,7 +62,7 @@ function KpiCard({
       animate={{ opacity: 1, y: 0 }}
       className={`bg-card border rounded-xl p-5 ${
         emphasis ? "border-red-500/40 ring-1 ring-red-500/20" : "border-card-border"
-      } ${href ? "cursor-pointer hover:bg-white/[0.02] transition-colors" : ""}`}
+      } ${href ? "cursor-pointer hover:bg-black/[0.02] transition-colors" : ""}`}
     >
       <div className="flex items-start justify-between mb-3">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${colorMap[color] || colorMap.teal}`}>
@@ -167,7 +167,7 @@ export default function BillingOverview() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="/billing/customers">
-              <button className="px-4 py-2 rounded-lg text-[13px] font-medium bg-card border border-card-border text-foreground hover:bg-white/[0.04] transition-colors">
+              <button className="px-4 py-2 rounded-lg text-[13px] font-medium bg-card border border-card-border text-foreground hover:bg-black/[0.04] transition-colors">
                 <Users className="w-4 h-4 inline mr-1.5 -mt-0.5" />
                 Customers
               </button>
@@ -262,7 +262,7 @@ export default function BillingOverview() {
                       <span className="text-[12px] text-muted-foreground">{bucket.label}</span>
                     </div>
                     <p className="text-[18px] font-semibold text-foreground">{formatCurrency(val)}</p>
-                    <div className="mt-2 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <div className="mt-2 h-1.5 rounded-full bg-black/[0.03] overflow-hidden">
                       <motion.div
                         className={`h-full rounded-full ${bucket.color}`}
                         initial={{ width: 0 }}
@@ -296,7 +296,7 @@ export default function BillingOverview() {
             ) : (
               recentInvoices.map((inv: any) => (
                 <Link key={inv.id} href={`/billing/invoices/${inv.id}`}>
-                  <div className="flex items-center px-6 py-3.5 hover:bg-white/[0.02] transition-colors cursor-pointer">
+                  <div className="flex items-center px-6 py-3.5 hover:bg-black/[0.02] transition-colors cursor-pointer">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3">
                         <span className="text-[13px] font-mono font-medium text-foreground">
