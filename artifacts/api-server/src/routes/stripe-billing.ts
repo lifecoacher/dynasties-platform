@@ -181,6 +181,7 @@ router.get("/stripe/subscription", async (req, res) => {
       connectOnboardingCompleted: company.connectOnboardingCompleted ?? false,
       connectChargesEnabled: company.connectChargesEnabled ?? false,
       connectPayoutsEnabled: company.connectPayoutsEnabled ?? false,
+      connectLastSyncAt: company.connectLastSyncAt?.toISOString() ?? null,
     },
   });
 });
