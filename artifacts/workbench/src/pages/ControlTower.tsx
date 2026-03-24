@@ -103,11 +103,11 @@ export default function ControlTower() {
     ? `${criticalRecs.length} critical recommendation${criticalRecs.length > 1 ? "s" : ""} — review now`
     : hasSignals
       ? "Active warnings detected. Review recommended actions."
-      : "No active threats. All routes monitored.";
+      : "All routes monitored. No active threats.";
 
   return (
     <AppLayout>
-      <div className="p-6 space-y-8 max-w-[1000px]">
+      <div className="p-6 space-y-6 max-w-[1000px]">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Control Tower</h1>
@@ -152,44 +152,44 @@ export default function ControlTower() {
         </div>
 
         {hasSignals && (
-          <div className="flex items-center gap-8 text-[13px]">
+          <div className="flex items-center gap-6 text-[13px]">
             {criticalRecs.length > 0 && (
               <div>
                 <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Critical</span>
                 <div className="mt-0.5">
-                  <span className="text-[20px] font-bold text-[#E05252] tabular-nums">{criticalRecs.length}</span>
+                  <span className="text-[18px] font-bold text-[#E05252] tabular-nums">{criticalRecs.length}</span>
                 </div>
               </div>
             )}
             {complianceAlerts.length > 0 && (
               <>
-                <div className="w-px h-8 bg-border/60" />
+                <div className="w-px h-7 bg-border/50" />
                 <div>
                   <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Compliance</span>
                   <div className="mt-0.5">
-                    <span className="text-[20px] font-bold text-[#D4A24C] tabular-nums">{complianceAlerts.length}</span>
+                    <span className="text-[18px] font-bold text-[#D4A24C] tabular-nums">{complianceAlerts.length}</span>
                   </div>
                 </div>
               </>
             )}
             {delayWarnings.length > 0 && (
               <>
-                <div className="w-px h-8 bg-border/60" />
+                <div className="w-px h-7 bg-border/50" />
                 <div>
                   <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Delay Risk</span>
                   <div className="mt-0.5">
-                    <span className="text-[20px] font-bold text-[#D4A24C] tabular-nums">{delayWarnings.length}</span>
+                    <span className="text-[18px] font-bold text-[#D4A24C] tabular-nums">{delayWarnings.length}</span>
                   </div>
                 </div>
               </>
             )}
             {marginWarnings.length > 0 && (
               <>
-                <div className="w-px h-8 bg-border/60" />
+                <div className="w-px h-7 bg-border/50" />
                 <div>
                   <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Margin</span>
                   <div className="mt-0.5">
-                    <span className="text-[20px] font-bold text-foreground/70 tabular-nums">{marginWarnings.length}</span>
+                    <span className="text-[18px] font-bold text-foreground/70 tabular-nums">{marginWarnings.length}</span>
                   </div>
                 </div>
               </>
@@ -217,7 +217,7 @@ export default function ControlTower() {
           />
         )}
 
-        <div className="pt-6">
+        <div className="pt-4">
           <h2 className="text-[15px] font-semibold text-foreground font-heading mb-4">External Intelligence</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <HighRiskPortsWidget />
@@ -281,10 +281,10 @@ function ImpactPriorityView({
 
       <div className="space-y-3">
         {data.length === 0 && (
-          <div className="text-center py-20">
+          <div className="text-center py-16">
             <CheckCircle2 className="w-5 h-5 text-primary/20 mx-auto mb-2" />
             <h3 className="text-[14px] font-medium text-foreground/60 mb-1">No active recommendations</h3>
-            <p className="text-[13px] text-muted-foreground/40">Recommendations will appear as shipments are processed.</p>
+            <p className="text-[13px] text-muted-foreground/40">Monitoring all routes. Recommendations will surface when needed.</p>
           </div>
         )}
         {data.map((rec: any) => (
@@ -420,10 +420,10 @@ function UrgencyView({
       )}
 
       {!hasUrgent && !hasIntervention && (
-        <div className="text-center py-16">
+        <div className="text-center py-14">
           <CheckCircle2 className="w-5 h-5 text-primary/20 mx-auto mb-2" />
           <h3 className="text-[14px] font-medium text-foreground/60 mb-1">No urgent actions</h3>
-          <p className="text-[13px] text-muted-foreground/40">All shipments are on track. Recommendations will appear when needed.</p>
+          <p className="text-[13px] text-muted-foreground/40">All shipments on track. Recommendations will surface when needed.</p>
         </div>
       )}
 

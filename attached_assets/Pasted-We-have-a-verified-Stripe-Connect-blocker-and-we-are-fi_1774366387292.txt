@@ -1,0 +1,165 @@
+We have a verified Stripe Connect blocker and we are fixing only that.
+
+Do NOT work on unrelated UI.
+Do NOT summarize completed work.
+Do NOT describe past feature work.
+Do NOT fake Stripe states.
+
+Current verified problem:
+- The app is using Stripe API keys for account: acct_1TCgvdAVX98nJXhu
+- The Stripe dashboard we had access to was a different account
+- create-account fails because Connect is not enabled on the Stripe account whose keys the app actually uses
+- The "Set Up Stripe Connect" button fails silently in the UI
+- Some Connect QA states are currently fake DB-only fixtures and are not acceptable for end-to-end QA
+
+Your task is to make the Stripe Connect flow honestly testable end-to-end.
+
+--------------------------------------------------
+T001 — CONFIRM STRIPE ACCOUNT / KEY ALIGNMENT
+--------------------------------------------------
+
+1. Confirm exactly which Stripe account the app is using right now from its configured API keys
+2. Return:
+- Stripe account ID
+- whether Connect is enabled on that exact account
+- whether the app keys should stay as-is or be changed to the other Stripe account if needed
+
+If the app is still pointed at the wrong Stripe account, fix the app config/secrets to use the intended Stripe test account and document exactly what changed.
+
+--------------------------------------------------
+T002 — FIX SILENT FAILURE IN CONNECT UI
+--------------------------------------------------
+
+The "Set Up Stripe Connect" button must never fail silently.
+
+Implement:
+- loading state when clicked
+- visible success state if account creation succeeds
+- visible error state if account creation fails
+- surface the actual backend error message in a safe, human-readable way
+
+Examples:
+- "Stripe Connect is not enabled on this Stripe account"
+- "Unable to create connected account in test mode"
+- "Connect setup incomplete"
+
+No silent failures.
+No dead button behavior.
+
+--------------------------------------------------
+T003 — VERIFY REAL CONNECT ENDPOINT FLOW
+--------------------------------------------------
+
+Re-test and fix if necessary:
+
+- POST /api/stripe/connect/create-account
+- POST /api/stripe/connect/onboarding-link
+- GET /api/stripe/connect/status
+- POST /api/stripe/connect/sync
+
+Requirements:
+- create-account creates a real Standard account in Stripe test mode
+- onboarding-link returns a real Stripe onboarding URL
+- status returns real persisted state
+- sync updates charges_enabled / payouts_enabled / onboarding state from Stripe
+
+Return exact results for each endpoint.
+
+--------------------------------------------------
+T004 — REMOVE OR ISOLATE FAKE CONNECT FIXTURES
+--------------------------------------------------
+
+Current fake DB-only Connect fixtures are not acceptable for real QA.
+
+Do one of these:
+A. replace them with real Stripe-backed QA states
+OR
+B. clearly isolate and label them as UI-only fixtures and create separate real Stripe-backed QA workspaces
+
+Preferred: real Stripe-backed states.
+
+We need at minimum:
+- one real Not Connected workspace
+- one real Onboarding In Progress workspace if feasible
+- one real Connected workspace
+
+If preserving a true partial state is hard, say so clearly and do not fake it.
+
+--------------------------------------------------
+T005 — QA WORKSPACES FOR CONNECT
+--------------------------------------------------
+
+Prepare and return real QA workspaces for Connect testing.
+
+For each workspace, return:
+- workspace name
+- workspace ID
+- login email
+- password
+- Stripe connected account ID if one exists
+- expected state:
+  - Not Connected
+  - Onboarding In Progress
+  - Pending Verification
+  - Connected
+- what actions should be allowed
+- what actions should be blocked
+
+--------------------------------------------------
+T006 — RETURN / REFRESH / SYNC FLOW
+--------------------------------------------------
+
+Verify the full flow:
+
+1. Admin opens /settings/billing
+2. Clicks Set Up Stripe Connect
+3. Account is created
+4. Onboarding link opens Stripe
+5. User returns to app
+6. App syncs latest status
+7. UI reflects the real state honestly
+
+Ensure:
+- return_url works
+- refresh_url works
+- sync works after return
+- app does not mark Connected prematurely
+
+--------------------------------------------------
+T007 — PRODUCT HONESTY
+--------------------------------------------------
+
+Audit the product for any claim or implication that Connect does more than it actually does.
+
+If the product currently suggests:
+- payouts orchestration
+- marketplace settlement
+- split payments
+- treasury-like behavior
+
+but those are not implemented, remove or clarify that implication.
+
+We only support:
+- Standard connected account creation
+- onboarding
+- status sync
+- honest state display
+
+--------------------------------------------------
+OUTPUT FORMAT
+--------------------------------------------------
+
+Return exactly:
+
+1. Stripe account currently used by the app
+2. Whether Connect is enabled on that exact account
+3. Whether app keys/config were changed
+4. Endpoint test results
+5. Exact files changed
+6. Real QA workspace matrix for Connect
+7. Whether the full Connect flow is now honestly testable end-to-end
+8. Remaining blockers, if any
+9. Any intentional limitations that Comet should know before QA
+
+Do not give vague summaries.
+Do not say “working” unless the flow is actually real and Stripe-backed.

@@ -85,7 +85,7 @@ export default function ShipmentsPage() {
         </div>
 
         {!isLoading && shipments.length > 0 && (
-          <p className={`text-[13px] ${voice.color} mb-6`}>{voice.text}</p>
+          <p className={`text-[13px] ${voice.color} mb-5`}>{voice.text}</p>
         )}
 
         <div className="flex items-center gap-0.5 mb-6 border-b border-border/60">
@@ -146,13 +146,16 @@ export default function ShipmentsPage() {
                   transition={{ delay: i * 0.02 }}
                 >
                   <Link href={`/shipments/${s.id}`}>
-                    <div className={`flex items-center gap-4 px-4 py-3.5 -mx-4 rounded-xl hover:bg-card transition-all cursor-pointer group border-b border-border/40 last:border-b-0 active:scale-[0.998] ${important ? "" : "opacity-40 hover:opacity-80"}`}>
+                    <div className={`flex items-center gap-4 px-4 py-3.5 -mx-4 rounded-xl hover:bg-card transition-all cursor-pointer group border-b border-border/30 last:border-b-0 active:scale-[0.998] ${important ? "" : "opacity-40 hover:opacity-80"}`}>
                       <StatusDot status={s.status} />
+
+                      <div className="w-[72px] shrink-0">
+                        <StatusLabel status={s.status} />
+                      </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-[14px] font-semibold text-foreground font-mono">{s.reference}</span>
-                          <StatusLabel status={s.status} />
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-muted-foreground/50">
                           {s.shipper?.name || s.consignee?.name ? (
@@ -225,7 +228,7 @@ function StatusDot({ status }: { status: string }) {
 
 function StatusLabel({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    DRAFT: "text-muted-foreground/40",
+    DRAFT: "text-muted-foreground/50",
     PENDING_REVIEW: "text-[#D4A24C]",
     APPROVED: "text-primary",
     REJECTED: "text-[#E05252]",
@@ -233,12 +236,12 @@ function StatusLabel({ status }: { status: string }) {
     BOOKED: "text-primary/60",
     AT_PORT: "text-[#D4A24C]",
     CUSTOMS: "text-[#D4A24C]",
-    DELIVERED: "text-muted-foreground/40",
-    CLOSED: "text-muted-foreground/40",
+    DELIVERED: "text-muted-foreground/50",
+    CLOSED: "text-muted-foreground/50",
     CANCELLED: "text-[#E05252]/50",
   };
   return (
-    <span className={`text-[11px] font-medium ${styles[status] || "text-muted-foreground/40"}`}>
+    <span className={`text-[11px] font-semibold uppercase tracking-wide ${styles[status] || "text-muted-foreground/40"}`}>
       {status.replace(/_/g, " ")}
     </span>
   );

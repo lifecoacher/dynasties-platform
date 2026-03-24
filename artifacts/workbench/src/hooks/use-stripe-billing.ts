@@ -277,7 +277,7 @@ export function useConnectSync() {
   const { token } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const sync = async (): Promise<ConnectStatusInfo | null> => {
+  const sync = async (): Promise<{ data?: ConnectStatusInfo; error?: string } | null> => {
     if (!token) return null;
     setIsLoading(true);
     try {
@@ -290,9 +290,10 @@ export function useConnectSync() {
         body: JSON.stringify({}),
       });
       const body = await res.json();
-      return body.data ?? null;
+      if (!res.ok) return { error: body.error || "Sync failed" };
+      return { data: body.data ?? null };
     } catch {
-      return null;
+      return { error: "Network error" };
     } finally {
       setIsLoading(false);
     }
@@ -305,7 +306,7 @@ export function useConnectCreateAccount() {
   const { token } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const createAccount = async () => {
+  const createAccount = async (): Promise<{ data?: any; error?: string; code?: string } | null> => {
     if (!token) return null;
     setIsLoading(true);
     try {
@@ -317,9 +318,11 @@ export function useConnectCreateAccount() {
         },
         body: JSON.stringify({}),
       });
-      return await res.json();
+      const body = await res.json();
+      if (!res.ok) return { error: body.error || "Account creation failed", code: body.code };
+      return { data: body.data };
     } catch {
-      return null;
+      return { error: "Network error" };
     } finally {
       setIsLoading(false);
     }
