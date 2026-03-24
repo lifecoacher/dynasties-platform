@@ -656,6 +656,7 @@ export default function ShipmentDetail() {
     if (isTerminal && shipment.status === "REJECTED") return { label: "Rejected", color: "text-[#E05252]", bg: "bg-[#E05252]/10" };
     if (isTerminal && shipment.status === "DELIVERED") return { label: "Delivered", color: "text-primary", bg: "bg-primary/10" };
     if (!decision) return { label: "Pending", color: "text-muted-foreground", bg: "bg-muted/50" };
+    if (decision.finalStatus === "INCOMPLETE") return { label: "Incomplete", color: "text-[#D4A24C]", bg: "bg-[#D4A24C]/10" };
     if (decision.finalStatus === "BLOCKED") return { label: "Blocked", color: "text-[#E05252]", bg: "bg-[#E05252]/10" };
     if (decision.finalStatus === "REVIEW") return { label: "Review", color: "text-[#D4A24C]", bg: "bg-[#D4A24C]/10" };
     if (decision.finalStatus === "APPROVED") return { label: "Clear", color: "text-primary", bg: "bg-primary/10" };

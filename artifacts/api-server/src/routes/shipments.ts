@@ -629,13 +629,24 @@ router.post("/shipments/:id/approve", requireMinRole("OPERATOR"), validateBody(a
   }
 
   const [complianceCheck] = await db
-    .select({ status: complianceScreeningsTable.status })
+    .select({
+      status: complianceScreeningsTable.status,
+      screenedParties: complianceScreeningsTable.screenedParties,
+    })
     .from(complianceScreeningsTable)
     .where(and(eq(complianceScreeningsTable.shipmentId, id), eq(complianceScreeningsTable.companyId, companyId)))
     .orderBy(desc(complianceScreeningsTable.screenedAt))
     .limit(1);
-  if (complianceCheck?.status === "BLOCKED") {
-    res.status(400).json({ error: "Cannot approve: compliance screening returned BLOCKED status. Resolve compliance issues first." });
+  if (!complianceCheck) {
+    res.status(400).json({ error: "Cannot approve: compliance screening has not been run. Run compliance screening first." });
+    return;
+  }
+  if (complianceCheck.status !== "CLEAR") {
+    res.status(400).json({ error: `Cannot approve: compliance screening status is ${complianceCheck.status}. Only shipments with CLEAR compliance can be approved.` });
+    return;
+  }
+  if (complianceCheck.screenedParties === 0) {
+    res.status(400).json({ error: "Cannot approve: compliance screening did not cover any parties. Ensure shipment parties are set and re-run screening." });
     return;
   }
 
@@ -644,8 +655,35 @@ router.post("/shipments/:id/approve", requireMinRole("OPERATOR"), validateBody(a
     .from(documentValidationResultsTable)
     .where(and(eq(documentValidationResultsTable.shipmentId, id), eq(documentValidationResultsTable.companyId, companyId)))
     .limit(1);
-  if (docCheck?.status === "BLOCKED") {
+  if (!docCheck) {
+    res.status(400).json({ error: "Cannot approve: document validation has not been run. Run document validation first." });
+    return;
+  }
+  if (docCheck.status === "BLOCKED") {
     res.status(400).json({ error: "Cannot approve: document validation is BLOCKED. Resolve documentation gaps first." });
+    return;
+  }
+
+  const criticalExceptions = await db
+    .select({ id: exceptionsTable.id, title: exceptionsTable.title })
+    .from(exceptionsTable)
+    .where(
+      and(
+        eq(exceptionsTable.shipmentId, id),
+        eq(exceptionsTable.companyId, companyId),
+        eq(exceptionsTable.severity, "CRITICAL"),
+        or(
+          eq(exceptionsTable.status, "OPEN"),
+          eq(exceptionsTable.status, "IN_PROGRESS"),
+          eq(exceptionsTable.status, "ESCALATED"),
+        ),
+      ),
+    );
+  if (criticalExceptions.length > 0) {
+    res.status(400).json({
+      error: `Cannot approve: ${criticalExceptions.length} unresolved critical exception(s) exist. Resolve all critical exceptions before approving.`,
+      criticalExceptions: criticalExceptions.map(e => ({ id: e.id, title: e.title })),
+    });
     return;
   }
 
@@ -656,6 +694,10 @@ router.post("/shipments/:id/approve", requireMinRole("OPERATOR"), validateBody(a
     .limit(1);
   if (!decisionCheck) {
     res.status(400).json({ error: "Cannot approve: no decision computed. Run the decision engine first." });
+    return;
+  }
+  if (decisionCheck.finalStatus === "INCOMPLETE") {
+    res.status(400).json({ error: "Cannot approve: required checks are not complete. Ensure compliance, documents, and risk have all been evaluated." });
     return;
   }
   if (decisionCheck.finalStatus !== "APPROVED" || !decisionCheck.releaseAllowed) {

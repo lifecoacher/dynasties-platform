@@ -52,7 +52,7 @@ async function gatherInputs(
 
   if (!shipment) return null;
 
-  let complianceStatus: string | null = null;
+  let complianceStatus: string | null = "NOT_RUN";
   let complianceMatchCount = 0;
   try {
     const [screening] = await db
@@ -78,7 +78,7 @@ async function gatherInputs(
     complianceStatus = "UNAVAILABLE";
   }
 
-  let docValidationStatus: string | null = null;
+  let docValidationStatus: string | null = "NOT_RUN";
   let docReadinessLevel: string | null = null;
   try {
     const [docVal] = await db

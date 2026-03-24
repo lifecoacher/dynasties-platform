@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export type DecisionStatus = "APPROVED" | "BLOCKED" | "REJECTED" | "REVIEW";
+export type DecisionStatus = "APPROVED" | "BLOCKED" | "REJECTED" | "REVIEW" | "INCOMPLETE";
 
 export const DecisionInputSchema = z.object({
   shipmentStatus: z.string(),
@@ -20,7 +20,7 @@ export const DecisionInputSchema = z.object({
 export type DecisionInput = z.infer<typeof DecisionInputSchema>;
 
 export const DecisionOutputSchema = z.object({
-  finalStatus: z.enum(["APPROVED", "BLOCKED", "REJECTED", "REVIEW"]),
+  finalStatus: z.enum(["APPROVED", "BLOCKED", "REJECTED", "REVIEW", "INCOMPLETE"]),
   releaseAllowed: z.boolean(),
   decisionReason: z.string(),
   unifiedRisk: z.object({
@@ -69,39 +69,6 @@ export function computeDecision(rawInput: DecisionInput): DecisionOutput {
     level: finalRiskLevel,
   };
 
-  if (input.complianceStatus === "BLOCKED") {
-    blockReasons.push("Compliance screening returned BLOCKED status — sanctions or restricted party match detected.");
-  }
-  if (input.complianceStatus === "UNAVAILABLE") {
-    reviewReasons.push("Compliance data unavailable — cannot confirm screening status.");
-  }
-
-  if (input.docValidationStatus === "BLOCKED") {
-    blockReasons.push("Document validation is BLOCKED — critical documents are missing or invalid.");
-  }
-  if (input.docValidationStatus === "UNAVAILABLE") {
-    reviewReasons.push("Document validation data unavailable — cannot confirm documentation status.");
-  }
-
-  if (input.docReadinessLevel === "INSUFFICIENT" && input.docValidationStatus !== "READY") {
-    blockReasons.push("Document readiness is INSUFFICIENT — shipment cannot proceed without required documentation.");
-  }
-
-  if (finalRiskScore >= RISK_THRESHOLD_BLOCK) {
-    blockReasons.push(`Final risk score (${finalRiskScore}) exceeds blocking threshold (${RISK_THRESHOLD_BLOCK}).`);
-  }
-
-  if (input.activeHolds.length > 0) {
-    const criticalHolds = input.activeHolds.filter(
-      (h) => h === "COMPLIANCE_BLOCK" || h === "MANAGER_APPROVAL",
-    );
-    if (criticalHolds.length > 0) {
-      blockReasons.push(`Critical gate holds active: ${criticalHolds.join(", ")}.`);
-    } else {
-      reviewReasons.push(`Active gate holds require review: ${input.activeHolds.join(", ")}.`);
-    }
-  }
-
   const terminalStatuses = ["CANCELLED", "CLOSED", "DELIVERED"];
   if (terminalStatuses.includes(input.shipmentStatus)) {
     const terminalStatus: DecisionStatus = input.shipmentStatus === "CANCELLED" ? "REJECTED" : "APPROVED";
@@ -113,6 +80,73 @@ export function computeDecision(rawInput: DecisionInput): DecisionOutput {
       blockReasons: [],
       reviewReasons: [],
     });
+  }
+
+  const missingChecks: string[] = [];
+  if (input.complianceStatus === null || input.complianceStatus === "NOT_RUN") {
+    missingChecks.push("Compliance screening has not been executed. Run compliance screening before a decision can be made.");
+  }
+  if (input.docValidationStatus === null || input.docValidationStatus === "NOT_RUN") {
+    missingChecks.push("Document validation has not been completed. Run document validation before a decision can be made.");
+  }
+  if (input.baseRiskScore === null && input.dynamicRiskScore === null) {
+    missingChecks.push("Risk assessment has not been computed. Run risk scoring before a decision can be made.");
+  }
+
+  if (missingChecks.length > 0) {
+    return enforceInvariants({
+      finalStatus: "INCOMPLETE",
+      releaseAllowed: false,
+      decisionReason: "Required checks not completed. " + missingChecks[0],
+      unifiedRisk,
+      blockReasons: [],
+      reviewReasons: missingChecks,
+    });
+  }
+
+  if (input.complianceStatus === "BLOCKED") {
+    blockReasons.push("A sanctions or restricted-party match was detected during compliance screening. Resolve or escalate the compliance finding before this shipment can proceed.");
+  }
+
+  if (input.complianceStatus === "UNAVAILABLE") {
+    reviewReasons.push("Compliance screening encountered an error and could not complete. Re-run compliance screening or escalate to resolve.");
+  }
+
+  if (input.complianceStatus === "INCOMPLETE") {
+    reviewReasons.push("Compliance screening is incomplete — not all parties were screened. Ensure all shipment parties are available and re-run screening.");
+  }
+
+  if (input.docValidationStatus === "BLOCKED") {
+    blockReasons.push("Critical documents are missing or invalid. Upload or correct the required documents before this shipment can proceed.");
+  }
+
+  if (input.docValidationStatus === "UNAVAILABLE") {
+    reviewReasons.push("Document validation encountered an error and could not complete. Re-run document validation or escalate to resolve.");
+  }
+
+  if (input.docReadinessLevel === "INSUFFICIENT" && input.docValidationStatus !== "READY") {
+    blockReasons.push("Document readiness is insufficient — the shipment cannot proceed without the required documentation. Upload missing documents.");
+  }
+
+  if (finalRiskScore >= RISK_THRESHOLD_BLOCK) {
+    blockReasons.push(`Risk score is ${finalRiskScore} (threshold: ${RISK_THRESHOLD_BLOCK}). This shipment has been flagged as high-risk. Review risk factors and escalate if needed.`);
+  }
+
+  if (input.activeHolds.length > 0) {
+    const criticalHolds = input.activeHolds.filter(
+      (h) => h === "COMPLIANCE_BLOCK" || h === "MANAGER_APPROVAL",
+    );
+    if (criticalHolds.length > 0) {
+      const holdDescriptions = criticalHolds.map(h =>
+        h === "COMPLIANCE_BLOCK" ? "compliance block" : "manager approval required"
+      );
+      blockReasons.push(`This shipment has active holds that must be resolved: ${holdDescriptions.join(", ")}. Clear these holds before proceeding.`);
+    } else {
+      const holdDescriptions = input.activeHolds.map(h =>
+        h.toLowerCase().replace(/_/g, " ")
+      );
+      reviewReasons.push(`This shipment has active holds requiring review: ${holdDescriptions.join(", ")}. Review and resolve before approving.`);
+    }
   }
 
   if (blockReasons.length > 0) {
@@ -127,20 +161,20 @@ export function computeDecision(rawInput: DecisionInput): DecisionOutput {
   }
 
   if (input.complianceStatus === "ALERT") {
-    reviewReasons.push("Compliance screening returned ALERT — potential matches require manual review.");
+    reviewReasons.push("Compliance screening found potential matches that require manual review. Investigate the flagged parties before approving.");
   }
 
   if (input.docValidationStatus === "REVIEW") {
-    reviewReasons.push("Document validation requires review — some documents need corrections.");
+    reviewReasons.push("Some documents need corrections or additional review. Address the flagged issues before approving.");
   }
 
   if (finalRiskScore >= RISK_THRESHOLD_REVIEW) {
-    reviewReasons.push(`Final risk score (${finalRiskScore}) exceeds review threshold (${RISK_THRESHOLD_REVIEW}).`);
+    reviewReasons.push(`Risk score is ${finalRiskScore} (review threshold: ${RISK_THRESHOLD_REVIEW}). Review the risk factors before approving this shipment.`);
   }
 
   const readinessPercent = normalizeRiskTo100(input.readinessScore);
   if (readinessPercent > 0 && readinessPercent < READINESS_THRESHOLD) {
-    reviewReasons.push(`Readiness score (${readinessPercent}%) is below minimum threshold (${READINESS_THRESHOLD}%).`);
+    reviewReasons.push(`Shipment readiness is ${readinessPercent}% (minimum: ${READINESS_THRESHOLD}%). Address outstanding items before approving.`);
   }
 
   if (reviewReasons.length > 0) {
@@ -154,10 +188,32 @@ export function computeDecision(rawInput: DecisionInput): DecisionOutput {
     });
   }
 
+  if (input.complianceStatus !== "CLEAR") {
+    return enforceInvariants({
+      finalStatus: "REVIEW",
+      releaseAllowed: false,
+      decisionReason: `Compliance status is "${input.complianceStatus}" — only fully clear compliance allows automatic approval. Review compliance results.`,
+      unifiedRisk,
+      blockReasons,
+      reviewReasons: [`Compliance status "${input.complianceStatus}" does not meet the requirement for automatic approval.`],
+    });
+  }
+
+  if (input.docValidationStatus !== "READY") {
+    return enforceInvariants({
+      finalStatus: "REVIEW",
+      releaseAllowed: false,
+      decisionReason: `Document validation status is "${input.docValidationStatus}" — only fully ready documents allow automatic approval. Review document status.`,
+      unifiedRisk,
+      blockReasons,
+      reviewReasons: [`Document validation status "${input.docValidationStatus}" does not meet the requirement for automatic approval.`],
+    });
+  }
+
   return enforceInvariants({
     finalStatus: "APPROVED",
     releaseAllowed: true,
-    decisionReason: "All checks passed — shipment is clear for release.",
+    decisionReason: "All checks passed — compliance is clear, documents are ready, and risk is within acceptable limits. Shipment is clear for release.",
     unifiedRisk,
     blockReasons: [],
     reviewReasons: [],
@@ -168,11 +224,16 @@ function enforceInvariants(output: DecisionOutput): DecisionOutput {
   if (output.finalStatus === "APPROVED" && !output.releaseAllowed) {
     console.error(`[decision-engine] INVARIANT VIOLATION: APPROVED with releaseAllowed=false. Downgrading to REVIEW.`);
     output.finalStatus = "REVIEW";
-    output.reviewReasons.push("Invariant violation detected: approval state was inconsistent. Defaulting to manual review.");
+    output.reviewReasons.push("Safety check: approval state was inconsistent. Defaulting to manual review for safety.");
   }
 
   if (output.finalStatus === "BLOCKED" && output.releaseAllowed) {
     console.error(`[decision-engine] INVARIANT VIOLATION: BLOCKED with releaseAllowed=true. Blocking release.`);
+    output.releaseAllowed = false;
+  }
+
+  if (output.finalStatus === "INCOMPLETE" && output.releaseAllowed) {
+    console.error(`[decision-engine] INVARIANT VIOLATION: INCOMPLETE with releaseAllowed=true. Blocking release.`);
     output.releaseAllowed = false;
   }
 
