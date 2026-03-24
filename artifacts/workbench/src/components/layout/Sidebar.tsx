@@ -77,7 +77,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-[240px] h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0 sticky top-0">
+    <aside className="w-[240px] h-screen flex flex-col bg-sidebar shrink-0 sticky top-0" style={{ boxShadow: '1px 0 0 hsl(220 12% 93%), 2px 0 8px rgba(0,0,0,0.03)' }}>
       <div className="px-5 py-5 border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
           <div className="relative">

@@ -104,7 +104,7 @@ export function RightPanel() {
   const voice = deriveVoice(alerts, alertsSummary);
 
   return (
-    <aside className="w-[280px] h-screen flex flex-col bg-card border-l border-border shrink-0 sticky top-0">
+    <aside className="w-[280px] h-screen flex flex-col bg-card shrink-0 sticky top-0" style={{ boxShadow: '-1px 0 0 hsl(220 12% 93%), -2px 0 8px rgba(0,0,0,0.03)' }}>
       <div className="px-5 py-4 border-b border-border">
         <div className="flex items-center gap-2">
           <div className="relative flex h-2 w-2">
@@ -126,7 +126,7 @@ export function RightPanel() {
                   const score = normalizeRiskScore(s.risk?.compositeScore);
                   return (
                     <Link key={s.id} href={`/shipments/${s.id}`}>
-                      <div className="flex items-center gap-2.5 py-2 px-2.5 -mx-2.5 rounded-lg hover:bg-black/[0.03] transition-all cursor-pointer group active:scale-[0.98]">
+                      <div className="flex items-center gap-2.5 py-2.5 px-2.5 -mx-2.5 rounded-xl hover:bg-background transition-all cursor-pointer group active:scale-[0.98]">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#D4A24C] shrink-0" />
                         <div className="flex-1 min-w-0">
                           <span className="text-[12px] font-medium text-foreground/90 font-mono block truncate">{s.reference}</span>
@@ -150,7 +150,7 @@ export function RightPanel() {
             <div className="mb-6">
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] mb-3">Attention Required</p>
               <Link href="/exceptions">
-                <div className="flex items-center gap-2.5 py-2 px-2.5 -mx-2.5 rounded-lg hover:bg-black/[0.03] transition-all cursor-pointer group active:scale-[0.98]">
+                <div className="flex items-center gap-2.5 py-2.5 px-2.5 -mx-2.5 rounded-xl hover:bg-background transition-all cursor-pointer group active:scale-[0.98]">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#D4A24C] shrink-0" />
                   <div className="flex-1 min-w-0">
                     <span className="text-[12px] font-medium text-foreground/90">{alertsSummary.needsAttention} exception{alertsSummary.needsAttention > 1 ? "s" : ""} need review</span>

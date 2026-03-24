@@ -147,7 +147,7 @@ export default function ShipmentsPage() {
                   transition={{ delay: i * 0.02 }}
                 >
                   <Link href={`/shipments/${s.id}`}>
-                    <div className={`flex items-center gap-4 px-4 py-4 -mx-4 rounded-lg hover:bg-black/[0.03] transition-all cursor-pointer group border-b border-black/[0.04] last:border-b-0 active:scale-[0.995] ${important ? "" : "opacity-50 hover:opacity-90"}`}>
+                    <div className={`flex items-center gap-4 px-4 py-4 -mx-4 rounded-xl hover:bg-card transition-all cursor-pointer group border-b border-border/60 last:border-b-0 active:scale-[0.995] ${important ? "" : "opacity-50 hover:opacity-90"}`} style={{ transition: 'all 0.15s ease-out' }}>
                       <StatusIndicator status={s.status} />
 
                       <div className="flex-1 min-w-0">
@@ -167,7 +167,7 @@ export default function ShipmentsPage() {
                           )}
                           {s.portOfLoading && (
                             <>
-                              <span className="text-white/[0.06]">|</span>
+                              <span className="text-muted-foreground/20">·</span>
                               <span className="text-muted-foreground/60">{formatPortCode(s.portOfLoading)} → {formatPortCode(s.portOfDischarge)}</span>
                             </>
                           )}
