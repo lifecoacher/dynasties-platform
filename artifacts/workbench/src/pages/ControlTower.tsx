@@ -3,19 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import {
-  AlertTriangle,
-  Shield,
-  Clock,
-  DollarSign,
-  FileWarning,
-  TrendingUp,
   RefreshCw,
   ArrowRight,
-  Globe,
   Download,
   Zap,
-  SortDesc,
-  Filter,
+  CheckCircle2,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { RecommendationCard } from "@/components/recommendations/RecommendationCard";
@@ -35,25 +27,6 @@ import {
 import { useTriggerIngestion } from "@/hooks/use-intelligence";
 
 const BASE = `${import.meta.env.BASE_URL}api`;
-
-interface StatCardProps {
-  icon: typeof AlertTriangle;
-  label: string;
-  value: number;
-  color: string;
-}
-
-function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
-  return (
-    <div className={`border rounded-lg p-4 ${color}`}>
-      <div className="flex items-center gap-2 mb-1">
-        <Icon size={14} />
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
-      </div>
-      <p className="text-2xl font-bold text-foreground">{value}</p>
-    </div>
-  );
-}
 
 type SortMode = "impact" | "margin" | "delay" | "risk" | "recency";
 
@@ -107,6 +80,8 @@ export default function ControlTower() {
     recommendations.some((r: any) => r.shipmentId === s.id && (r.urgency === "CRITICAL" || r.urgency === "HIGH"))
   );
 
+  const hasSignals = criticalRecs.length > 0 || complianceAlerts.length > 0 || delayWarnings.length > 0 || marginWarnings.length > 0;
+
   const handleRespond = useCallback((id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED", notes?: string) => {
     respondMutation.mutate(
       { id, data: { action, modificationNotes: notes } },
@@ -124,19 +99,20 @@ export default function ControlTower() {
     if (viewMode === "impact") refetchPrioritized();
   }, [refetchRecs, refetchPrioritized, viewMode]);
 
+  const voiceText = criticalRecs.length > 0
+    ? `${criticalRecs.length} critical recommendation${criticalRecs.length > 1 ? "s" : ""} — review now`
+    : hasSignals
+      ? "Active warnings detected. Review recommended actions."
+      : "No active threats. All routes monitored.";
+
   return (
     <AppLayout>
       <div className="p-6 space-y-8 max-w-[1000px]">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Control Tower</h1>
-            <p className="text-[13px] text-muted-foreground/70 mt-1">
-              {criticalRecs.length > 0
-                ? `${criticalRecs.length} critical recommendation${criticalRecs.length > 1 ? "s" : ""} — review now`
-                : complianceAlerts.length > 0 || delayWarnings.length > 0
-                  ? "Active warnings detected"
-                  : "No active threats. Monitoring all routes."
-              }
+            <p className={`text-[13px] mt-1 ${criticalRecs.length > 0 ? "text-[#E05252]" : hasSignals ? "text-[#D4A24C]" : "text-primary/60"}`}>
+              {voiceText}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -144,7 +120,7 @@ export default function ControlTower() {
               <button
                 onClick={() => setViewMode("urgency")}
                 className={`px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                  viewMode === "urgency" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                  viewMode === "urgency" ? "bg-primary/10 text-primary" : "text-muted-foreground/50 hover:text-foreground"
                 }`}
               >
                 Urgency
@@ -152,7 +128,7 @@ export default function ControlTower() {
               <button
                 onClick={() => setViewMode("impact")}
                 className={`px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                  viewMode === "impact" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                  viewMode === "impact" ? "bg-primary/10 text-primary" : "text-muted-foreground/50 hover:text-foreground"
                 }`}
               >
                 Impact
@@ -161,52 +137,60 @@ export default function ControlTower() {
             <button
               onClick={handleIngestAll}
               disabled={ingesting}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium bg-primary/10 text-primary rounded-lg hover:bg-primary/15 transition-colors disabled:opacity-50"
             >
               <Download size={13} className={ingesting ? "animate-pulse" : ""} />
               {ingesting ? "Ingesting..." : "Ingest"}
             </button>
             <button
               onClick={handleRefresh}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-muted-foreground rounded-lg hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-muted-foreground/40 rounded-lg hover:text-muted-foreground transition-colors"
             >
               <RefreshCw size={13} />
             </button>
           </div>
         </div>
 
-        {(criticalRecs.length > 0 || complianceAlerts.length > 0 || delayWarnings.length > 0 || marginWarnings.length > 0) && (
-          <div className="flex items-center gap-6 text-[13px]">
+        {hasSignals && (
+          <div className="flex items-center gap-8 text-[13px]">
             {criticalRecs.length > 0 && (
               <div>
-                <span className="text-muted-foreground">Critical</span>
-                <span className="ml-2 text-[18px] font-bold text-red-400 tabular-nums">{criticalRecs.length}</span>
+                <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Critical</span>
+                <div className="mt-0.5">
+                  <span className="text-[20px] font-bold text-[#E05252] tabular-nums">{criticalRecs.length}</span>
+                </div>
               </div>
             )}
             {complianceAlerts.length > 0 && (
               <>
-                <div className="w-px h-5 bg-border" />
+                <div className="w-px h-8 bg-border/60" />
                 <div>
-                  <span className="text-muted-foreground">Compliance</span>
-                  <span className="ml-2 text-[18px] font-bold text-[#D4A24C] tabular-nums">{complianceAlerts.length}</span>
+                  <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Compliance</span>
+                  <div className="mt-0.5">
+                    <span className="text-[20px] font-bold text-[#D4A24C] tabular-nums">{complianceAlerts.length}</span>
+                  </div>
                 </div>
               </>
             )}
             {delayWarnings.length > 0 && (
               <>
-                <div className="w-px h-5 bg-border" />
+                <div className="w-px h-8 bg-border/60" />
                 <div>
-                  <span className="text-muted-foreground">Delay Risk</span>
-                  <span className="ml-2 text-[18px] font-bold text-[#D4A24C] tabular-nums">{delayWarnings.length}</span>
+                  <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Delay Risk</span>
+                  <div className="mt-0.5">
+                    <span className="text-[20px] font-bold text-[#D4A24C] tabular-nums">{delayWarnings.length}</span>
+                  </div>
                 </div>
               </>
             )}
             {marginWarnings.length > 0 && (
               <>
-                <div className="w-px h-5 bg-border" />
+                <div className="w-px h-8 bg-border/60" />
                 <div>
-                  <span className="text-muted-foreground">Margin</span>
-                  <span className="ml-2 text-[18px] font-bold text-foreground tabular-nums">{marginWarnings.length}</span>
+                  <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Margin</span>
+                  <div className="mt-0.5">
+                    <span className="text-[20px] font-bold text-foreground/70 tabular-nums">{marginWarnings.length}</span>
+                  </div>
                 </div>
               </>
             )}
@@ -262,59 +246,55 @@ function ImpactPriorityView({
   navigate: (path: string) => void;
 }) {
   const sortOptions: { value: SortMode; label: string }[] = [
-    { value: "impact", label: "Impact Score" },
-    { value: "margin", label: "Margin Impact" },
-    { value: "delay", label: "Delay Impact" },
-    { value: "risk", label: "Risk Reduction" },
-    { value: "recency", label: "Most Recent" },
+    { value: "impact", label: "Impact" },
+    { value: "margin", label: "Margin" },
+    { value: "delay", label: "Delay" },
+    { value: "risk", label: "Risk" },
+    { value: "recency", label: "Recent" },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-          <SortDesc size={14} className="text-primary" />
+        <h2 className="text-[13px] font-semibold text-muted-foreground/60 uppercase tracking-wider flex items-center gap-2">
           Priority Queue
-          <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold">
             {data.length}
           </span>
         </h2>
-        <div className="flex items-center gap-2">
-          <Filter size={12} className="text-muted-foreground" />
-          <div className="flex gap-1">
-            {sortOptions.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => onSortChange(opt.value)}
-                className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
-                  sortBy === opt.value
-                    ? "bg-primary/20 text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+        <div className="flex gap-1">
+          {sortOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => onSortChange(opt.value)}
+              className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
+                sortBy === opt.value
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground/40 hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="space-y-3">
         {data.length === 0 && (
-          <div className="text-center py-16">
-            <Shield className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-            <h3 className="text-[15px] font-semibold text-foreground mb-1">No active recommendations</h3>
-            <p className="text-[13px] text-muted-foreground">AI-powered recommendations will appear here as shipments are processed.</p>
+          <div className="text-center py-20">
+            <CheckCircle2 className="w-5 h-5 text-primary/20 mx-auto mb-2" />
+            <h3 className="text-[14px] font-medium text-foreground/60 mb-1">No active recommendations</h3>
+            <p className="text-[13px] text-muted-foreground/40">Recommendations will appear as shipments are processed.</p>
           </div>
         )}
         {data.map((rec: any) => (
           <div key={rec.id} className="relative">
             {rec.isRecentlyChanged && (
-              <div className="absolute -left-1 top-0 bottom-0 w-1 bg-primary rounded-full" />
+              <div className="absolute -left-1 top-0 bottom-0 w-0.5 bg-primary rounded-full" />
             )}
             {rec.isIntelligenceTriggered && (
               <div className="absolute -right-1 top-2">
-                <div className="flex items-center gap-1 bg-primary/20 text-primary text-[9px] px-1.5 py-0.5 rounded-full">
+                <div className="flex items-center gap-1 bg-primary/10 text-primary text-[9px] px-1.5 py-0.5 rounded-full">
                   <Zap size={8} />
                   Intel
                 </div>
@@ -322,7 +302,7 @@ function ImpactPriorityView({
             )}
             <div className={`${rec.isRecentlyChanged ? "pl-2" : ""}`}>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-mono text-muted-foreground/40 bg-background px-1.5 py-0.5 rounded">
                   Score: {rec.impactScore}
                 </span>
               </div>
@@ -356,93 +336,102 @@ function UrgencyView({
   onRespond: (id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED", notes?: string) => void;
   navigate: (path: string) => void;
 }) {
+  const urgentRecs = [...criticalRecs, ...highRecs];
+  const hasUrgent = urgentRecs.length > 0;
+  const hasIntervention = needsIntervention.length > 0;
+
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-[#E05252]" />
-            Urgent Recommendations
-            <span className="text-[10px] bg-[#E05252]/20 text-[#E05252] px-1.5 py-0.5 rounded-full">
-              {criticalRecs.length + highRecs.length}
-            </span>
-          </h2>
-          <div className="space-y-3">
-            {[...criticalRecs, ...highRecs].length === 0 && (
-              <p className="text-sm text-muted-foreground py-8 text-center">No urgent recommendations</p>
-            )}
-            {[...criticalRecs, ...highRecs].map((rec: any) => (
-              <RecommendationCard
-                key={rec.id}
-                recommendation={rec}
-                onRespond={onRespond}
-                showShipmentRef
-              />
-            ))}
-          </div>
-        </section>
+      {(hasUrgent || hasIntervention) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {hasUrgent && (
+            <section>
+              <h2 className="text-[13px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-3 flex items-center gap-2">
+                Urgent Recommendations
+                <span className="text-[10px] bg-[#E05252]/10 text-[#E05252] px-1.5 py-0.5 rounded-full font-bold">
+                  {urgentRecs.length}
+                </span>
+              </h2>
+              <div className="space-y-3">
+                {urgentRecs.map((rec: any) => (
+                  <RecommendationCard
+                    key={rec.id}
+                    recommendation={rec}
+                    onRespond={onRespond}
+                    showShipmentRef
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-            <TrendingUp size={14} className="text-[#D4A24C]" />
-            Shipments Needing Intervention
-            <span className="text-[10px] bg-[#D4A24C]/20 text-[#D4A24C] px-1.5 py-0.5 rounded-full">
-              {needsIntervention.length}
-            </span>
-          </h2>
-          <div className="space-y-2">
-            {needsIntervention.length === 0 && (
-              <p className="text-sm text-muted-foreground py-8 text-center">All shipments on track</p>
-            )}
-            {needsIntervention.map((s: any) => {
-              const shipRecs = recommendations.filter((r: any) => r.shipmentId === s.id);
-              const highestUrgency = shipRecs.reduce(
-                (max: string, r: any) => {
-                  const order = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
-                  return (order[r.urgency as keyof typeof order] || 0) > (order[max as keyof typeof order] || 0) ? r.urgency : max;
-                },
-                "LOW",
-              );
-              const urgencyColor = highestUrgency === "CRITICAL"
-                ? "border-[#E05252]/30 bg-[#E05252]/5"
-                : highestUrgency === "HIGH"
-                  ? "border-[#D4A24C]/30 bg-[#D4A24C]/5"
-                  : "border-border bg-secondary/30";
+          {hasIntervention && (
+            <section>
+              <h2 className="text-[13px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-3 flex items-center gap-2">
+                Shipments Needing Intervention
+                <span className="text-[10px] bg-[#D4A24C]/10 text-[#D4A24C] px-1.5 py-0.5 rounded-full font-bold">
+                  {needsIntervention.length}
+                </span>
+              </h2>
+              <div className="space-y-2">
+                {needsIntervention.map((s: any) => {
+                  const shipRecs = recommendations.filter((r: any) => r.shipmentId === s.id);
+                  const highestUrgency = shipRecs.reduce(
+                    (max: string, r: any) => {
+                      const order = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+                      return (order[r.urgency as keyof typeof order] || 0) > (order[max as keyof typeof order] || 0) ? r.urgency : max;
+                    },
+                    "LOW",
+                  );
+                  const urgencyBorder = highestUrgency === "CRITICAL"
+                    ? "border-[#E05252]/20"
+                    : highestUrgency === "HIGH"
+                      ? "border-[#D4A24C]/20"
+                      : "border-border/60";
 
-              return (
-                <motion.button
-                  key={s.id}
-                  onClick={() => navigate(`/shipments/${s.id}`)}
-                  className={`w-full text-left border rounded-lg p-3 hover:bg-muted/30 transition-colors ${urgencyColor}`}
-                  whileHover={{ x: 4 }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground">{s.reference}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 bg-secondary rounded text-muted-foreground uppercase">
-                          {s.status}
-                        </span>
+                  return (
+                    <motion.button
+                      key={s.id}
+                      onClick={() => navigate(`/shipments/${s.id}`)}
+                      className={`w-full text-left border rounded-lg p-3 hover:bg-card transition-all ${urgencyBorder}`}
+                      whileHover={{ x: 2 }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-medium text-foreground">{s.reference}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 bg-background rounded text-muted-foreground/50 uppercase">
+                              {s.status}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground/40 mt-0.5">
+                            {shipRecs.length} recommendation{shipRecs.length !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+                        <ArrowRight size={14} className="text-muted-foreground/20" />
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {shipRecs.length} recommendation{shipRecs.length !== 1 ? "s" : ""}
-                      </p>
-                    </div>
-                    <ArrowRight size={14} className="text-muted-foreground" />
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        </section>
-      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+
+      {!hasUrgent && !hasIntervention && (
+        <div className="text-center py-16">
+          <CheckCircle2 className="w-5 h-5 text-primary/20 mx-auto mb-2" />
+          <h3 className="text-[14px] font-medium text-foreground/60 mb-1">No urgent actions</h3>
+          <p className="text-[13px] text-muted-foreground/40">All shipments are on track. Recommendations will appear when needed.</p>
+        </div>
+      )}
 
       {otherRecs.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-            <FileWarning size={14} className="text-muted-foreground" />
+          <h2 className="text-[13px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-3 flex items-center gap-2">
             Other Recommendations
-            <span className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full">
+            <span className="text-[10px] bg-background text-muted-foreground/50 px-1.5 py-0.5 rounded-full font-bold">
               {otherRecs.length}
             </span>
           </h2>

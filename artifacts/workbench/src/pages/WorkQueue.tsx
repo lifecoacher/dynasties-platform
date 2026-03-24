@@ -7,25 +7,22 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
+  Loader2,
   User,
   ChevronRight,
   RefreshCw,
   Shield,
   DollarSign,
-  Ship,
   Anchor,
   MapPin,
   FileText,
   Zap,
-  Ban,
-  Play,
-  Pause,
-  RotateCcw,
   Bell,
   Bot,
   TrendingUp,
   ArrowUpCircle,
   BarChart3,
+  Ship,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { getAuthToken } from "@workspace/api-client-react";
@@ -94,18 +91,18 @@ const QUEUE_TABS: { value: QueueFilter; label: string; icon: any }[] = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  OPEN: "bg-primary/20 text-primary border-primary/30",
-  IN_PROGRESS: "bg-[#D4A24C]/20 text-[#D4A24C] border-[#D4A24C]/30",
-  BLOCKED: "bg-[#E05252]/20 text-[#E05252] border-red-500/30",
-  COMPLETED: "bg-primary/20 text-primary border-primary/30",
-  CANCELLED: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+  OPEN: "bg-primary/10 text-primary border-primary/20",
+  IN_PROGRESS: "bg-[#D4A24C]/10 text-[#D4A24C] border-[#D4A24C]/20",
+  BLOCKED: "bg-[#E05252]/10 text-[#E05252] border-[#E05252]/20",
+  COMPLETED: "bg-primary/10 text-primary border-primary/20",
+  CANCELLED: "bg-muted text-muted-foreground border-border",
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  CRITICAL: "bg-[#E05252]/20 text-[#E05252]",
-  HIGH: "bg-[#D4A24C]/20 text-[#D4A24C]",
-  MEDIUM: "bg-[#D4A24C]/20 text-[#D4A24C]",
-  LOW: "bg-slate-500/20 text-slate-400",
+  CRITICAL: "bg-[#E05252]/10 text-[#E05252]",
+  HIGH: "bg-[#D4A24C]/10 text-[#D4A24C]",
+  MEDIUM: "bg-[#D4A24C]/10 text-[#D4A24C]",
+  LOW: "bg-muted text-muted-foreground",
 };
 
 const TASK_TYPE_LABELS: Record<string, string> = {
@@ -234,36 +231,51 @@ export default function WorkQueue() {
 
   const unreadCount = notifData?.unreadCount ?? 0;
 
+  const openCount = summary?.totals?.open ?? 0;
+  const blockedCount = summary?.totals?.blocked ?? 0;
+  const overdueCount = summary?.totals?.overdue ?? 0;
+  const hasWork = openCount > 0 || blockedCount > 0 || overdueCount > 0;
+
+  const voiceText = blockedCount > 0
+    ? `${blockedCount} task${blockedCount > 1 ? "s" : ""} blocked — intervention needed`
+    : overdueCount > 0
+      ? `${overdueCount} overdue task${overdueCount > 1 ? "s" : ""}`
+      : hasWork
+        ? `${openCount} task${openCount > 1 ? "s" : ""} in queue`
+        : "System operating normally";
+
   return (
     <AppLayout>
       <div className="p-6 max-w-[1400px] space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Work Queue</h1>
-            <p className="text-[13px] text-muted-foreground mt-1">Task management & orchestration</p>
+            <p className={`text-[13px] mt-1 ${blockedCount > 0 ? "text-[#E05252]" : overdueCount > 0 ? "text-[#D4A24C]" : hasWork ? "text-foreground/60" : "text-primary/60"}`}>
+              {voiceText}
+            </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => applyBatchMutation.mutate()}
               disabled={applyBatchMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary/20 text-primary rounded-lg border border-primary/30 hover:bg-primary/30 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium bg-primary/10 text-primary rounded-lg hover:bg-primary/15 disabled:opacity-50 transition-colors"
             >
               <Bot size={13} className={applyBatchMutation.isPending ? "animate-spin" : ""} />
-              {applyBatchMutation.isPending ? "Applying..." : "Auto-Process Recs"}
+              {applyBatchMutation.isPending ? "Applying..." : "Auto-Process"}
             </button>
             <button
               onClick={() => escalationCheckMutation.mutate()}
               disabled={escalationCheckMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#D4A24C]/20 text-[#D4A24C] rounded-lg border border-[#D4A24C]/30 hover:bg-[#D4A24C]/30 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium bg-[#D4A24C]/10 text-[#D4A24C] rounded-lg hover:bg-[#D4A24C]/15 disabled:opacity-50 transition-colors"
             >
               <ArrowUpCircle size={13} className={escalationCheckMutation.isPending ? "animate-spin" : ""} />
-              {escalationCheckMutation.isPending ? "Checking..." : "Run Escalation"}
+              {escalationCheckMutation.isPending ? "Checking..." : "Escalation"}
             </button>
             <button
               onClick={() => refetch()}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-black/[0.03] text-foreground/60 rounded-lg border border-black/[0.06] hover:bg-black/[0.05]"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] text-muted-foreground/40 rounded-lg hover:text-muted-foreground transition-colors"
             >
-              <RefreshCw size={13} /> Refresh
+              <RefreshCw size={13} />
             </button>
           </div>
         </div>
@@ -273,8 +285,8 @@ export default function WorkQueue() {
             <button
               key={tab}
               onClick={() => setViewTab(tab)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg ${
-                viewTab === tab ? "bg-primary/20 text-primary border border-primary/30" : "text-foreground/40 hover:text-foreground/60"
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${
+                viewTab === tab ? "bg-primary/10 text-primary" : "text-muted-foreground/40 hover:text-foreground"
               }`}
             >
               {tab === "queue" && <ClipboardList size={12} />}
@@ -294,16 +306,41 @@ export default function WorkQueue() {
 
         {viewTab === "queue" && (
           <>
-            {summary && (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-                <SummaryCard label="Open" value={summary.totals?.open ?? 0} color="text-primary" />
-                <SummaryCard label="In Progress" value={summary.totals?.inProgress ?? 0} color="text-[#D4A24C]" />
-                <SummaryCard label="Blocked" value={summary.totals?.blocked ?? 0} color="text-[#E05252]" />
-                <SummaryCard label="Completed" value={summary.totals?.completed ?? 0} color="text-primary" />
-                <SummaryCard label="Overdue" value={summary.totals?.overdue ?? 0} color="text-[#E05252]" />
-                <SummaryCard label="My Tasks" value={summary.totals?.myTasks ?? 0} color="text-primary" />
-                <SummaryCard label="Escalated" value={summary.byPriority?.filter((p: any) => p.priority === "CRITICAL").reduce((s: number, p: any) => s + p.total, 0) ?? 0} color="text-[#D4A24C]" />
-                <SummaryCard label="Total" value={summary.totals?.total ?? 0} color="text-foreground/60" />
+            {summary && hasWork && (
+              <div className="flex items-center gap-8 text-[13px]">
+                {openCount > 0 && (
+                  <div>
+                    <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Open</span>
+                    <div className="mt-0.5"><span className="text-[20px] font-bold text-primary tabular-nums">{openCount}</span></div>
+                  </div>
+                )}
+                {(summary.totals?.inProgress ?? 0) > 0 && (
+                  <>
+                    <div className="w-px h-8 bg-border/60" />
+                    <div>
+                      <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">In Progress</span>
+                      <div className="mt-0.5"><span className="text-[20px] font-bold text-[#D4A24C] tabular-nums">{summary.totals.inProgress}</span></div>
+                    </div>
+                  </>
+                )}
+                {blockedCount > 0 && (
+                  <>
+                    <div className="w-px h-8 bg-border/60" />
+                    <div>
+                      <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Blocked</span>
+                      <div className="mt-0.5"><span className="text-[20px] font-bold text-[#E05252] tabular-nums">{blockedCount}</span></div>
+                    </div>
+                  </>
+                )}
+                {overdueCount > 0 && (
+                  <>
+                    <div className="w-px h-8 bg-border/60" />
+                    <div>
+                      <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Overdue</span>
+                      <div className="mt-0.5"><span className="text-[20px] font-bold text-[#E05252] tabular-nums">{overdueCount}</span></div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -312,10 +349,10 @@ export default function WorkQueue() {
                 <button
                   key={tab.value}
                   onClick={() => setActiveQueue(tab.value)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap transition-colors ${
                     activeQueue === tab.value
-                      ? "bg-primary/20 text-primary border border-primary/30"
-                      : "text-foreground/50 hover:text-foreground/70 border border-transparent"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground/40 hover:text-foreground"
                   }`}
                 >
                   <tab.icon size={12} />
@@ -330,7 +367,7 @@ export default function WorkQueue() {
                   key={s}
                   onClick={() => setStatusFilter(s)}
                   className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
-                    statusFilter === s ? "bg-black/[0.05] text-foreground font-medium" : "text-foreground/40 hover:text-foreground/60"
+                    statusFilter === s ? "bg-background text-foreground" : "text-muted-foreground/35 hover:text-foreground/60"
                   }`}
                 >
                   {s === "active" ? "Active" : s === "all" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
@@ -340,12 +377,16 @@ export default function WorkQueue() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-2">
-                {isLoading && <div className="text-foreground/30 text-sm py-8 text-center">Loading tasks...</div>}
+                {isLoading && (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30" />
+                  </div>
+                )}
                 {!isLoading && filteredTasks.length === 0 && (
-                  <div className="text-center py-16">
-                    <CheckCircle2 className="w-6 h-6 text-primary/30 mx-auto mb-2" />
-                    <h3 className="text-[15px] font-medium text-foreground mb-1">System operating normally</h3>
-                    <p className="text-[13px] text-muted-foreground/60">No actions required. Tasks will appear when shipments need intervention.</p>
+                  <div className="text-center py-20">
+                    <CheckCircle2 className="w-5 h-5 text-primary/20 mx-auto mb-2" />
+                    <h3 className="text-[14px] font-medium text-foreground/60 mb-1">System operating normally</h3>
+                    <p className="text-[13px] text-muted-foreground/40">Tasks will appear when shipments need intervention.</p>
                   </div>
                 )}
                 {filteredTasks.map((task: any) => {
@@ -357,25 +398,25 @@ export default function WorkQueue() {
                     <motion.div
                       key={task.id}
                       onClick={() => setSelectedTask(task.id)}
-                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                      className={`border rounded-lg p-4 cursor-pointer transition-all ${
                         selectedTask === task.id
-                          ? "border-primary/40 bg-primary/5"
+                          ? "border-primary/30 bg-primary/[0.03]"
                           : isOverdue
-                            ? "border-red-500/30 bg-[#E05252]/5 hover:bg-[#E05252]/10"
+                            ? "border-[#E05252]/15 hover:border-[#E05252]/25"
                             : isEscalated
-                              ? "border-[#D4A24C]/30 bg-[#D4A24C]/5 hover:bg-[#D4A24C]/10"
-                              : "border-black/[0.06] bg-black/[0.02] hover:bg-black/[0.03]"
+                              ? "border-[#D4A24C]/15 hover:border-[#D4A24C]/25"
+                              : "border-border/60 hover:border-border"
                       }`}
                       whileHover={{ x: 2 }}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-black/[0.03] flex items-center justify-center shrink-0 mt-0.5">
-                            <TaskIcon size={14} className="text-foreground/60" />
+                          <div className="w-7 h-7 rounded-lg bg-background flex items-center justify-center shrink-0 mt-0.5">
+                            <TaskIcon size={13} className="text-muted-foreground/50" />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-medium text-foreground truncate">{task.title}</span>
+                              <span className="text-[13px] font-medium text-foreground truncate">{task.title}</span>
                               <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded border ${STATUS_COLORS[task.status] || ""}`}>
                                 {task.status.replace(/_/g, " ")}
                               </span>
@@ -383,26 +424,26 @@ export default function WorkQueue() {
                                 {task.priority}
                               </span>
                               {isEscalated && (
-                                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[#D4A24C]/20 text-[#D4A24C] border border-[#D4A24C]/30">
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[#D4A24C]/10 text-[#D4A24C]">
                                   L{task.escalationLevel}
                                 </span>
                               )}
                               {isAutoCreated && (
-                                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-primary/20 text-primary">
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-primary/10 text-primary">
                                   Auto
                                 </span>
                               )}
                               {task.needsAttentionNow && (
-                                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[#E05252]/30 text-red-200 animate-pulse">
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[#E05252]/15 text-[#E05252] animate-pulse">
                                   !!
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 mt-1 text-[11px] text-foreground/40">
+                            <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground/35">
                               <span>{TASK_TYPE_LABELS[task.taskType] || task.taskType}</span>
                               {task.shipmentId && (
                                 <Link href={`/shipments/${task.shipmentId}`} onClick={(e: any) => e.stopPropagation()}>
-                                  <span className="text-primary hover:text-primary">Shipment</span>
+                                  <span className="text-primary hover:text-primary/80">Shipment</span>
                                 </Link>
                               )}
                               {task.dueAt && (
@@ -411,12 +452,12 @@ export default function WorkQueue() {
                                 </span>
                               )}
                               {task.priorityScore != null && usePrioritizedQueue && (
-                                <span className="text-foreground/30">Score: {Number(task.priorityScore).toFixed(0)}</span>
+                                <span className="text-muted-foreground/20">Score: {Number(task.priorityScore).toFixed(0)}</span>
                               )}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight size={14} className="text-foreground/20 shrink-0 mt-2" />
+                        <ChevronRight size={14} className="text-muted-foreground/15 shrink-0 mt-2" />
                       </div>
                     </motion.div>
                   );
@@ -434,9 +475,9 @@ export default function WorkQueue() {
                     currentUserId={userId}
                   />
                 ) : (
-                  <div className="border border-black/[0.06] rounded-lg p-6 text-center">
-                    <ClipboardList size={24} className="mx-auto text-foreground/20 mb-2" />
-                    <p className="text-sm text-foreground/30">Select a task to view details</p>
+                  <div className="border border-border/40 rounded-lg p-6 text-center">
+                    <ClipboardList size={20} className="mx-auto text-muted-foreground/15 mb-2" />
+                    <p className="text-[13px] text-muted-foreground/30">Select a task to view details</p>
                   </div>
                 )}
               </div>
@@ -455,15 +496,6 @@ export default function WorkQueue() {
         )}
       </div>
     </AppLayout>
-  );
-}
-
-function SummaryCard({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="border border-black/[0.06] rounded-lg p-3 bg-black/[0.02]">
-      <div className="text-[10px] uppercase tracking-wider text-foreground/40">{label}</div>
-      <div className={`text-xl font-bold mt-1 ${color}`}>{value}</div>
-    </div>
   );
 }
 
@@ -489,23 +521,23 @@ function TaskDetailPanel({
   const isAutoCreated = task.creationSource === "AUTO_POLICY";
 
   return (
-    <div className="border border-black/[0.06] rounded-lg bg-black/[0.02] overflow-hidden">
-      <div className="p-4 border-b border-black/[0.06]">
+    <div className="border border-border/60 rounded-lg overflow-hidden">
+      <div className="p-4 border-b border-border/40">
         <div className="flex items-center gap-2 mb-2">
-          <TaskIcon size={14} className="text-primary" />
-          <span className="text-xs text-foreground/40">{TASK_TYPE_LABELS[task.taskType] || task.taskType}</span>
+          <TaskIcon size={13} className="text-primary/60" />
+          <span className="text-[11px] text-muted-foreground/40">{TASK_TYPE_LABELS[task.taskType] || task.taskType}</span>
           {isAutoCreated && (
-            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-primary/20 text-primary rounded">Auto-Created</span>
+            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-primary/10 text-primary rounded">Auto</span>
           )}
           {isEscalated && (
-            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-[#D4A24C]/20 text-[#D4A24C] rounded">
+            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-[#D4A24C]/10 text-[#D4A24C] rounded">
               Escalated L{task.escalationLevel}
             </span>
           )}
         </div>
-        <h3 className="text-sm font-semibold text-foreground">{task.title}</h3>
+        <h3 className="text-[13px] font-semibold text-foreground">{task.title}</h3>
         {task.description && (
-          <p className="text-[11px] text-foreground/50 mt-1 line-clamp-3">{task.description}</p>
+          <p className="text-[11px] text-muted-foreground/40 mt-1 line-clamp-3">{task.description}</p>
         )}
         <div className="flex items-center gap-2 mt-3">
           <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${STATUS_COLORS[task.status] || ""}`}>
@@ -520,17 +552,17 @@ function TaskDetailPanel({
       <div className="p-4 space-y-3 text-[11px]">
         {task.executionNotes && (
           <div>
-            <span className="text-foreground/40">Action Required:</span>
-            <p className="text-foreground/70 mt-0.5">{task.executionNotes}</p>
+            <span className="text-muted-foreground/40">Action Required:</span>
+            <p className="text-foreground/60 mt-0.5">{task.executionNotes}</p>
           </div>
         )}
         <div className="flex justify-between items-center">
-          <span className="text-foreground/40">Due</span>
+          <span className="text-muted-foreground/40">Due</span>
           {editingDue ? (
             <div className="flex items-center gap-1">
               <input
                 type="datetime-local"
-                className="bg-black/[0.03] border border-black/[0.06] rounded px-1 py-0.5 text-[10px] text-foreground/70 outline-none"
+                className="bg-background border border-border rounded px-1 py-0.5 text-[10px] text-foreground/60 outline-none"
                 value={dueInput}
                 onChange={(e) => setDueInput(e.target.value)}
               />
@@ -539,299 +571,167 @@ function TaskDetailPanel({
                   if (dueInput) onUpdate({ dueAt: new Date(dueInput).toISOString() });
                   setEditingDue(false);
                 }}
-                className="text-[9px] text-primary hover:text-primary"
-              >Save</button>
-              <button onClick={() => setEditingDue(false)} className="text-[9px] text-foreground/30">X</button>
+                className="text-[9px] text-primary hover:text-primary/80"
+              >
+                Save
+              </button>
             </div>
           ) : (
-            <span
-              onClick={() => { if (isActive) { setDueInput(task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : ""); setEditingDue(true); } }}
-              className={`font-medium cursor-pointer hover:underline ${task.dueAt && new Date(task.dueAt) < new Date() && isActive ? "text-[#E05252]" : "text-foreground/70"}`}
+            <button
+              onClick={() => setEditingDue(true)}
+              className="text-foreground/50 hover:text-foreground"
             >
-              {task.dueAt ? format(new Date(task.dueAt), "MMM d, yyyy h:mm a") : "Not set"}
-            </span>
+              {task.dueAt ? format(new Date(task.dueAt), "MMM d, h:mm a") : "Not set"}
+            </button>
           )}
         </div>
-        <div className="flex justify-between items-center">
-          <span className="text-foreground/40">Priority</span>
-          {editingPriority && isActive ? (
+
+        {task.assignedToName && (
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground/40">Assigned</span>
+            <span className="text-foreground/50">{task.assignedToName}</span>
+          </div>
+        )}
+
+        {editingPriority ? (
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground/40">Priority</span>
             <div className="flex gap-1">
-              {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const).map((p) => (
+              {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((p) => (
                 <button
                   key={p}
-                  onClick={() => { onUpdate({ priority: p }); setEditingPriority(false); }}
-                  className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded ${PRIORITY_COLORS[p]} ${p === task.priority ? "ring-1 ring-white/30" : ""}`}
+                  onClick={() => {
+                    onUpdate({ priority: p });
+                    setEditingPriority(false);
+                  }}
+                  className={`px-1.5 py-0.5 text-[9px] rounded ${
+                    task.priority === p ? "bg-primary/10 text-primary font-bold" : "text-muted-foreground/40 hover:text-foreground"
+                  }`}
                 >
                   {p}
                 </button>
               ))}
             </div>
-          ) : (
-            <span
-              onClick={() => { if (isActive) setEditingPriority(true); }}
-              className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded cursor-pointer ${PRIORITY_COLORS[task.priority]}`}
+          </div>
+        ) : (
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground/40">Priority</span>
+            <button
+              onClick={() => setEditingPriority(true)}
+              className="text-foreground/50 hover:text-foreground"
             >
               {task.priority}
-            </span>
-          )}
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-foreground/40">Assigned</span>
-          {isActive ? (
-            <button
-              onClick={() => onUpdate({ assignedTo: task.assignedTo ? null : currentUserId })}
-              className="text-foreground/60 text-[10px] hover:text-foreground/80"
-            >
-              {task.assignedTo ? "Unassign" : "Assign to me"}
             </button>
-          ) : (
-            <span className="text-foreground/60">{task.assignedTo ? task.assignedTo.slice(0, 12) + "..." : "Unassigned"}</span>
-          )}
-        </div>
+          </div>
+        )}
+
         {task.shipmentId && (
-          <div className="flex justify-between">
-            <span className="text-foreground/40">Shipment</span>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground/40">Shipment</span>
             <Link href={`/shipments/${task.shipmentId}`}>
-              <span className="text-primary hover:text-primary font-mono">{task.shipmentId.slice(0, 12)}...</span>
+              <span className="text-primary hover:text-primary/80">View Shipment</span>
             </Link>
           </div>
         )}
-        {task.policyDecisionId && (
-          <div className="flex justify-between">
-            <span className="text-foreground/40">Policy</span>
-            <span className="text-primary font-mono text-[9px]">{task.policyDecisionId.slice(0, 12)}...</span>
-          </div>
-        )}
-        <div className="flex justify-between">
-          <span className="text-foreground/40">Created</span>
-          <span className="text-foreground/60">{format(new Date(task.createdAt), "MMM d, h:mm a")}</span>
-        </div>
-        {task.completionNotes && (
-          <div>
-            <span className="text-foreground/40">Completion Notes:</span>
-            <p className="text-foreground/70 mt-0.5">{task.completionNotes}</p>
-          </div>
-        )}
-      </div>
 
-      {isActive && (
-        <div className="p-4 border-t border-black/[0.06] space-y-3">
-          <div className="flex gap-1.5 flex-wrap">
-            {task.status === "OPEN" && (
-              <button
-                onClick={() => onUpdate({ status: "IN_PROGRESS" })}
-                disabled={isUpdating}
-                className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-[#D4A24C]/20 text-[#D4A24C] rounded hover:bg-[#D4A24C]/30 border border-[#D4A24C]/30 disabled:opacity-50"
-              >
-                <Play size={10} /> Start
-              </button>
-            )}
-            {task.status === "IN_PROGRESS" && (
-              <button
-                onClick={() => onUpdate({ status: "BLOCKED" })}
-                disabled={isUpdating}
-                className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-[#E05252]/20 text-red-300 rounded hover:bg-[#E05252]/30 border border-red-500/30 disabled:opacity-50"
-              >
-                <Pause size={10} /> Block
-              </button>
-            )}
-            {task.status === "BLOCKED" && (
-              <button
-                onClick={() => onUpdate({ status: "IN_PROGRESS" })}
-                disabled={isUpdating}
-                className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-[#D4A24C]/20 text-[#D4A24C] rounded hover:bg-[#D4A24C]/30 border border-[#D4A24C]/30 disabled:opacity-50"
-              >
-                <RotateCcw size={10} /> Unblock
-              </button>
-            )}
-            <button
-              onClick={() => onUpdate({ status: "CANCELLED", notes: notes || "Cancelled by operator" })}
-              disabled={isUpdating}
-              className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-slate-500/20 text-slate-400 rounded hover:bg-slate-500/30 border border-slate-500/30 disabled:opacity-50"
-            >
-              <Ban size={10} /> Cancel
-            </button>
-          </div>
+        {isActive && (
+          <div className="pt-3 border-t border-border/30 space-y-2">
+            <div className="flex gap-1.5">
+              {task.status === "OPEN" && (
+                <button
+                  onClick={() => onUpdate({ status: "IN_PROGRESS", assignedTo: currentUserId })}
+                  disabled={isUpdating}
+                  className="flex-1 px-2 py-1.5 text-[10px] font-medium bg-primary/10 text-primary rounded hover:bg-primary/15 disabled:opacity-50 transition-colors"
+                >
+                  Start
+                </button>
+              )}
+              {task.status === "IN_PROGRESS" && (
+                <button
+                  onClick={() => onUpdate({ status: "BLOCKED" })}
+                  disabled={isUpdating}
+                  className="flex-1 px-2 py-1.5 text-[10px] font-medium bg-[#E05252]/10 text-[#E05252] rounded hover:bg-[#E05252]/15 disabled:opacity-50 transition-colors"
+                >
+                  Block
+                </button>
+              )}
+              {task.status === "BLOCKED" && (
+                <button
+                  onClick={() => onUpdate({ status: "IN_PROGRESS" })}
+                  disabled={isUpdating}
+                  className="flex-1 px-2 py-1.5 text-[10px] font-medium bg-primary/10 text-primary rounded hover:bg-primary/15 disabled:opacity-50 transition-colors"
+                >
+                  Unblock
+                </button>
+              )}
+            </div>
 
-          <div>
             <textarea
-              className="w-full p-2 rounded-lg bg-black/[0.03] border border-black/[0.06] focus:border-primary/40 outline-none resize-none h-16 text-[11px] text-foreground/70 placeholder:text-foreground/20"
               placeholder="Completion notes..."
               value={completionNotes}
               onChange={(e) => setCompletionNotes(e.target.value)}
+              className="w-full bg-background border border-border/60 rounded p-2 text-[11px] text-foreground/60 placeholder:text-muted-foreground/25 outline-none resize-none h-16"
             />
             <button
               onClick={() => {
-                onUpdate({ status: "COMPLETED", completionNotes: completionNotes || "Completed" });
+                onUpdate({ status: "COMPLETED", completionNotes: completionNotes || undefined });
                 setCompletionNotes("");
               }}
               disabled={isUpdating}
-              className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium bg-primary/20 text-primary rounded-lg hover:bg-primary/30 border border-primary/30 disabled:opacity-50 mt-1.5 w-full justify-center"
+              className="w-full px-2 py-1.5 text-[10px] font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              <CheckCircle2 size={12} /> Mark Complete
+              Complete Task
             </button>
           </div>
+        )}
 
-          <div>
-            <textarea
-              className="w-full p-2 rounded-lg bg-black/[0.03] border border-black/[0.06] focus:border-primary/40 outline-none resize-none h-12 text-[11px] text-foreground/70 placeholder:text-foreground/20"
-              placeholder="Add a note..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-            {notes.trim() && (
-              <button
-                onClick={() => {
-                  onUpdate({ notes });
-                  setNotes("");
-                }}
-                disabled={isUpdating}
-                className="text-[10px] text-primary hover:text-primary mt-1"
-              >
-                Add Note
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {task.events && task.events.length > 0 && (
-        <div className="p-4 border-t border-black/[0.06]">
-          <h4 className="text-[10px] font-semibold text-foreground/50 uppercase tracking-wider mb-2">Audit Trail</h4>
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {task.events.map((evt: any) => (
-              <div key={evt.id} className="text-[10px] text-foreground/40">
-                <div className="flex items-center justify-between">
-                  <span className={`font-medium ${
-                    evt.eventType === "ESCALATED" ? "text-[#D4A24C]" :
-                    evt.eventType === "AUTO_CREATED" ? "text-primary" :
-                    evt.eventType === "COMPLETED" ? "text-primary" :
-                    evt.eventType === "CANCELLED" ? "text-[#E05252]" :
-                    "text-foreground/60"
-                  }`}>{evt.eventType.replace(/_/g, " ")}</span>
-                  <span>{format(new Date(evt.createdAt), "MMM d, h:mm a")}</span>
+        {task.events && task.events.length > 0 && (
+          <div className="pt-3 border-t border-border/30">
+            <span className="text-muted-foreground/40 text-[10px] uppercase tracking-wider">History</span>
+            <div className="mt-2 space-y-1.5">
+              {task.events.slice(0, 5).map((ev: any, i: number) => (
+                <div key={i} className="text-[10px] text-muted-foreground/35">
+                  <span className="text-foreground/40">{ev.action}</span>
+                  {ev.userName && <span> by {ev.userName}</span>}
+                  {ev.createdAt && <span className="ml-1">{format(new Date(ev.createdAt), "MMM d")}</span>}
                 </div>
-                {evt.beforeValue && evt.afterValue && (
-                  <span className="text-foreground/30">{evt.beforeValue} → {evt.afterValue}</span>
-                )}
-                {evt.notes && <p className="text-foreground/50 mt-0.5">{evt.notes}</p>}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
 function WorkflowAnalyticsPanel({ analytics }: { analytics: any }) {
-  if (!analytics) return <div className="text-foreground/30 text-sm py-8 text-center">Loading analytics...</div>;
-
-  const { totals, byType, rates, avgAssignmentHours, policyOutcomes, funnel } = analytics;
+  if (!analytics) {
+    return (
+      <div className="text-center py-20">
+        <BarChart3 className="w-5 h-5 text-muted-foreground/15 mx-auto mb-2" />
+        <p className="text-[13px] text-muted-foreground/30">Loading analytics...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <AnalyticsCard label="Completion Rate" value={`${rates?.completionRate ?? 0}%`} color="text-primary" />
-        <AnalyticsCard label="Overdue Rate" value={`${rates?.overdueRate ?? 0}%`} color="text-[#E05252]" />
-        <AnalyticsCard label="Escalation Rate" value={`${rates?.escalationRate ?? 0}%`} color="text-[#D4A24C]" />
-        <AnalyticsCard label="Avg Assignment" value={avgAssignmentHours != null ? `${Number(avgAssignmentHours).toFixed(1)}h` : "N/A"} color="text-primary" />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="border border-black/[0.06] rounded-lg p-4 bg-black/[0.02]">
-          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <TrendingUp size={14} className="text-primary" /> Recommendation → Task Funnel
-          </h3>
-          <div className="space-y-2 text-[11px]">
-            <FunnelRow label="Total Recommendations" value={funnel?.totalRecommendations ?? 0} max={funnel?.totalRecommendations ?? 1} color="bg-primary/60" />
-            <FunnelRow label="Accepted/Modified" value={funnel?.acceptedRecommendations ?? 0} max={funnel?.totalRecommendations ?? 1} color="bg-[#D4A24C]" />
-            <FunnelRow label="Tasks Created" value={funnel?.tasksCreated ?? 0} max={funnel?.totalRecommendations ?? 1} color="bg-primary" />
-            <FunnelRow label="Tasks Completed" value={funnel?.tasksCompleted ?? 0} max={funnel?.totalRecommendations ?? 1} color="bg-primary" />
-          </div>
+      <h2 className="text-[14px] font-semibold text-foreground font-heading">Workflow Analytics</h2>
+      <div className="flex items-center gap-8 text-[13px]">
+        <div>
+          <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Avg Resolution</span>
+          <div className="mt-0.5"><span className="text-[20px] font-bold text-foreground tabular-nums">{analytics.avgResolutionHours ? `${Math.round(analytics.avgResolutionHours)}h` : "—"}</span></div>
         </div>
-
-        <div className="border border-black/[0.06] rounded-lg p-4 bg-black/[0.02]">
-          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Bot size={14} className="text-primary" /> Policy Outcomes
-          </h3>
-          {policyOutcomes && policyOutcomes.length > 0 ? (
-            <div className="space-y-1.5">
-              {policyOutcomes.map((p: any) => (
-                <div key={p.outcome} className="flex justify-between text-[11px]">
-                  <span className="text-foreground/50">{p.outcome.replace(/_/g, " ")}</span>
-                  <span className="text-foreground/70 font-medium">{p.count}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[11px] text-foreground/30">No policy decisions yet. Click "Auto-Process Recs" to evaluate pending recommendations.</p>
-          )}
+        <div className="w-px h-8 bg-border/60" />
+        <div>
+          <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Completion Rate</span>
+          <div className="mt-0.5"><span className="text-[20px] font-bold text-primary tabular-nums">{analytics.completionRate ? `${Math.round(analytics.completionRate)}%` : "—"}</span></div>
         </div>
-      </div>
-
-      <div className="border border-black/[0.06] rounded-lg p-4 bg-black/[0.02]">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Completion by Task Type</h3>
-        <div className="space-y-2">
-          {(byType || []).map((t: any) => (
-            <div key={t.taskType} className="flex items-center justify-between text-[11px]">
-              <span className="text-foreground/50">{TASK_TYPE_LABELS[t.taskType] || t.taskType}</span>
-              <div className="flex gap-4">
-                <span className="text-foreground/40">Active: {t.active}</span>
-                <span className="text-primary">Done: {t.completed}</span>
-                <span className="text-primary">Auto: {t.autoCreated}</span>
-                {t.avgCompletionHours != null && (
-                  <span className="text-foreground/30">Avg: {Number(t.avgCompletionHours).toFixed(1)}h</span>
-                )}
-              </div>
-            </div>
-          ))}
-          {(!byType || byType.length === 0) && (
-            <p className="text-[11px] text-foreground/30">No task data yet.</p>
-          )}
+        <div className="w-px h-8 bg-border/60" />
+        <div>
+          <span className="text-muted-foreground/50 text-[11px] uppercase tracking-wider">Auto-Processed</span>
+          <div className="mt-0.5"><span className="text-[20px] font-bold text-foreground/60 tabular-nums">{analytics.autoProcessed ?? "—"}</span></div>
         </div>
-      </div>
-
-      <div className="border border-black/[0.06] rounded-lg p-4 bg-black/[0.02]">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Auto vs Manual Creation</h3>
-        <div className="flex gap-8 text-[11px]">
-          <div>
-            <span className="text-foreground/40">Auto-Created: </span>
-            <span className="text-primary font-bold">{totals?.autoCreated ?? 0}</span>
-          </div>
-          <div>
-            <span className="text-foreground/40">Manual/Recommendation: </span>
-            <span className="text-foreground/70 font-bold">{totals?.manualCreated ?? 0}</span>
-          </div>
-          <div>
-            <span className="text-foreground/40">Escalated: </span>
-            <span className="text-[#D4A24C] font-bold">{totals?.escalated ?? 0}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AnalyticsCard({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div className="border border-black/[0.06] rounded-lg p-4 bg-black/[0.02]">
-      <div className="text-[10px] uppercase tracking-wider text-foreground/40">{label}</div>
-      <div className={`text-2xl font-bold mt-1 ${color}`}>{value}</div>
-    </div>
-  );
-}
-
-function FunnelRow({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-  const pct = max > 0 ? (value / max) * 100 : 0;
-  return (
-    <div>
-      <div className="flex justify-between text-foreground/50 mb-0.5">
-        <span>{label}</span>
-        <span className="text-foreground/70 font-medium">{value}</span>
-      </div>
-      <div className="h-1.5 bg-black/[0.03] rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(pct, 2)}%` }} />
       </div>
     </div>
   );
@@ -846,63 +746,48 @@ function NotificationsPanel({
   onMarkAllRead: () => void;
   isMarking: boolean;
 }) {
-  const SEVERITY_COLORS: Record<string, string> = {
-    CRITICAL: "border-red-500/30 bg-[#E05252]/5",
-    WARNING: "border-[#D4A24C]/30 bg-[#D4A24C]/5",
-    INFO: "border-black/[0.06] bg-black/[0.02]",
-  };
-
-  const EVENT_ICONS: Record<string, any> = {
-    TASK_ASSIGNED: User,
-    TASK_AUTO_CREATED: Bot,
-    TASK_OVERDUE: Clock,
-    TASK_ESCALATED: ArrowUpCircle,
-    RECOMMENDATION_CHANGED: RefreshCw,
-    TASK_COMPLETED: CheckCircle2,
-    TASK_BLOCKED: AlertTriangle,
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-semibold text-foreground">Operational Notifications</h3>
+      <div className="flex items-center justify-between">
+        <h2 className="text-[14px] font-semibold text-foreground font-heading">Notifications</h2>
         <button
           onClick={onMarkAllRead}
           disabled={isMarking}
-          className="text-[10px] text-primary hover:text-primary disabled:opacity-50"
+          className="text-[11px] text-primary hover:text-primary/80 font-medium disabled:opacity-50 transition-colors"
         >
-          Mark all as read
+          Mark all read
         </button>
       </div>
-      {notifications.length === 0 && (
-        <div className="text-foreground/30 text-sm py-8 text-center">No notifications</div>
-      )}
-      <div className="space-y-2 max-h-[600px] overflow-y-auto">
-        {notifications.map((n: any) => {
-          const Icon = EVENT_ICONS[n.eventType] || Bell;
-          return (
+
+      {notifications.length === 0 ? (
+        <div className="text-center py-16">
+          <Bell className="w-5 h-5 text-muted-foreground/15 mx-auto mb-2" />
+          <p className="text-[13px] text-muted-foreground/30">No notifications</p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {notifications.map((n: any) => (
             <div
               key={n.id}
-              className={`border rounded-lg p-3 ${SEVERITY_COLORS[n.severity] || SEVERITY_COLORS.INFO} ${!n.read ? "ring-1 ring-primary/20" : ""}`}
+              className={`px-4 py-3 rounded-lg transition-colors ${
+                n.readAt ? "opacity-40" : "hover:bg-card"
+              }`}
             >
-              <div className="flex items-start gap-2">
-                <Icon size={14} className={`shrink-0 mt-0.5 ${n.severity === "CRITICAL" ? "text-[#E05252]" : n.severity === "WARNING" ? "text-[#D4A24C]" : "text-foreground/40"}`} />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-foreground">{n.title}</span>
-                    {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                  </div>
-                  {n.message && <p className="text-[11px] text-foreground/50 mt-0.5">{n.message}</p>}
-                  <div className="flex gap-3 mt-1 text-[10px] text-foreground/30">
-                    <span>{n.eventType.replace(/_/g, " ")}</span>
-                    <span>{format(new Date(n.createdAt), "MMM d, h:mm a")}</span>
-                  </div>
+              <div className="flex items-start gap-3">
+                <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${n.readAt ? "bg-muted-foreground/15" : "bg-primary"}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] text-foreground/70">{n.title || n.message}</p>
+                  {n.createdAt && (
+                    <span className="text-[10px] text-muted-foreground/30 mt-0.5 block">
+                      {format(new Date(n.createdAt), "MMM d, h:mm a")}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
