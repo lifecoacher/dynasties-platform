@@ -1,0 +1,71 @@
+The Replit Stripe integration has now been updated to use the Dynasties sandbox account:
+
+acct_1TCjLI3Pz0IkIDpJ
+
+Stripe Connect is confirmed working in this sandbox account.
+
+Now do the required restart, cleanup, and full Stripe/Connect re-validation against this sandbox account.
+
+Tasks:
+
+1. Restart the app/server so it picks up the new Replit-managed Stripe keys.
+
+2. After restart, confirm the exact Stripe account ID now detected by the app.
+It must be:
+acct_1TCjLI3Pz0IkIDpJ
+
+3. Re-run Stripe billing validation and return:
+- whether plans endpoint works
+- whether checkout works
+- whether customer portal works
+- whether start-trial works
+
+4. Re-run Stripe Connect validation and return exact results for:
+- POST /api/stripe/connect/create-account
+- POST /api/stripe/connect/onboarding-link
+- GET /api/stripe/connect/status
+- POST /api/stripe/connect/sync
+
+5. Create real Stripe-backed QA states in this sandbox:
+- one workspace with Not Connected
+- one workspace with Onboarding In Progress if feasible
+- one workspace with Connected
+
+Do not use fake DB-only fixtures if real Stripe-backed states are now possible.
+
+6. For each Connect QA workspace, return:
+- workspace name
+- workspace ID
+- login email
+- password
+- Stripe connected account ID
+- expected state
+- what actions should be allowed
+- what actions should be blocked
+
+7. Verify the full sandbox flow:
+- admin opens /settings/billing
+- clicks Set Up Stripe Connect
+- account is created
+- onboarding link is generated
+- user can return to the app
+- sync updates onboarding state / charges_enabled / payouts_enabled
+- UI reflects the real state honestly
+- no silent failures
+
+8. Audit whether any app code or config still assumes the old parent account ID
+acct_1TCjL3KtOJeOKUfk
+If found, list it explicitly and fix it.
+
+Return only:
+1. Stripe account ID now in use by the app
+2. Exact restart confirmation
+3. Billing validation results
+4. Connect endpoint results
+5. Real Connect QA workspace matrix
+6. Whether Comet can now test billing + Connect end-to-end honestly
+7. Remaining blockers, if any
+
+Do not include unrelated UI summaries.
+Do not include code review commentary.
+Only return the requested Stripe and Connect validation details.
