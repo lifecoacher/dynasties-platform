@@ -62,7 +62,6 @@ import {
   Plus,
   Calendar,
   AlertTriangle,
-  Activity,
 } from "lucide-react";
 import { OutcomeForm, type OutcomeData } from "@/components/recommendations/OutcomeForm";
 import { useToast } from "@/hooks/use-toast";
@@ -181,11 +180,10 @@ const SHIPMENT_EVENT_OPTIONS = [
   "CUSTOMS_HOLD", "CUSTOMS_RELEASED", "DELAYED", "OUT_FOR_DELIVERY", "DELIVERED",
 ];
 
-const SECTION_KEYS = ["overview", "decision", "exceptions", "documents", "compliance", "risk", "journey", "financials", "advanced"] as const;
+const SECTION_KEYS = ["decision", "exceptions", "documents", "compliance", "risk", "journey", "financials", "advanced", "shipmentData"] as const;
 type SectionKey = typeof SECTION_KEYS[number];
 
 const SECTION_LABELS: Record<SectionKey, string> = {
-  overview: "Overview",
   decision: "Decision",
   exceptions: "Exceptions",
   documents: "Documents",
@@ -194,9 +192,10 @@ const SECTION_LABELS: Record<SectionKey, string> = {
   journey: "Journey",
   financials: "Financials",
   advanced: "Advanced",
+  shipmentData: "Shipment Data",
 };
 
-const DEFAULT_OPEN: Set<SectionKey> = new Set(["overview", "decision", "exceptions", "documents"]);
+const DEFAULT_OPEN: Set<SectionKey> = new Set(["decision", "exceptions", "documents"]);
 
 export default function ShipmentDetail() {
   const [, params] = useRoute("/shipments/:id");
@@ -666,114 +665,94 @@ export default function ShipmentDetail() {
   return (
     <AppLayout hideRightPanel>
       <div className="px-6 py-4 max-w-[1400px] mx-auto">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-2 mb-3">
           <Link href="/shipments" className="p-1.5 rounded-lg hover:bg-card transition-colors text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div className="flex-grow min-w-0">
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-semibold text-foreground font-mono">{shipment.reference}</h1>
-              <StatusPill status={shipment.status} />
-              {derivedStatus && derivedStatus !== shipment.status && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                  derivedStatus === "DELIVERED" ? "bg-primary/10 text-primary" :
-                  derivedStatus === "CUSTOMS" ? "bg-[#D4A24C]/10 text-[#D4A24C]" :
-                  derivedStatus === "IN_TRANSIT" ? "bg-[#4EAEE3]/10 text-[#4EAEE3]" :
-                  "bg-muted text-muted-foreground"
-                }`}>{derivedStatus}</span>
-              )}
-            </div>
-            <p className="text-[12px] text-muted-foreground mt-0.5">
-              Created {format(new Date(shipment.createdAt), "MMM d, yyyy 'at' HH:mm")}
-              {shipment.portOfLoading && (
-                <span className="ml-2 text-muted-foreground/80">
-                  {formatPortCode(shipment.portOfLoading)} → {formatPortCode(shipment.portOfDischarge)}
-                </span>
-              )}
-            </p>
-          </div>
-
+          <h1 className="text-[15px] font-semibold text-foreground font-mono">{shipment.reference}</h1>
+          <StatusPill status={shipment.status} />
+          {derivedStatus && derivedStatus !== shipment.status && (
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+              derivedStatus === "DELIVERED" ? "bg-primary/10 text-primary" :
+              derivedStatus === "CUSTOMS" ? "bg-[#D4A24C]/10 text-[#D4A24C]" :
+              derivedStatus === "IN_TRANSIT" ? "bg-[#4EAEE3]/10 text-[#4EAEE3]" :
+              "bg-muted text-muted-foreground"
+            }`}>{derivedStatus}</span>
+          )}
           <Link
             href={`/shipments/${id}/trace`}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary text-[13px] font-medium hover:bg-primary/20 transition-colors shrink-0"
+            className="ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-muted-foreground hover:text-foreground text-[12px] hover:bg-card/50 transition-colors"
           >
-            <Brain className="w-3.5 h-3.5" />
-            Decision Trace
+            <Brain className="w-3 h-3" />
+            Trace
           </Link>
+        </div>
 
-          {isPendingReview && (
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setShowRejectModal(true)}
-                className="px-3.5 py-2 rounded-lg text-[13px] font-medium border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                Reject
-              </button>
-              <button
-                onClick={() => approve.mutate({ id, data: {} })}
-                disabled={approve.isPending || hasChanges}
-                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-primary hover:bg-primary/90 text-white disabled:opacity-50 transition-colors flex items-center gap-1.5"
-              >
-                {approve.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                Approve
-              </button>
+        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm -mx-6 px-6 border-b border-card-border">
+          <div className="flex items-center gap-5 py-3">
+            <div className={`flex items-center gap-2.5 ${decisionSignal.bg} px-4 py-2 rounded-xl`}>
+              <span className={`text-[22px] font-extrabold tracking-tight ${decisionSignal.color}`}>
+                {decisionSignal.label}
+              </span>
             </div>
-          )}
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-          <SummaryMetric
-            label="Decision"
-            value={decisionSignal.label}
-            color={decisionSignal.color}
-            bg={decisionSignal.bg}
-            icon={<Brain className="w-3.5 h-3.5" />}
-          />
-          <SummaryMetric
-            label="Risk"
-            value={riskScore != null ? String(riskScore) : "—"}
-            color={riskColor(riskScore)}
-            bg={riskScore != null ? (riskScore < 30 ? "bg-primary/10" : riskScore < 60 ? "bg-[#D4A24C]/10" : "bg-[#E05252]/10") : "bg-muted/50"}
-            icon={<TrendingUp className="w-3.5 h-3.5" />}
-            sub={riskLabel(riskScore)}
-          />
-          <SummaryMetric
-            label="Compliance"
-            value={compliance?.status || "Unscreened"}
-            color={compliance?.status === "CLEAR" ? "text-primary" : compliance?.status === "ALERT" || compliance?.status === "BLOCKED" ? "text-[#E05252]" : "text-muted-foreground"}
-            bg={compliance?.status === "CLEAR" ? "bg-primary/10" : compliance?.status ? "bg-[#E05252]/10" : "bg-muted/50"}
-            icon={<Shield className="w-3.5 h-3.5" />}
-          />
-          <SummaryMetric
-            label="Readiness"
-            value={readiness?.overallScore != null ? `${Math.round(readiness.overallScore * 100)}%` : "—"}
-            color={readiness?.readinessLevel === "READY" ? "text-primary" : readiness?.readinessLevel === "NEEDS_ATTENTION" ? "text-[#D4A24C]" : readiness ? "text-[#E05252]" : "text-muted-foreground"}
-            bg={readiness?.readinessLevel === "READY" ? "bg-primary/10" : readiness?.readinessLevel === "NEEDS_ATTENTION" ? "bg-[#D4A24C]/10" : readiness ? "bg-[#E05252]/10" : "bg-muted/50"}
-            icon={<Activity className="w-3.5 h-3.5" />}
-          />
-          <SummaryMetric
-            label="Exceptions"
-            value={String(exceptionsTotal)}
-            color={exceptionsTotal > 0 ? "text-[#E05252]" : "text-primary"}
-            bg={exceptionsTotal > 0 ? "bg-[#E05252]/10" : "bg-primary/10"}
-            icon={<AlertTriangle className="w-3.5 h-3.5" />}
-          />
-          <SummaryMetric
-            label="Documents"
-            value={String(docs.length)}
-            color="text-foreground"
-            bg="bg-muted/50"
-            icon={<FileBox className="w-3.5 h-3.5" />}
-          />
-        </div>
+            <div className="h-8 w-px bg-card-border" />
 
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-card-border -mx-6 px-6 mb-4">
-          <div className="flex gap-0.5 overflow-x-auto py-1.5 scrollbar-hide">
+            <div className="flex items-center gap-5">
+              <div className="flex flex-col items-center">
+                <span className={`text-[15px] font-bold tabular-nums ${riskColor(riskScore)}`}>{riskScore ?? "—"}</span>
+                <span className="text-[10px] text-muted-foreground">Risk</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className={`text-[13px] font-bold ${
+                  compliance?.status === "CLEAR" ? "text-primary" :
+                  compliance?.status === "ALERT" || compliance?.status === "BLOCKED" ? "text-[#E05252]" :
+                  compliance?.status === "INCOMPLETE" ? "text-[#D4A24C]" :
+                  "text-muted-foreground"
+                }`}>{compliance?.status || "Not Run"}</span>
+                <span className="text-[10px] text-muted-foreground">Compliance</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className={`text-[13px] font-bold ${
+                  readiness?.readinessLevel === "READY" ? "text-primary" :
+                  readiness?.readinessLevel === "NEEDS_ATTENTION" ? "text-[#D4A24C]" :
+                  readiness ? "text-[#E05252]" : "text-muted-foreground"
+                }`}>{readiness?.overallScore != null ? `${Math.round(readiness.overallScore * 100)}%` : "—"}</span>
+                <span className="text-[10px] text-muted-foreground">Ready</span>
+              </div>
+              {exceptionsTotal > 0 && (
+                <div className="flex flex-col items-center">
+                  <span className="text-[15px] font-bold tabular-nums text-[#E05252]">{exceptionsTotal}</span>
+                  <span className="text-[10px] text-muted-foreground">Exceptions</span>
+                </div>
+              )}
+            </div>
+
+            {isPendingReview && (
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => approve.mutate({ id, data: {} })}
+                  disabled={approve.isPending || hasChanges}
+                  className="px-3.5 py-1.5 rounded-lg text-[12px] font-medium bg-primary hover:bg-primary/90 text-white disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                >
+                  {approve.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  Approve
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-0.5 overflow-x-auto pb-1.5 scrollbar-hide -mt-1">
             {SECTION_KEYS.map(key => (
               <button
                 key={key}
                 onClick={() => scrollToSection(key)}
-                className={`px-3 py-1.5 rounded-md text-[12px] font-medium whitespace-nowrap transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors ${
                   openSections.has(key)
                     ? "text-foreground bg-card"
                     : "text-muted-foreground hover:text-foreground hover:bg-card/50"
@@ -785,95 +764,94 @@ export default function ShipmentDetail() {
           </div>
         </div>
 
-        <div className="space-y-3">
-          <CollapsibleSection
-            refCb={(el) => { sectionRefs.current.overview = el; }}
-            title="Overview"
-            icon={<Ship className="w-4 h-4 text-primary" />}
-            open={openSections.has("overview")}
-            onToggle={() => toggleSection("overview")}
-          >
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Shipper</p>
-                {shipment.shipper ? (
-                  <div>
-                    <p className="text-[14px] font-semibold text-foreground">{shipment.shipper.name}</p>
-                    {shipment.shipper.address && <p className="text-[12px] text-muted-foreground mt-0.5">{shipment.shipper.address}</p>}
-                  </div>
-                ) : (
-                  <p className="text-[13px] text-muted-foreground italic">Unresolved</p>
-                )}
-              </div>
-              <div>
-                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Consignee</p>
-                {shipment.consignee ? (
-                  <div>
-                    <p className="text-[14px] font-semibold text-foreground">{shipment.consignee.name}</p>
-                    {shipment.consignee.address && <p className="text-[12px] text-muted-foreground mt-0.5">{shipment.consignee.address}</p>}
-                  </div>
-                ) : (
-                  <p className="text-[13px] text-muted-foreground italic">Unresolved</p>
-                )}
-              </div>
-            </div>
+        {(() => {
+          const actionNeeded = !isTerminal && (!decision || decision.finalStatus === "INCOMPLETE" || decision.finalStatus === "REVIEW" || decision.finalStatus === "BLOCKED");
+          if (!actionNeeded) return null;
 
-            <div className="border-t border-card-border/50 pt-4">
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="text-[13px] font-semibold text-foreground">Shipment Details</h4>
-                {hasChanges && (
-                  <button
-                    onClick={handleSave}
-                    disabled={updateFields.isPending}
-                    className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-[12px] font-medium flex items-center gap-1.5 hover:bg-primary/90 transition-colors"
-                  >
-                    {updateFields.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                    Save Changes
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-3">
-                {visibleFields.map((field) => (
-                  <div key={field.key}>
-                    <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">
-                      {field.label}
-                    </label>
-                    {isPendingReview ? (
-                      <input
-                        type={field.type}
-                        value={formData[field.key] ?? ""}
-                        onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-background border border-card-border focus:border-primary/40 focus:ring-1 focus:ring-primary/20 outline-none transition-all text-[13px]"
-                      />
-                    ) : (
-                      <p className="px-3 py-2 rounded-lg bg-background/50 border border-card-border/30 text-[13px] text-foreground">
-                        {(field.key === "portOfLoading" || field.key === "portOfDischarge") ? formatPortCode(formData[field.key]) : formData[field.key] || <span className="text-muted-foreground italic">Not specified</span>}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
+          const panelColor = decision?.finalStatus === "BLOCKED"
+            ? "border-[#E05252]/20 bg-[#E05252]/5"
+            : decision?.finalStatus === "REVIEW"
+            ? "border-[#D4A24C]/20 bg-[#D4A24C]/5"
+            : "border-card-border bg-card";
+          const textColor = decision?.finalStatus === "BLOCKED" ? "text-[#E05252]" : decision?.finalStatus === "REVIEW" ? "text-[#D4A24C]" : "text-muted-foreground";
 
-              {corrections.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-card-border/50">
-                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <Pencil className="w-3 h-3" /> Correction History
+          const actionItems: { label: string; action: () => void; loading: boolean; variant: string }[] = [];
+          if (!decision) {
+            actionItems.push({ label: "Run Decision Engine", action: runDecisionEngine, loading: runningDecision, variant: "primary" });
+          } else {
+            const snap = decision.inputSnapshot;
+            if (snap?.complianceStatus === "NOT_RUN" || snap?.complianceStatus === "INCOMPLETE" || !compliance) {
+              actionItems.push({ label: "Run Compliance", action: runComplianceCheck, loading: runningCompliance, variant: "primary" });
+            }
+            if (snap?.docValidationStatus === "NOT_RUN" || !docValidation) {
+              actionItems.push({ label: "Run Doc Validation", action: runDocValidationCheck, loading: runningDocValidation, variant: "primary" });
+            }
+            if (decision.finalStatus !== "APPROVED") {
+              actionItems.push({ label: "Re-evaluate Decision", action: runDecisionEngine, loading: runningDecision, variant: "secondary" });
+            }
+          }
+
+          return (
+            <div className={`mt-4 p-4 rounded-xl border ${panelColor}`}>
+              <div className="flex items-start gap-3">
+                <AlertCircle className={`w-4 h-4 mt-0.5 shrink-0 ${textColor}`} />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[13px] font-semibold ${textColor}`}>
+                    {!decision ? "Decision not computed" :
+                     decision.finalStatus === "INCOMPLETE" ? "Required checks incomplete" :
+                     decision.finalStatus === "BLOCKED" ? "Shipment blocked" :
+                     decision.finalStatus === "REVIEW" ? "Manual review required" : "Action needed"}
                   </p>
-                  <div className="space-y-1.5 max-h-32 overflow-y-auto text-[12px]">
-                    {corrections.map((c: any) => (
-                      <div key={c.id} className="flex justify-between items-center px-3 py-1.5 rounded bg-muted/30">
-                        <span>
-                          <span className="font-medium">{c.fieldName}</span> — {c.correctedBy}
-                        </span>
-                        <span className="text-muted-foreground">{format(new Date(c.createdAt), "MMM d")}</span>
-                      </div>
+                  {decision?.decisionReason && (
+                    <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{decision.decisionReason}</p>
+                  )}
+                  {!decision && (
+                    <p className="text-[12px] text-muted-foreground mt-1">Run the decision engine to assess compliance, documents, and risk for this shipment.</p>
+                  )}
+                  {decision?.blockReasons?.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {decision.blockReasons.map((r: string, i: number) => (
+                        <li key={i} className="text-[11px] text-[#E05252]/90 flex gap-1.5">
+                          <span className="shrink-0">•</span><span>{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {decision?.reviewReasons?.length > 0 && !decision?.blockReasons?.length && (
+                    <ul className="mt-2 space-y-1">
+                      {decision.reviewReasons.map((r: string, i: number) => (
+                        <li key={i} className="text-[11px] text-[#D4A24C]/90 flex gap-1.5">
+                          <span className="shrink-0">•</span><span>{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                {actionItems.length > 0 && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    {actionItems.map((item, i) => (
+                      <button
+                        key={i}
+                        onClick={item.action}
+                        disabled={item.loading}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-colors disabled:opacity-50 ${
+                          item.variant === "primary"
+                            ? "bg-primary text-white hover:bg-primary/90"
+                            : "bg-card border border-card-border text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {item.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                        {item.label}
+                      </button>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </CollapsibleSection>
+          );
+        })()}
 
+        <div className="space-y-5 mt-5">
           <CollapsibleSection
             refCb={(el) => { sectionRefs.current.decision = el; }}
             title="Decision & Intelligence"
@@ -2116,6 +2094,103 @@ export default function ShipmentDetail() {
               </div>
             )}
           </CollapsibleSection>
+
+          <CollapsibleSection
+            refCb={(el) => { sectionRefs.current.shipmentData = el; }}
+            title="Shipment Data"
+            icon={<FileBox className="w-4 h-4 text-muted-foreground" />}
+            open={openSections.has("shipmentData")}
+            onToggle={() => toggleSection("shipmentData")}
+          >
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Shipper</p>
+                {shipment.shipper ? (
+                  <div>
+                    <p className="text-[14px] font-semibold text-foreground">{shipment.shipper.name}</p>
+                    {shipment.shipper.address && <p className="text-[12px] text-muted-foreground mt-0.5">{shipment.shipper.address}</p>}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-muted-foreground italic">Unresolved</p>
+                )}
+              </div>
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Consignee</p>
+                {shipment.consignee ? (
+                  <div>
+                    <p className="text-[14px] font-semibold text-foreground">{shipment.consignee.name}</p>
+                    {shipment.consignee.address && <p className="text-[12px] text-muted-foreground mt-0.5">{shipment.consignee.address}</p>}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-muted-foreground italic">Unresolved</p>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-card-border/50 pt-4">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-[13px] font-semibold text-foreground">Extracted Fields</h4>
+                {hasChanges && (
+                  <button
+                    onClick={handleSave}
+                    disabled={updateFields.isPending}
+                    className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-[12px] font-medium flex items-center gap-1.5 hover:bg-primary/90 transition-colors"
+                  >
+                    {updateFields.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                    Save Changes
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-3">
+                {visibleFields.map((field) => (
+                  <div key={field.key}>
+                    <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">
+                      {field.label}
+                    </label>
+                    {isPendingReview ? (
+                      <input
+                        type={field.type}
+                        value={formData[field.key] ?? ""}
+                        onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-background border border-card-border focus:border-primary/40 focus:ring-1 focus:ring-primary/20 outline-none transition-all text-[13px]"
+                      />
+                    ) : (
+                      <p className="px-3 py-2 rounded-lg bg-background/50 border border-card-border/30 text-[13px] text-foreground">
+                        {(field.key === "portOfLoading" || field.key === "portOfDischarge") ? formatPortCode(formData[field.key]) : formData[field.key] || <span className="text-muted-foreground italic">Not specified</span>}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {corrections.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-card-border/50">
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Pencil className="w-3 h-3" /> Correction History
+                  </p>
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto text-[12px]">
+                    {corrections.map((c: any) => (
+                      <div key={c.id} className="flex justify-between items-center px-3 py-1.5 rounded bg-muted/30">
+                        <span>
+                          <span className="font-medium">{c.fieldName}</span> — {c.correctedBy}
+                        </span>
+                        <span className="text-muted-foreground">{format(new Date(c.createdAt), "MMM d")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-[10px] text-muted-foreground mt-3">
+                Created {format(new Date(shipment.createdAt), "MMM d, yyyy 'at' HH:mm")}
+                {shipment.portOfLoading && (
+                  <span className="ml-2">
+                    {formatPortCode(shipment.portOfLoading)} → {formatPortCode(shipment.portOfDischarge)}
+                  </span>
+                )}
+              </p>
+            </div>
+          </CollapsibleSection>
         </div>
 
         <AnimatePresence>
@@ -2241,25 +2316,6 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-function SummaryMetric({ label, value, color, bg, icon, sub }: {
-  label: string;
-  value: string;
-  color: string;
-  bg: string;
-  icon: ReactNode;
-  sub?: string;
-}) {
-  return (
-    <div className={`p-3 rounded-xl border border-card-border ${bg}`}>
-      <div className="flex items-center gap-1.5 mb-1">
-        <span className={color}>{icon}</span>
-        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-      </div>
-      <p className={`text-[16px] font-bold tabular-nums ${color}`}>{value}</p>
-      {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
-    </div>
-  );
-}
 
 function CollapsibleSection({ refCb, title, icon, open, onToggle, badge, children }: {
   refCb: (el: HTMLDivElement | null) => void;
@@ -2271,7 +2327,7 @@ function CollapsibleSection({ refCb, title, icon, open, onToggle, badge, childre
   children: ReactNode;
 }) {
   return (
-    <div ref={refCb} className="scroll-mt-16">
+    <div ref={refCb} className="scroll-mt-28">
       <button
         onClick={onToggle}
         className="flex items-center gap-2 w-full p-3 rounded-xl bg-card border border-card-border hover:border-primary/20 transition-colors text-left"

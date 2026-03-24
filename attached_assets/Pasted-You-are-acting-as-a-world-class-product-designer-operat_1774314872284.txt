@@ -1,0 +1,252 @@
+You are acting as a world-class product designer operating at the level of Jony Ive, combined with a systems designer responsible for mission-critical enterprise software.
+
+You are not decorating the interface.
+
+You are imposing order, clarity, and restraint on a system that currently exposes too much and prioritizes poorly.
+
+--------------------------------------------------
+OBJECTIVE
+--------------------------------------------------
+
+Redesign the Dynasties interface so that:
+
+- critical decisions are understood in under 2 seconds
+- operators never need to hunt for meaning
+- the interface reduces cognitive load instead of adding to it
+
+The system must feel inevitable, not constructed.
+
+--------------------------------------------------
+ABSOLUTE RULES (NO EXCEPTIONS)
+--------------------------------------------------
+
+1. NOTHING COMPETES WITH THE DECISION
+
+At any moment, the user must immediately see:
+
+- current state (Approved / Review / Blocked / Incomplete)
+- risk level
+- compliance status
+- whether action is required
+
+If anything visually competes with these, it must be reduced or removed.
+
+--------------------------------------------------
+
+2. RAW DATA IS NEVER ABOVE THE FOLD
+
+Fields such as:
+
+- HS codes
+- vessel names
+- weights
+- booking numbers
+
+must NEVER appear in the first viewport.
+
+They are secondary reference data.
+
+--------------------------------------------------
+
+3. ONE SCREEN = ONE PURPOSE
+
+Each screen must answer a single question:
+
+- Dashboard → what needs attention?
+- Shipment detail → should this move forward?
+- Exceptions → what is broken?
+
+If a screen answers multiple competing questions, restructure it.
+
+--------------------------------------------------
+
+4. NO VISUAL EQUALITY
+
+If everything looks similar, nothing is important.
+
+Enforce strict contrast between:
+
+- primary signals (large, bold, high visibility)
+- secondary info (smaller, quieter)
+- tertiary data (collapsed or hidden)
+
+--------------------------------------------------
+
+5. REMOVE 30–50% OF WHAT IS VISIBLE
+
+Actively reduce:
+
+- repeated labels
+- redundant metrics
+- decorative UI
+- low-signal data
+
+If removing something does not harm decision-making, it should not exist.
+
+--------------------------------------------------
+
+6. STATE > DATA
+
+The interface must show:
+
+- what the system believes
+- what the system recommends
+
+Not just:
+- what data exists
+
+--------------------------------------------------
+
+STRUCTURAL REDESIGN REQUIREMENTS
+--------------------------------------------------
+
+SHIPMENT DETAIL PAGE (CRITICAL)
+
+Replace current structure with:
+
+1. DECISION BAR (fixed, top, always visible)
+
+Contains:
+- decision (Approved / Review / Blocked / Incomplete)
+- risk level
+- compliance state
+- readiness %
+- exception count
+
+This bar must be visually dominant and readable instantly.
+
+--------------------------------------------------
+
+2. ACTION PANEL (directly below decision bar)
+
+If action is required, show:
+
+- what is wrong
+- what must be done
+- direct actions (resolve, run check, fix data)
+
+No vague language.
+
+--------------------------------------------------
+
+3. SECTION NAVIGATION (sticky)
+
+Horizontal navigation:
+
+- Overview
+- Decision
+- Compliance
+- Documents
+- Risk
+- Journey
+- Financials
+
+Clicking jumps instantly.
+
+--------------------------------------------------
+
+4. PROGRESSIVE DISCLOSURE
+
+Default visible:
+- Overview
+- Decision
+- Exceptions
+- Documents
+
+Everything else:
+- collapsed by default
+
+--------------------------------------------------
+
+5. EXTRACTED DATA RELEGATION
+
+Move all extracted/raw fields into:
+
+"Shipment Data" section (collapsed)
+
+Never shown first.
+
+--------------------------------------------------
+
+VISUAL SYSTEM REQUIREMENTS
+--------------------------------------------------
+
+COLOR
+
+- Do not use pure black or pure white
+- Use neutral backgrounds and soft contrast
+- Color only for meaning:
+  - red → critical / blocked
+  - amber → review / warning
+  - green → approved / safe
+
+No decorative color usage.
+
+--------------------------------------------------
+
+TYPOGRAPHY
+
+Define strict hierarchy:
+
+- Decision → largest, boldest
+- Key metrics → medium, strong
+- Labels → small, muted
+
+No uniform text sizing across sections.
+
+--------------------------------------------------
+
+SPACING
+
+- Increase vertical spacing between sections
+- Increase padding inside cards
+- Ensure clear separation between groups
+
+The interface must feel lighter without removing information.
+
+--------------------------------------------------
+
+INTERACTION
+
+- Collapse rarely-used sections by default
+- Reduce scrolling distance to reach decisions
+- Ensure all critical actions are within first viewport
+
+--------------------------------------------------
+
+WHAT MUST BE REMOVED OR FIXED
+--------------------------------------------------
+
+- No contradictory signals on the same line
+- No dense walls of text
+- No sections with identical visual weight
+- No meaningless activity feeds consuming space
+- No placeholder or low-value content visible by default
+
+--------------------------------------------------
+
+DEFINITION OF SUCCESS
+--------------------------------------------------
+
+A new user can:
+
+- open a shipment
+- understand its state
+- know what to do
+
+in under 5 seconds without scrolling extensively.
+
+--------------------------------------------------
+
+OUTPUT
+--------------------------------------------------
+
+- redesigned layout hierarchy for shipment detail and dashboard
+- enforced visual hierarchy system
+- reduced cognitive load
+- faster scan time
+- interface that feels calm, precise, and controlled
+
+No feature additions.
+No business logic changes.
+Only clarity, hierarchy, and experience.
