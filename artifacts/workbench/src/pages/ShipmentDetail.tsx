@@ -2330,7 +2330,8 @@ function CollapsibleSection({ refCb, title, icon, open, onToggle, badge, childre
     <div ref={refCb} className="scroll-mt-28">
       <button
         onClick={onToggle}
-        className="flex items-center gap-2 w-full p-3 rounded-xl bg-card border border-card-border hover:border-primary/20 transition-colors text-left"
+        className="flex items-center gap-2 w-full p-3 rounded-xl bg-card border border-card-border hover:border-primary/20 transition-all text-left"
+        style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)' }}
       >
         {icon}
         <h3 className="text-[14px] font-semibold text-foreground flex-1">{title}</h3>

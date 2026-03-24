@@ -1,0 +1,145 @@
+You are refining a completed light-mode UI into a premium, high-clarity interface.
+
+The system is already tokenized and consistent.
+
+Your task is to improve:
+- depth perception
+- visual hierarchy
+- readability under scanning conditions
+
+----------------------------------
+1. DEPTH CALIBRATION (CRITICAL)
+----------------------------------
+
+Current light UI is too flat.
+
+Improve surface distinction:
+
+- bg-base:
+  slightly warm or neutral tone (not pure white)
+
+- bg-surface:
+  true white or near-white
+
+- bg-elevated:
+  slightly darker than surface OR subtle shadow
+
+Add:
+
+- extremely soft shadow:
+  blur 10–20px, opacity 3–6%
+
+- OR subtle gradient shift per surface
+
+Goal:
+User should instantly perceive layers without thinking.
+
+----------------------------------
+2. TEXT HIERARCHY STRENGTHENING
+----------------------------------
+
+Adjust contrast:
+
+- text-primary:
+  strong (near-black)
+
+- text-secondary:
+  slightly darker than current (improve readability)
+
+- text-muted:
+  still readable — avoid washed-out gray
+
+Rules:
+
+- No “barely visible” text
+- Everything must be readable without effort
+
+----------------------------------
+3. SECTION SEPARATION (WITHOUT BORDERS)
+----------------------------------
+
+Avoid heavy borders.
+
+Instead:
+
+- increase vertical spacing between sections
+- use subtle background contrast shifts
+- optionally add ultra-light dividers (1px, very low opacity)
+
+Goal:
+Sections feel separated without looking boxed.
+
+----------------------------------
+4. CARD / CONTAINER REFINEMENT
+----------------------------------
+
+Refine card feel:
+
+- reduce reliance on flat fills
+- introduce:
+  - subtle elevation OR
+  - soft tonal difference
+
+- remove “default gray box” feeling
+
+Goal:
+Cards feel intentional, not generic.
+
+----------------------------------
+5. INTERACTION CLARITY
+----------------------------------
+
+Hover states:
+
+- increase clarity slightly:
+  - brightness shift OR
+  - elevation
+
+- ensure interactive elements are obvious
+
+Active states:
+
+- immediate feedback
+- no ambiguity
+
+----------------------------------
+6. PRIMARY VS SECONDARY SIGNALS
+----------------------------------
+
+Strengthen hierarchy:
+
+- primary elements:
+  darker, stronger, more contrast
+
+- secondary:
+  lighter, reduced emphasis
+
+- background:
+  minimal contrast
+
+Goal:
+User should instantly know where to look.
+
+----------------------------------
+7. REDUCE “SAAS TEMPLATE” FEEL
+----------------------------------
+
+Audit UI for:
+
+- generic gray boxes
+- repetitive surfaces
+- uniform spacing everywhere
+
+Refine:
+
+- vary spacing slightly between sections
+- introduce rhythm (tight vs loose spacing)
+
+----------------------------------
+SUCCESS CRITERIA
+----------------------------------
+
+- UI feels layered, not flat
+- text is readable instantly without effort
+- user can scan without slowing down
+- interface feels premium, not templated

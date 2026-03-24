@@ -122,6 +122,7 @@ export default function LoginPage() {
               transition={{ duration: 0.2 }}
               onSubmit={handleLogin}
               className="space-y-4 rounded-2xl border border-card-border bg-card p-6"
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}
             >
               <AnimatePresence>
                 {error && (
@@ -206,6 +207,7 @@ export default function LoginPage() {
               transition={{ duration: 0.2 }}
               onSubmit={handleRegister}
               className="space-y-3 rounded-2xl border border-card-border bg-card p-6"
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}
             >
               <div className="flex items-center gap-2 mb-2">
                 <button

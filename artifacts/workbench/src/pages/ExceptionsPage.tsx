@@ -15,10 +15,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useListExceptions, useAlertsSummary } from "@/hooks/use-exceptions";
 
 const SEVERITY_COLORS: Record<string, { dot: string; text: string; icon: typeof AlertTriangle }> = {
-  CRITICAL: { dot: "bg-red-400", text: "text-red-400", icon: XCircle },
-  HIGH: { dot: "bg-orange-400", text: "text-orange-400", icon: AlertTriangle },
-  MEDIUM: { dot: "bg-yellow-400", text: "text-yellow-400", icon: AlertCircle },
-  LOW: { dot: "bg-blue-400", text: "text-blue-400", icon: Shield },
+  CRITICAL: { dot: "bg-[#E05252]", text: "text-[#E05252]", icon: XCircle },
+  HIGH: { dot: "bg-[#D4A24C]", text: "text-[#D4A24C]", icon: AlertTriangle },
+  MEDIUM: { dot: "bg-[#C9A227]", text: "text-[#B5932B]", icon: AlertCircle },
+  LOW: { dot: "bg-blue-500", text: "text-blue-600", icon: Shield },
 };
 
 const FILTER_TABS = [
@@ -130,7 +130,7 @@ function ExceptionGroup({ label, count, exceptions, isMinor }: { label: string; 
               transition={{ delay: i * 0.02 }}
             >
               <Link href={exc.shipmentId ? `/shipments/${exc.shipmentId}` : "#"}>
-                <div className={`flex items-start gap-3 px-4 py-4 -mx-4 rounded-lg hover:bg-black/[0.03] transition-all cursor-pointer group border-b border-black/[0.04] last:border-b-0 active:scale-[0.998] ${isMinor ? "opacity-50 hover:opacity-90" : ""}`}>
+                <div className={`flex items-start gap-3 px-4 py-4 -mx-4 rounded-xl hover:bg-card transition-all cursor-pointer group border-b border-border/60 last:border-b-0 active:scale-[0.998] ${isMinor ? "opacity-50 hover:opacity-90" : ""}`} style={{ transition: 'all 0.15s ease-out' }}>
                   <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${sev.dot}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
@@ -167,10 +167,10 @@ function ExceptionGroup({ label, count, exceptions, isMinor }: { label: string; 
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    OPEN: "text-red-400/70",
-    IN_PROGRESS: "text-yellow-400/70",
-    ESCALATED: "text-orange-400/70",
-    ACKNOWLEDGED: "text-blue-400/70",
+    OPEN: "text-[#E05252]/80",
+    IN_PROGRESS: "text-[#B5932B]",
+    ESCALATED: "text-[#D4A24C]",
+    ACKNOWLEDGED: "text-blue-600/70",
     RESOLVED: "text-primary/70",
   };
   return (

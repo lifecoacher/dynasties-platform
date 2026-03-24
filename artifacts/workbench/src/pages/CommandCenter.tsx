@@ -120,7 +120,8 @@ export default function CommandCenter() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className={`rounded-2xl ${style.bg} border ${style.border} px-8 py-8 mb-8`}
+              className={`rounded-2xl ${style.bg} border ${style.border} px-8 py-8 mb-10`}
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)' }}
             >
               <div className="flex items-center gap-2 mb-4">
                 <Icon className={`w-4 h-4 ${style.text}`} />
@@ -166,24 +167,24 @@ export default function CommandCenter() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4, delay: 0.15 }}
-              className="flex items-center gap-8 mb-10 text-[13px]"
+              className="flex items-center gap-10 mb-12 text-[13px]"
             >
               <div>
-                <span className="text-muted-foreground/70">Active</span>
-                <span className="ml-2 text-[18px] font-bold text-foreground tabular-nums">{activeShipments}</span>
-                <span className="ml-1 text-muted-foreground/40">/ {totalShipments}</span>
+                <span className="text-muted-foreground text-[12px]">Active</span>
+                <span className="ml-2 text-[20px] font-bold text-foreground tabular-nums">{activeShipments}</span>
+                <span className="ml-1 text-muted-foreground/50 text-[14px]">/ {totalShipments}</span>
               </div>
-              <div className="w-px h-5 bg-border/50" />
+              <div className="w-px h-6 bg-border" />
               <div>
-                <span className="text-muted-foreground/70">Compliant</span>
-                <span className="ml-2 text-[18px] font-bold text-primary tabular-nums">{complianceClear}</span>
+                <span className="text-muted-foreground text-[12px]">Compliant</span>
+                <span className="ml-2 text-[20px] font-bold text-primary tabular-nums">{complianceClear}</span>
               </div>
               {highRisk > 0 && (
                 <>
-                  <div className="w-px h-5 bg-border/50" />
+                  <div className="w-px h-6 bg-border" />
                   <div>
-                    <span className="text-muted-foreground/70">High Risk</span>
-                    <span className="ml-2 text-[18px] font-bold text-[#D4A24C] tabular-nums">{highRisk}</span>
+                    <span className="text-muted-foreground text-[12px]">High Risk</span>
+                    <span className="ml-2 text-[20px] font-bold text-[#D4A24C] tabular-nums">{highRisk}</span>
                   </div>
                 </>
               )}
@@ -226,7 +227,7 @@ export default function CommandCenter() {
                         transition={{ delay: 0.25 + i * 0.03 }}
                       >
                         <Link href={`/shipments/${s.id}`}>
-                          <div className={`flex items-center gap-4 px-4 py-3.5 -mx-4 rounded-lg hover:bg-black/[0.03] transition-all cursor-pointer group ${needsCare ? "" : "opacity-60 hover:opacity-100"}`}>
+                          <div className={`flex items-center gap-4 px-4 py-3.5 -mx-4 rounded-xl hover:bg-card transition-all cursor-pointer group ${needsCare ? "" : "opacity-50 hover:opacity-90"}`} style={{ transition: 'all 0.15s ease-out' }}>
                             <StatusIndicator status={s.status} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2.5">
