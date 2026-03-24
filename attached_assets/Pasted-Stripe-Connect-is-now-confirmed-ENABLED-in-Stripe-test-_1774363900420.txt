@@ -1,0 +1,177 @@
+Stripe Connect is now confirmed ENABLED in Stripe test mode with the Platform business model.
+
+Your task is to validate and harden the existing app-level Stripe Connect flow in Dynasties so it is fully testable end-to-end in sandbox.
+
+Important context:
+- Stripe-side blocker is resolved
+- We are using Standard connected accounts
+- The app already has these endpoints:
+  - GET /api/stripe/connect/status
+  - POST /api/stripe/connect/sync
+  - POST /api/stripe/connect/create-account
+  - POST /api/stripe/connect/onboarding-link
+- Stripe audit confirmed:
+  - Connect is enabled
+  - OAuth is not required for this flow
+  - Account Links API should work
+  - create-account should no longer return CONNECT_NOT_ENABLED
+
+Do NOT overbuild marketplace logic.
+Do NOT add payouts orchestration or split payment logic.
+Do NOT work on UI polish outside of what is needed to expose real Connect states honestly.
+
+--------------------------------------------------
+OBJECTIVE
+--------------------------------------------------
+
+Make Stripe Connect fully testable end-to-end in Dynasties QA.
+
+The flow must support:
+
+1. Create Standard connected account
+2. Generate onboarding link
+3. Return from Stripe onboarding
+4. Persist account state correctly
+5. Sync and expose charges_enabled / payouts_enabled
+6. Show honest UI states
+7. Seed QA workspaces for incomplete and complete Connect states
+
+--------------------------------------------------
+T001 — VERIFY / FIX CONNECT ENDPOINTS
+--------------------------------------------------
+
+Test and fix if needed:
+
+- POST /api/stripe/connect/create-account
+- POST /api/stripe/connect/onboarding-link
+- GET /api/stripe/connect/status
+- POST /api/stripe/connect/sync
+
+Requirements:
+- create-account successfully creates a Standard connected account in Stripe test mode
+- onboarding-link returns a valid Stripe onboarding URL
+- status returns real persisted state
+- sync pulls latest Stripe account state correctly
+
+Return:
+- root cause of any failures found
+- exact files changed
+
+--------------------------------------------------
+T002 — PERSIST CONNECT DATA CORRECTLY
+--------------------------------------------------
+
+Ensure the workspace/company stores and exposes at minimum:
+
+- stripe_connect_account_id
+- connect_onboarding_started
+- connect_onboarding_completed
+- charges_enabled
+- payouts_enabled
+- last_sync_at
+
+If different field names already exist, keep them if sensible, but document them clearly.
+
+Requirements:
+- no fake completion states
+- no UI-derived assumptions
+- account state must come from Stripe and persisted app state
+
+--------------------------------------------------
+T003 — RETURN / REFRESH FLOW
+--------------------------------------------------
+
+Make sure the onboarding flow behaves correctly when the user returns from Stripe.
+
+Requirements:
+- return_url lands in a useful app screen
+- refresh_url behavior works if onboarding is interrupted
+- app does not falsely mark the account connected before Stripe confirms it
+- incomplete onboarding remains clearly incomplete
+
+--------------------------------------------------
+T004 — UI STATE HONESTY
+--------------------------------------------------
+
+In the relevant billing/settings/Connect area, expose clear states:
+
+- Not Connected
+- Onboarding In Progress
+- Pending Verification
+- Connected
+
+Requirements:
+- no misleading “connected” state if charges_enabled/payouts_enabled are false
+- if onboarding is incomplete, explain what the admin should do next
+- if connected, show that clearly
+
+Keep this minimal and honest.
+
+--------------------------------------------------
+T005 — QA WORKSPACES
+--------------------------------------------------
+
+Prepare and return at least:
+
+1. One workspace with Connect NOT onboarded
+2. One workspace with Connect onboarding started but not complete, if feasible
+3. One workspace with Connect fully onboarded in test mode
+
+For each workspace return:
+- workspace name
+- workspace ID
+- login email
+- password
+- expected Connect state
+- what actions should be allowed
+- what actions should be blocked
+
+--------------------------------------------------
+T006 — END-TO-END SANDBOX VERIFICATION
+--------------------------------------------------
+
+Run and verify the full app-level Connect flow in sandbox:
+
+- login as admin
+- create connected account
+- generate onboarding link
+- complete onboarding in test mode
+- return to app
+- sync account status
+- verify charges_enabled and payouts_enabled update correctly
+- verify UI reflects final state honestly
+
+If there are transitional states, document them clearly.
+
+--------------------------------------------------
+T007 — PRODUCT HONESTY CHECK
+--------------------------------------------------
+
+Audit the app for any implication that Connect supports more than it actually does.
+
+Flag and remove or clarify anything that implies:
+- live payouts
+- marketplace settlement
+- split payments
+- treasury-like flows
+
+We only want honest Standard account onboarding/status today.
+
+--------------------------------------------------
+OUTPUT FORMAT
+--------------------------------------------------
+
+Return exactly:
+
+1. Stripe Connect app-level status: WORKING / PARTIAL / BROKEN
+2. Exact endpoints tested and results
+3. Exact files changed
+4. Exact fields stored for Connect state
+5. QA workspace credentials and expected states
+6. Start URL for Connect testing in the UI
+7. Any remaining blockers before Comet can test Connect end-to-end
+8. Any limitations that are intentional and should be disclosed during QA
+
+Do not return vague summaries.
+Do not describe unrelated completed work.
+Only return what is needed to confirm Connect is now honestly testable in sandbox.

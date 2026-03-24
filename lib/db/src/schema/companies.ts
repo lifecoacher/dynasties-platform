@@ -48,6 +48,7 @@ export const companiesTable = pgTable(
     connectOnboardingCompleted: boolean("connect_onboarding_completed").notNull().default(false),
     connectChargesEnabled: boolean("connect_charges_enabled").notNull().default(false),
     connectPayoutsEnabled: boolean("connect_payouts_enabled").notNull().default(false),
+    connectLastSyncAt: timestamp("connect_last_sync_at"),
 
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")

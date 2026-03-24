@@ -9,6 +9,7 @@ export interface ConnectStatus {
   connectOnboardingCompleted: boolean;
   connectChargesEnabled: boolean;
   connectPayoutsEnabled: boolean;
+  connectLastSyncAt: string | null;
   requirements?: {
     currentlyDue: string[];
     eventuallyDue: string[];
@@ -37,10 +38,15 @@ export class StripeConnectService {
       },
     });
 
+    const now = new Date();
     await db.update(companiesTable)
       .set({
         stripeConnectAccountId: account.id,
         connectOnboardingStarted: true,
+        connectOnboardingCompleted: false,
+        connectChargesEnabled: false,
+        connectPayoutsEnabled: false,
+        connectLastSyncAt: now,
       })
       .where(eq(companiesTable.id, companyId));
 
@@ -69,6 +75,7 @@ export class StripeConnectService {
         connectOnboardingCompleted: false,
         connectChargesEnabled: false,
         connectPayoutsEnabled: false,
+        connectLastSyncAt: null,
       };
     }
 
@@ -78,12 +85,14 @@ export class StripeConnectService {
     const chargesEnabled = account.charges_enabled ?? false;
     const payoutsEnabled = account.payouts_enabled ?? false;
     const detailsSubmitted = account.details_submitted ?? false;
+    const now = new Date();
 
     await db.update(companiesTable)
       .set({
         connectOnboardingCompleted: detailsSubmitted,
         connectChargesEnabled: chargesEnabled,
         connectPayoutsEnabled: payoutsEnabled,
+        connectLastSyncAt: now,
       })
       .where(eq(companiesTable.id, companyId));
 
@@ -102,6 +111,7 @@ export class StripeConnectService {
       connectOnboardingCompleted: detailsSubmitted,
       connectChargesEnabled: chargesEnabled,
       connectPayoutsEnabled: payoutsEnabled,
+      connectLastSyncAt: now.toISOString(),
       requirements,
     };
   }
@@ -116,6 +126,7 @@ export class StripeConnectService {
         connectOnboardingCompleted: false,
         connectChargesEnabled: false,
         connectPayoutsEnabled: false,
+        connectLastSyncAt: null,
       };
     }
 
@@ -125,6 +136,7 @@ export class StripeConnectService {
       connectOnboardingCompleted: company.connectOnboardingCompleted,
       connectChargesEnabled: company.connectChargesEnabled,
       connectPayoutsEnabled: company.connectPayoutsEnabled,
+      connectLastSyncAt: company.connectLastSyncAt?.toISOString() ?? null,
     };
   }
 }

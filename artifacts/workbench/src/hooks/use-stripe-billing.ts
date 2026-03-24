@@ -32,6 +32,7 @@ export interface SubscriptionInfo {
   connectOnboardingCompleted: boolean;
   connectChargesEnabled: boolean;
   connectPayoutsEnabled: boolean;
+  connectLastSyncAt: string | null;
 }
 
 export interface ConnectStatusInfo {
@@ -40,6 +41,7 @@ export interface ConnectStatusInfo {
   connectOnboardingCompleted: boolean;
   connectChargesEnabled: boolean;
   connectPayoutsEnabled: boolean;
+  connectLastSyncAt: string | null;
   requirements?: {
     currentlyDue: string[];
     eventuallyDue: string[];

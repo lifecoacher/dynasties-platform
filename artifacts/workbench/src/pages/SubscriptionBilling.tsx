@@ -259,9 +259,16 @@ function ConnectSection({
         )}
 
         {hasAccount && connectData?.stripeConnectAccountId && (
-          <div className="mb-4 px-3 py-2 rounded-lg bg-card-border/30">
-            <span className="text-[11px] text-muted-foreground">Account ID: </span>
-            <span className="text-[11px] font-mono text-foreground">{connectData.stripeConnectAccountId}</span>
+          <div className="mb-4 px-3 py-2 rounded-lg bg-card-border/30 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] text-muted-foreground">Account ID: </span>
+              <span className="text-[11px] font-mono text-foreground">{connectData.stripeConnectAccountId}</span>
+            </div>
+            {connectData.connectLastSyncAt && (
+              <span className="text-[10px] text-muted-foreground">
+                Last synced {new Date(connectData.connectLastSyncAt).toLocaleString()}
+              </span>
+            )}
           </div>
         )}
 
@@ -462,7 +469,7 @@ export default function SubscriptionBilling() {
       setCheckoutStatus(status);
       setTimeout(() => refetch(), 2000);
     }
-    if (connectStatus === "return") {
+    if (connectStatus === "return" || connectStatus === "refresh") {
       handleConnectSync();
     }
     if (status || connectStatus) {
