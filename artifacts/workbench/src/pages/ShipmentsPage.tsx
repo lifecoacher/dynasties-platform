@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useListShipments } from "@workspace/api-client-react";
 import { Link } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { format } from "date-fns";
 import {
   Search,
@@ -14,7 +14,7 @@ import {
   Filter,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { normalizeRiskScore, riskColor, formatCurrency, formatPortCode } from "@/lib/format";
+import { normalizeRiskScore, riskColor, formatPortCode } from "@/lib/format";
 
 type FilterTab = "ALL" | "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "REJECTED";
 
@@ -25,29 +25,6 @@ const TABS: { value: FilterTab; label: string }[] = [
   { value: "APPROVED", label: "Approved" },
   { value: "REJECTED", label: "Rejected" },
 ];
-
-const STAGES = [
-  "Email Received",
-  "Extracted",
-  "Entities Resolved",
-  "Compliance",
-  "Risk Analysis",
-  "Insurance",
-  "Pricing",
-  "Documents",
-  "Billing",
-];
-
-function getCompletedStages(s: any): number {
-  let count = 1;
-  if (s.blNumber || s.commodity) count++;
-  if (s.shipper || s.consignee) count++;
-  if (s.compliance) count++;
-  if (s.risk) count++;
-  if (s.insurance) count++;
-  if (s.status === "APPROVED") count += 3;
-  return Math.min(count, STAGES.length);
-}
 
 export default function ShipmentsPage() {
   const { data: response, isLoading } = useListShipments();
@@ -70,26 +47,24 @@ export default function ShipmentsPage() {
 
   return (
     <AppLayout>
-      <div className="px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="px-6 py-8">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-xl font-semibold text-foreground tracking-tight">Shipments</h1>
-            <p className="text-[13px] text-muted-foreground mt-0.5">
-              {shipments.length} total across all stages
+            <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Shipments</h1>
+            <p className="text-[13px] text-muted-foreground mt-1">
+              {shipments.length} total
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2 rounded-lg bg-card border border-card-border text-[13px] text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all w-56"
-              />
-            </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 rounded-lg bg-card border border-card-border text-[13px] text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all w-56"
+            />
           </div>
         </div>
 
@@ -121,112 +96,82 @@ export default function ShipmentsPage() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             {shipments.length === 0 ? (
               <>
-                <Ship className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                <h3 className="text-[15px] font-semibold text-foreground mb-1">No shipments yet</h3>
-                <p className="text-[13px] text-muted-foreground">Create your first shipment or import documents to get started.</p>
+                <p className="text-[15px] text-muted-foreground mb-1">No shipments yet</p>
+                <p className="text-[13px] text-muted-foreground/60">Create your first shipment or import documents to get started.</p>
               </>
             ) : (
               <>
-                <Filter className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-[14px] text-muted-foreground">No shipments match your filters</p>
+                <Filter className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-[13px] text-muted-foreground">No shipments match your filters</p>
               </>
             )}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-px">
             {filtered.map((s: any, i: number) => {
               const score = normalizeRiskScore(s.risk?.compositeScore);
-              const completedStages = getCompletedStages(s);
-              const progress = (completedStages / STAGES.length) * 100;
 
               return (
                 <motion.div
                   key={s.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: i * 0.02 }}
                 >
                   <Link href={`/shipments/${s.id}`}>
-                    <div className="p-4 rounded-xl bg-card border border-card-border hover:border-primary/30 transition-all cursor-pointer group">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Ship className="w-4 h-4 text-primary" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[14px] font-semibold text-foreground font-mono">{s.reference}</span>
-                              <StatusPill status={s.status} />
-                            </div>
-                            <p className="text-[12px] text-muted-foreground mt-0.5">
-                              {format(new Date(s.createdAt), "MMM d, yyyy")}
-                            </p>
-                          </div>
-                        </div>
+                    <div className="flex items-center gap-4 px-4 py-4 -mx-4 rounded-lg hover:bg-white/[0.02] transition-colors cursor-pointer group border-b border-white/[0.03] last:border-b-0">
+                      <StatusIndicator status={s.status} />
 
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <div className="flex items-center gap-3 text-[12px]">
-                              {s.compliance?.status === "CLEAR" && (
-                                <span className="flex items-center gap-1 text-primary">
-                                  <CheckCircle2 className="w-3 h-3" /> Clear
-                                </span>
-                              )}
-                              {s.compliance?.status && s.compliance.status !== "CLEAR" && (
-                                <span className="flex items-center gap-1 text-[#D4A24C]">
-                                  <AlertTriangle className="w-3 h-3" /> {s.compliance.status}
-                                </span>
-                              )}
-                              {score != null && (
-                                <span className={`font-semibold ${riskColor(score)}`}>Risk {score}</span>
-                              )}
-                              {s.insurance?.estimatedPremium && (
-                                <span className="text-muted-foreground font-mono">
-                                  {formatCurrency(s.insurance.estimatedPremium, s.insurance.currency)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-[14px] font-semibold text-foreground font-mono">{s.reference}</span>
+                          <StatusLabel status={s.status} />
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-[12px] text-muted-foreground">
+                          {s.shipper?.name || s.consignee?.name ? (
+                            <>
+                              <span className="truncate max-w-[180px]">{s.shipper?.name || "Pending"}</span>
+                              <span className="text-primary/40">→</span>
+                              <span className="truncate max-w-[180px]">{s.consignee?.name || "Pending"}</span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground/50 italic">Incomplete Shipment</span>
+                          )}
+                          {s.portOfLoading && (
+                            <>
+                              <span className="text-white/[0.06]">|</span>
+                              <span className="text-muted-foreground/60">{formatPortCode(s.portOfLoading)} → {formatPortCode(s.portOfDischarge)}</span>
+                            </>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 text-[12px] text-muted-foreground mb-3">
-                        {s.shipper?.name || s.consignee?.name ? (
-                          <>
-                            <span className="truncate max-w-[200px]">{s.shipper?.name || "Pending"}</span>
-                            <span className="text-primary/40">→</span>
-                            <span className="truncate max-w-[200px]">{s.consignee?.name || "Pending"}</span>
-                          </>
+                      <div className="flex items-center gap-4 shrink-0">
+                        {s.compliance?.status === "CLEAR" ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-primary/50" />
+                        ) : s.compliance?.status ? (
+                          <AlertTriangle className="w-3.5 h-3.5 text-[#D4A24C]" />
                         ) : (
-                          <span className="text-muted-foreground/60 italic">Incomplete Shipment</span>
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground/30" />
                         )}
-                        {s.portOfLoading && (
-                          <>
-                            <span className="text-border">|</span>
-                            <span>{formatPortCode(s.portOfLoading)} → {formatPortCode(s.portOfDischarge)}</span>
-                          </>
-                        )}
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full bg-primary/60 rounded-full"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${progress}%` }}
-                            transition={{ duration: 0.6, delay: i * 0.05 }}
-                          />
-                        </div>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
-                          {completedStages}/{STAGES.length}
+                        {score != null && (
+                          <span className={`text-[12px] font-semibold tabular-nums ${riskColor(score)}`}>
+                            {score}
+                          </span>
+                        )}
+
+                        <span className="text-[11px] text-muted-foreground/50">
+                          {format(new Date(s.createdAt), "MMM d")}
                         </span>
+
+                        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/20 group-hover:text-muted-foreground transition-colors" />
                       </div>
                     </div>
                   </Link>
@@ -240,23 +185,39 @@ export default function ShipmentsPage() {
   );
 }
 
-function StatusPill({ status }: { status: string }) {
+function StatusIndicator({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    DRAFT: "bg-muted-foreground/40",
+    PENDING_REVIEW: "bg-[#D4A24C]",
+    APPROVED: "bg-primary",
+    REJECTED: "bg-[#E05252]",
+    IN_TRANSIT: "bg-primary",
+    AT_PORT: "bg-[#D4A24C]",
+    CUSTOMS: "bg-[#D4A24C]",
+    BOOKED: "bg-primary/60",
+    DELIVERED: "bg-muted-foreground/40",
+    CLOSED: "bg-muted-foreground/40",
+    CANCELLED: "bg-[#E05252]/40",
+  };
+  return <span className={`w-2 h-2 rounded-full shrink-0 ${colors[status] || "bg-muted-foreground/40"}`} />;
+}
+
+function StatusLabel({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    DRAFT: "bg-muted/50 text-muted-foreground",
-    PENDING_REVIEW: "bg-[#D4A24C]/10 text-[#D4A24C]",
-    APPROVED: "bg-primary/10 text-primary",
-    REJECTED: "bg-[#E05252]/10 text-[#E05252]",
-    IN_TRANSIT: "bg-primary/10 text-primary",
-    BOOKED: "bg-primary/10 text-primary/80",
-    AT_PORT: "bg-[#D4A24C]/10 text-[#D4A24C]",
-    CUSTOMS: "bg-[#D4A24C]/10 text-[#D4A24C]",
-    DELIVERED: "bg-muted/50 text-muted-foreground",
-    CLOSED: "bg-muted/50 text-muted-foreground",
-    PENDING: "bg-muted/50 text-muted-foreground",
-    CANCELLED: "bg-[#E05252]/10 text-[#E05252]/70",
+    DRAFT: "text-muted-foreground/60",
+    PENDING_REVIEW: "text-[#D4A24C]",
+    APPROVED: "text-primary",
+    REJECTED: "text-[#E05252]",
+    IN_TRANSIT: "text-primary",
+    BOOKED: "text-primary/80",
+    AT_PORT: "text-[#D4A24C]",
+    CUSTOMS: "text-[#D4A24C]",
+    DELIVERED: "text-muted-foreground/60",
+    CLOSED: "text-muted-foreground/60",
+    CANCELLED: "text-[#E05252]/70",
   };
   return (
-    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[status] || "bg-muted text-muted-foreground"}`}>
+    <span className={`text-[11px] font-medium ${styles[status] || "text-muted-foreground/60"}`}>
       {status.replace(/_/g, " ")}
     </span>
   );

@@ -1,0 +1,248 @@
+You are redesigning this product to achieve Apple-level UX quality, inspired by Jony Ive principles: clarity, reduction, hierarchy, and calm intelligence.
+
+This is NOT a UI polish task. This is a full UX transformation.
+
+----------------------------------
+CORE PRINCIPLES (NON-NEGOTIABLE)
+----------------------------------
+
+1. Remove, don’t add
+- Eliminate 30–50% of visual elements (cards, borders, labels)
+- Every element must justify its existence
+
+2. One primary action per screen
+- Each screen must answer:
+  → “What should the user do right now?”
+
+3. Replace dashboards with decisions
+- Do not show data first
+- Show:
+  → Decision
+  → Why
+  → What to do
+
+4. System speaks first
+- The AI system should lead, not the user
+- Replace passive UI with active guidance
+
+5. Calm, not busy
+- Reduce visual density
+- Increase whitespace significantly
+- Use typography, not boxes, for structure
+
+----------------------------------
+GLOBAL UI TRANSFORMATION
+----------------------------------
+
+1. REMOVE EXCESS CONTAINERS
+- Eliminate unnecessary cards and borders
+- Use spacing and typography instead of boxed layouts
+
+2. TYPOGRAPHY-FIRST HIERARCHY
+Define strict scale:
+- Level 1: Decision (32–40px, bold)
+- Level 2: Section headers (20–24px)
+- Level 3: Key data (16–18px)
+- Level 4: Metadata (12–14px, muted)
+
+3. COLOR SYSTEM (MEANING-DRIVEN)
+- Green = safe / approved ONLY
+- Yellow = attention
+- Red = risk / blocked
+- Remove decorative color usage
+
+4. DARK MODE REFINEMENT
+- Replace flat black with deep charcoal gradients
+- Add subtle elevation (blur + translucency where appropriate)
+
+5. MOTION & FEEDBACK
+- Add subtle transitions (150–250ms)
+- Hover = lift, not glow
+- Actions = immediate visual confirmation
+
+----------------------------------
+COMMAND CENTER (CRITICAL)
+----------------------------------
+
+Transform from dashboard → decision surface
+
+CURRENT PROBLEM:
+Too many metrics, not enough clarity
+
+NEW DESIGN:
+
+1. TOP = SINGLE DECISION
+Example:
+"Shipment Blocked"
+"Ready for Approval"
+"High Risk Detected"
+
+This must dominate the screen.
+
+2. BELOW = EXPLANATION (HUMAN LANGUAGE)
+Example:
+"Customs documentation incomplete. HS code missing."
+
+3. ACTIONS (PRIMARY)
+- Approve
+- Fix Issue
+- Escalate
+
+4. REMOVE METRIC GRID
+- Keep only 2–3 supporting signals
+- Collapse the rest
+
+5. AI VOICE
+Add a system message:
+“Recommended action: Fix documentation before approval.”
+
+----------------------------------
+AGENTS PANEL → AI INTELLIGENCE LAYER
+----------------------------------
+
+CURRENT:
+Log feed
+
+NEW:
+AI assistant panel
+
+Transform into:
+
+1. SUMMARIZED INTELLIGENCE
+- “3 shipments need attention”
+- “1 compliance risk detected”
+
+2. PRIORITIZED INSIGHTS
+- Not chronological logs
+- Ranked by importance
+
+3. COLLAPSIBLE DETAIL
+- Logs hidden by default
+- Expand only if needed
+
+----------------------------------
+SHIPMENTS / QUOTES / LISTS
+----------------------------------
+
+CURRENT:
+Card-heavy, repetitive
+
+NEW:
+
+1. ROW-BASED DESIGN
+- Reduce card usage
+- Use clean rows with strong alignment
+
+2. PRIMARY SIGNAL FIRST
+Each row should show:
+- Status (dominant)
+- Route
+- Risk (if relevant)
+
+3. PROGRESS SIMPLIFICATION
+- Replace long bars with minimal indicators
+
+----------------------------------
+EXCEPTIONS PAGE
+----------------------------------
+
+CURRENT:
+List of problems
+
+NEW:
+Triage system
+
+1. GROUP BY PRIORITY
+- Critical
+- Needs Attention
+- Informational
+
+2. SHOW IMPACT
+Example:
+"$45,000 potential loss"
+
+3. CLEAR NEXT STEP
+Each item must have:
+→ “Resolve now”
+→ “Assign”
+→ “Ignore”
+
+----------------------------------
+CONTROL TOWER
+----------------------------------
+
+CURRENT:
+Empty / passive
+
+NEW:
+Predictive intelligence
+
+1. SHOW ONLY IF RELEVANT
+- Hide empty states completely
+
+2. WHEN ACTIVE:
+- “Storm risk may delay 2 shipments”
+- “Port congestion increasing in Shanghai”
+
+----------------------------------
+WORK QUEUE
+----------------------------------
+
+CURRENT:
+Empty state
+
+NEW:
+Action engine
+
+1. If empty:
+Show:
+“System is operating normally. No actions required.”
+
+2. If active:
+- Show only actionable tasks
+- No passive tracking
+
+----------------------------------
+EMOTIONAL DESIGN LAYER
+----------------------------------
+
+Add:
+
+1. CONFIDENCE
+- “All systems operating normally”
+- “Low risk environment”
+
+2. URGENCY
+- Use motion + color sparingly
+
+3. TRUST
+- Clean, quiet, predictable UI
+
+----------------------------------
+PERFORMANCE & SPEED
+----------------------------------
+
+- Reduce DOM complexity
+- Avoid over-rendering cards
+- Lazy load secondary panels
+- Prioritize perceived speed (instant feedback)
+
+----------------------------------
+FINAL GOAL
+----------------------------------
+
+This product should feel like:
+- iPhone-level simplicity
+- Tesla-level decision making
+- Notion-level clarity
+
+Users should feel:
+“I don’t manage logistics. The system does.”
+
+----------------------------------
+OUTPUT REQUIREMENTS
+----------------------------------
+
+- Refactor existing components (do NOT rebuild from scratch)
+- Maintain all backend logic
+- Focus only on UX, UI, and interaction model
