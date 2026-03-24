@@ -1,0 +1,121 @@
+Stop working on UI and stop summarizing completed feature work.
+
+We are now preparing a dedicated end-to-end QA environment for a full release simulation audit.
+
+This is NOT a feature sprint.
+This is NOT a polish sprint.
+This is QA environment preparation only.
+
+Your task is to prepare a complete testable environment so Comet can audit the product from start to finish without manual intervention.
+
+Prepare the following and return everything explicitly.
+
+1. TEST USERS
+Create and return working credentials for:
+- Admin / workspace owner
+- Operator
+- Viewer or manager
+
+For each, return:
+- email
+- password
+- role
+- workspace they belong to
+
+2. TEST WORKSPACES
+Prepare distinct workspaces for the following states:
+- Trial workspace
+- Active paid workspace
+- Failed / inactive billing workspace
+- Seat-available workspace
+- Seat-limit-reached workspace
+- Stripe Connect not onboarded workspace (only if Connect is actually implemented)
+- Stripe Connect onboarded workspace (only if Connect is actually implemented)
+
+If Connect is NOT actually implemented, say so clearly and do not fake it.
+
+3. BILLING / SEAT STATE MATRIX
+For each workspace, return:
+- workspace name
+- plan
+- billing status
+- seat limit
+- seats currently used
+- shipment limit
+- shipments currently used
+- what should be allowed
+- what should be blocked
+
+4. IMPORT TEST DATA
+Prepare and return test datasets for:
+- clean import
+- malformed import
+- partial import
+- data that triggers document generation
+- data that triggers compliance / risk / exceptions
+- multi-currency invoice/payment scenarios if supported
+
+For each dataset, return:
+- file names
+- what it is meant to test
+- expected result
+
+5. STRIPE TEST MODE
+Confirm all billing flows are test-mode only.
+Return:
+- start URL for billing test
+- expected successful payment behavior
+- expected failed payment behavior
+- whether customer portal is wired and testable
+
+6. STRIPE CONNECT
+Confirm one of the following:
+A. Connect is implemented and testable in test mode
+B. Connect is not implemented enough for end-to-end QA
+
+If A, return:
+- start URL
+- expected incomplete-onboarding behavior
+- expected complete-onboarding behavior
+
+If B, say it clearly and do not pretend otherwise.
+
+7. PRODUCT FLOW READINESS
+Ensure Comet can test:
+- login
+- workspace access
+- billing/trial activation
+- seat / license behavior
+- user invite / role behavior
+- import / migration
+- shipment review
+- document generation
+- reconciliation
+- accounting sync visibility
+- AI/agent flows where applicable
+
+8. FAILURE STATE READINESS
+Ensure Comet can test:
+- inactive billing restrictions
+- failed payment restrictions
+- seat limit reached
+- malformed import
+- partial import
+- 404 states
+- permission denied states
+- demo-mode disclosures
+
+9. RETURN FORMAT
+Return exactly:
+- start URLs
+- all credentials
+- all workspace names
+- workspace state matrix
+- datasets and expected outcomes
+- what is implemented vs not implemented
+- any blockers before Comet can test end-to-end
+
+Do not return vague summaries.
+Do not describe completed UI work.
+Do not describe “all tasks complete.”
+Return only the QA environment details needed for Comet.
