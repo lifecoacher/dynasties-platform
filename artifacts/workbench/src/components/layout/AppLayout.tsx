@@ -14,9 +14,9 @@ export function AppLayout({ children, hideRightPanel = false }: AppLayoutProps) 
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         {DEMO_MODE && (
-          <div className="shrink-0 px-4 py-1.5 bg-primary/10 border-b border-primary/20 text-center">
-            <span className="text-[11px] font-medium text-primary tracking-wide">
-              DEMO MODE — Simulated data &amp; integrations active
+          <div className="shrink-0 px-4 py-1 bg-primary/6 border-b border-primary/10 text-center">
+            <span className="text-[10px] font-medium text-primary/60 tracking-wider uppercase">
+              Demo Mode
             </span>
           </div>
         )}

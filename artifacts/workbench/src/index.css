@@ -101,6 +101,10 @@
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
   --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.03);
   --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.03);
+
+  --transition-fast: 120ms ease-out;
+  --transition-base: 200ms ease-out;
+  --transition-slow: 350ms ease-out;
 }
 
 @layer base {
@@ -123,13 +127,17 @@
   }
 
   button, a {
-    transition: all 0.15s ease-out;
+    transition: all var(--transition-fast);
+  }
+
+  * {
+    transition-timing-function: ease-out;
   }
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -139,7 +147,7 @@
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
+  background: hsl(var(--muted-foreground) / 0.3);
 }
 
 .glass-panel {
@@ -150,7 +158,7 @@
 .surface-card {
   @apply bg-card border border-card-border;
   box-shadow: var(--shadow-card);
-  transition: box-shadow 0.2s ease-out;
+  transition: box-shadow var(--transition-base);
 }
 .surface-card:hover {
   box-shadow: var(--shadow-card-hover);
@@ -187,11 +195,11 @@
 
 @keyframes agent-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(0, 166, 145, 0); }
-  50% { box-shadow: 0 0 8px 2px rgba(0, 166, 145, 0.08); }
+  50% { box-shadow: 0 0 8px 2px rgba(0, 166, 145, 0.06); }
 }
 
 .agent-glow {
-  animation: agent-glow 2s ease-in-out infinite;
+  animation: agent-glow 2.5s ease-in-out infinite;
 }
 
 .font-heading {
@@ -199,7 +207,7 @@
 }
 
 @keyframes breathe {
-  0%, 100% { opacity: 0.7; }
+  0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 }
 

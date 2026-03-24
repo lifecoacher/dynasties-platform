@@ -1,0 +1,87 @@
+You are acting as the Release Manager, Platform Engineer, and Technical Lead for Dynasties.
+
+Your task is to prepare Dynasties for a full end-to-end release readiness audit.
+
+This is NOT a feature sprint.
+This is a release-candidate preparation sprint.
+
+OBJECTIVE:
+Prepare a staging / release candidate environment so Comet can audit the full product from signup to operational workflows to AWS readiness.
+
+Complete or verify all of the following:
+
+1. ENVIRONMENTS
+- Confirm separation between local/dev and staging/release candidate
+- If staging is not fully wired, create or finish it
+- Ensure env vars and secrets are properly separated
+
+2. AWS DEPLOYMENT READINESS
+- Confirm frontend deploy is actually wired to S3 + CloudFront
+- Confirm API deploy is wired to ECS
+- Confirm DB migrations are applied safely
+- Confirm uploads/generated docs use S3, not local filesystem
+- Confirm queue behavior and whether consumers are isolated from API or still shared
+- Confirm health checks exist for API and DB
+- Add or verify a health check for queue/worker liveness if applicable
+
+3. MONITORING / ALERTING
+- Verify or add CloudWatch alarms for:
+  - API 5xx
+  - ECS task unhealthy / restarts
+  - RDS CPU / storage
+  - DLQ depth / queue failure
+- Add structured app-level logging if any critical flows still lack it
+- Confirm where operators/developers should look when something breaks
+
+4. DEPLOYMENT SAFETY
+- Add or verify smoke test after staging deploy
+- Document rollback path
+- Confirm build → deploy → verify flow works end-to-end
+
+5. END-TO-END QA ENVIRONMENT
+Prepare dedicated QA accounts and workspace(s):
+- Admin / owner
+- Operator
+- Viewer or manager
+
+Provide:
+- login URLs
+- usernames/emails
+- passwords
+- workspace names
+- plan / seat state
+- billing/trial state
+- any test-mode Stripe assumptions
+
+6. PRODUCT FLOW READINESS
+Ensure the following are testable from the QA environment:
+- signup / login
+- workspace creation
+- plan or trial activation
+- seat/license assignment
+- user invite / role assignment
+- migration import
+- shipment review
+- document generation
+- reconciliation
+- accounting sync visibility
+
+7. FAILURE STATES
+Ensure Comet can verify:
+- inactive billing restrictions
+- missing data states
+- import failures
+- 404 states
+- demo-mode disclosures
+- permission restrictions
+
+OUTPUT FORMAT:
+1. Release readiness summary
+2. What already exists vs what you implemented now
+3. Exact staging/release URLs
+4. Exact QA credentials and workspace states
+5. Monitoring/alerting map
+6. Remaining blockers before Comet audit
+7. Remaining blockers before real AWS production deployment
+
+Be precise. No vague summaries.
