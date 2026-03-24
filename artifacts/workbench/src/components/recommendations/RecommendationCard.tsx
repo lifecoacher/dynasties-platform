@@ -86,8 +86,8 @@ const statusBadgeColors: Record<string, string> = {
   MODIFIED: "bg-primary/10 text-primary/70 border-primary/30",
   REJECTED: "bg-[#E05252]/20 text-[#E05252] border-[#E05252]/40",
   IMPLEMENTED: "bg-primary/20 text-primary border-primary/40",
-  EXPIRED: "bg-white/10 text-white/40 border-white/20",
-  SUPERSEDED: "bg-white/10 text-white/40 border-white/20",
+  EXPIRED: "bg-black/[0.05] text-foreground/40 border-white/20",
+  SUPERSEDED: "bg-black/[0.05] text-foreground/40 border-white/20",
 };
 
 const externalReasonCodeIcons: Record<string, typeof Globe> = {
@@ -183,7 +183,7 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="text-sm font-medium text-white truncate">{rec.title}</h4>
+              <h4 className="text-sm font-medium text-foreground truncate">{rec.title}</h4>
               <span className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded border ${badgeColor}`}>
                 {rec.urgency}
               </span>
@@ -193,21 +193,21 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
                 </span>
               )}
               {!isPending && (
-                <span className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded border ${statusBadgeColors[rec.status] || "bg-white/10 text-white/60 border-white/20"}`}>
+                <span className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded border ${statusBadgeColors[rec.status] || "bg-black/[0.05] text-foreground/60 border-white/20"}`}>
                   {rec.status}
                 </span>
               )}
             </div>
 
             {showShipmentRef && (
-              <p className="text-[11px] text-white/40 mt-0.5">Shipment: {rec.shipmentId.substring(0, 16)}...</p>
+              <p className="text-[11px] text-foreground/40 mt-0.5">Shipment: {rec.shipmentId.substring(0, 16)}...</p>
             )}
 
             {extCodes.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {extCodes.map((code) => {
                   const ExtIcon = externalReasonCodeIcons[code] || Globe;
-                  const colorCls = externalReasonCodeColors[code] || "bg-white/10 text-white/50 border-white/20";
+                  const colorCls = externalReasonCodeColors[code] || "bg-black/[0.05] text-foreground/50 border-white/20";
                   const label = externalReasonCodeLabels[code] || code.replace(/_/g, " ");
                   return (
                     <span key={code} className={`flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded border ${colorCls}`}>
@@ -220,10 +220,10 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
             )}
 
             {!compact && (
-              <p className="text-xs text-white/60 mt-1 line-clamp-2">{rec.explanation}</p>
+              <p className="text-xs text-foreground/60 mt-1 line-clamp-2">{rec.explanation}</p>
             )}
 
-            <div className="flex items-center gap-3 mt-2 text-[11px] text-white/40">
+            <div className="flex items-center gap-3 mt-2 text-[11px] text-foreground/40">
               <span>Confidence: {(rec.confidence * 100).toFixed(0)}%</span>
               {rec.expectedDelayImpactDays != null && (
                 <span>Delay: {rec.expectedDelayImpactDays > 0 ? "+" : ""}{rec.expectedDelayImpactDays}d</span>
@@ -239,7 +239,7 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
             {!compact && (
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-1 mt-2 text-[11px] text-white/50 hover:text-white/80 transition-colors"
+                className="flex items-center gap-1 mt-2 text-[11px] text-foreground/50 hover:text-foreground/80 transition-colors"
               >
                 {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 {expanded ? "Less" : "Details"}
@@ -254,27 +254,27 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="mt-3 pt-3 border-t border-white/10">
-                    <p className="text-xs text-white/50 mb-2">
-                      <span className="text-white/70 font-medium">Recommended: </span>
+                  <div className="mt-3 pt-3 border-t border-black/[0.06]">
+                    <p className="text-xs text-foreground/50 mb-2">
+                      <span className="text-foreground/70 font-medium">Recommended: </span>
                       {rec.recommendedAction}
                     </p>
                     <div className="flex flex-wrap gap-1 mb-2">
                       {rec.reasonCodes.map((code) => (
-                        <span key={code} className="px-1.5 py-0.5 text-[10px] bg-white/5 rounded text-white/40">
+                        <span key={code} className="px-1.5 py-0.5 text-[10px] bg-black/[0.03] rounded text-foreground/40">
                           {code}
                         </span>
                       ))}
                     </div>
 
                     {evidence.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-white/5">
+                      <div className="mt-2 pt-2 border-t border-black/5">
                         <p className="text-[10px] font-medium text-primary/80 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                           <Globe size={10} /> Signal Evidence ({evidence.length})
                         </p>
                         <div className="space-y-1">
                           {evidence.map((sig, i) => (
-                            <div key={sig.signalId || i} className="flex items-start gap-1.5 text-[10px] text-white/50">
+                            <div key={sig.signalId || i} className="flex items-start gap-1.5 text-[10px] text-foreground/50">
                               <span className={`mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                                 sig.severity === "CRITICAL" ? "bg-[#E05252]" :
                                 sig.severity === "HIGH" ? "bg-[#D4A24C]" :
@@ -288,7 +288,7 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
                     )}
 
                     {rec.expiresAt && (
-                      <p className="text-[10px] text-white/30 mt-2">
+                      <p className="text-[10px] text-foreground/30 mt-2">
                         Expires: {new Date(rec.expiresAt).toLocaleDateString()} {new Date(rec.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     )}
@@ -334,14 +334,14 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
             >
               <div className="flex items-center gap-2 mb-3 text-primary">
                 <Pencil className="w-5 h-5" />
-                <h2 className="text-[16px] font-semibold text-white">Modify Recommendation</h2>
+                <h2 className="text-[16px] font-semibold text-foreground">Modify Recommendation</h2>
               </div>
-              <p className="text-[12px] text-white/50 mb-1">{rec.title}</p>
-              <p className="text-[11px] text-white/30 mb-4">
-                <span className="text-white/50 font-medium">Current action: </span>
+              <p className="text-[12px] text-foreground/50 mb-1">{rec.title}</p>
+              <p className="text-[11px] text-foreground/30 mb-4">
+                <span className="text-foreground/50 font-medium">Current action: </span>
                 {rec.recommendedAction}
               </p>
-              <label className="text-[11px] font-medium text-white/60 uppercase tracking-wider mb-1.5 block">
+              <label className="text-[11px] font-medium text-foreground/60 uppercase tracking-wider mb-1.5 block">
                 Modification Notes
               </label>
               <textarea
@@ -354,7 +354,7 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => { setShowModifyModal(false); setModifyNotes(""); }}
-                  className="px-4 py-2 rounded-lg text-[13px] font-medium text-white/60 hover:bg-white/5 transition-colors"
+                  className="px-4 py-2 rounded-lg text-[13px] font-medium text-foreground/60 hover:bg-black/[0.03] transition-colors"
                 >
                   Cancel
                 </button>

@@ -22,7 +22,7 @@ The design features an AI-native decision system with a three-zone layout (left 
 - **Decision-first hierarchy**: Status/decision is the dominant element, not data. Command Center leads with system status card (Face ID / Tesla autopilot feel)
 - **Calm empty states**: "System operating normally" instead of "No data found"
 - **Microinteractions**: active:scale-[0.97] on CTAs, hover transitions, 150ms timing
-- The design system uses Dynasties branding with specific fonts (Space Grotesk, Inter), a dark infrastructure palette with subtle gradient background, primary teal (#00BFA6), warning amber (#D4A24C), destructive red (#E05252). Uses an 8px grid system and Framer Motion for animations.
+- **Light-first UI system**: Full light theme with CSS custom properties in `index.css`. Background `hsl(220 14% 96%)`, cards white, sidebar `hsl(220 14% 98%)`. Primary teal `#00A692`, warning amber `#D4A24C` (darker `#B5832B` for text on light bg), destructive red `#E05252`. All hardcoded dark hex values (#080C12, #0D1219, #121821, #1a2233, #12121a) replaced with semantic tokens (bg-background, bg-card, border-card-border). `text-white` only used on colored buttons (bg-primary, bg-emerald). Clerk auth appearance uses light values. Uses Space Grotesk + Inter fonts, 8px grid, Framer Motion animations.
 
 **Technical Implementations:**
 - **Backend:** Node.js 24, TypeScript 5.9, Express 5.

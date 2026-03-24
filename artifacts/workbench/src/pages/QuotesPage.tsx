@@ -93,14 +93,14 @@ export default function QuotesPage() {
         </div>
 
         <div className="flex items-center gap-4 mb-4">
-          <div className="flex items-center gap-1 bg-[#0D1219] rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-background rounded-lg p-1">
             {TABS.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
                 className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
                   activeTab === tab.value
-                    ? "bg-[#1a2233] text-foreground"
+                    ? "bg-black/[0.04] text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -115,7 +115,7 @@ export default function QuotesPage() {
               placeholder="Search quotes..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#0D1219] border border-[#1a2233] text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#00BFA6]/50"
+              className="w-full pl-9 pr-3 py-2 rounded-lg bg-background border border-card-border text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40"
             />
           </div>
         </div>
@@ -150,7 +150,7 @@ export default function QuotesPage() {
                     exit={{ opacity: 0, y: -10 }}
                   >
                     <Link href={`/quotes/${quote.id}`}>
-                      <div className="group flex items-center gap-4 p-4 rounded-xl bg-[#121821] border border-[#1a2233] hover:border-[#00BFA6]/30 transition-all cursor-pointer">
+                      <div className="group flex items-center gap-4 p-4 rounded-xl bg-card border border-card-border hover:border-[#00BFA6]/30 transition-all cursor-pointer">
                         <div className={`p-2.5 rounded-lg ${cfg.bg}`}>
                           <Icon className={`w-4 h-4 ${cfg.color}`} />
                         </div>

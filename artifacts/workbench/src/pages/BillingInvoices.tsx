@@ -120,7 +120,7 @@ export default function BillingInvoices() {
       <div className="px-8 py-8 max-w-[1400px] mx-auto">
         <div className="flex items-center gap-3 mb-2">
           <Link href="/billing">
-            <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors">
+            <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-colors">
               <ChevronLeft className="w-4 h-4" />
             </button>
           </Link>

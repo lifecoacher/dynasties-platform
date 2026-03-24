@@ -99,10 +99,10 @@ export function Sidebar() {
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors cursor-pointer relative ${
                   active
                     ? "bg-primary/10 text-primary"
-                    : "text-sidebar-foreground hover:text-foreground hover:bg-white/[0.04]"
+                    : "text-sidebar-foreground hover:text-foreground hover:bg-black/[0.03]"
                 }`}
                 whileHover={{ x: 2 }}
-                transition={{ duration: 0.15 }}
+                transition={{ duration: 0.12 }}
               >
                 {active && (
                   <motion.div
@@ -114,7 +114,7 @@ export function Sidebar() {
                 <item.icon className="w-4 h-4 shrink-0" />
                 {item.label}
                 {item.href === "/exceptions" && alertCount > 0 && (
-                  <span className="ml-auto px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-red-500/20 text-red-400 min-w-[18px] text-center">
+                  <span className="ml-auto px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-red-500/10 text-red-500 min-w-[18px] text-center">
                     {alertCount}
                   </span>
                 )}
@@ -125,7 +125,7 @@ export function Sidebar() {
 
         {!DEMO_MODE && (
           <Link href="/demo">
-            <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors cursor-pointer mt-2">
+            <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-foreground hover:bg-black/[0.03] transition-colors cursor-pointer mt-2">
               <Zap className="w-4 h-4 shrink-0" />
               Demo Pipeline
             </div>
@@ -137,7 +137,7 @@ export function Sidebar() {
             <p className="px-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Recent</p>
             {recentShipments.map((s: any) => (
               <Link key={s.id} href={`/shipments/${s.id}`}>
-                <div className="flex items-center justify-between px-3 py-1.5 rounded-md text-[12px] text-sidebar-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors cursor-pointer group">
+                <div className="flex items-center justify-between px-3 py-1.5 rounded-md text-[12px] text-sidebar-foreground hover:text-foreground hover:bg-black/[0.03] transition-colors cursor-pointer group">
                   <span className="font-mono truncate">{s.reference}</span>
                   <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>

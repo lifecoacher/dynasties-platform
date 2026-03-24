@@ -292,10 +292,10 @@ export function DocumentWorkspace({ shipmentId }: DocumentWorkspaceProps) {
               className="relative w-[90vw] max-w-[900px] h-[85vh] bg-white rounded-xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-4 py-2 bg-[#0D1219] border-b border-card-border">
+              <div className="flex items-center justify-between px-4 py-2 bg-background border-b border-card-border">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
-                  <span className="text-[12px] font-semibold text-white">
+                  <span className="text-[12px] font-semibold text-foreground">
                     {(DOC_TYPE_META[previewDoc.type]?.icon ? previewDoc.type.replace(/_/g, " ") : previewDoc.type)}
                   </span>
                 </div>
@@ -309,7 +309,7 @@ export function DocumentWorkspace({ shipmentId }: DocumentWorkspaceProps) {
                   </button>
                   <button
                     onClick={() => setPreviewDoc(null)}
-                    className="p-1 rounded hover:bg-white/10 text-white/60 hover:text-white"
+                    className="p-1 rounded hover:bg-black/[0.05] text-foreground/60 hover:text-foreground"
                   >
                     <X className="w-4 h-4" />
                   </button>

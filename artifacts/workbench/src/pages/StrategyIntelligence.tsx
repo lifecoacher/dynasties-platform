@@ -131,7 +131,7 @@ export default function StrategyIntelligence() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white p-6">
+    <div className="min-h-screen bg-background text-foreground p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -153,7 +153,7 @@ export default function StrategyIntelligence() {
           </button>
         </div>
 
-        <div className="flex gap-1 mb-6 bg-[#12121a] rounded-lg p-1">
+        <div className="flex gap-1 mb-6 bg-card rounded-lg p-1">
           {tabs.map((t) => (
             <button
               key={t.key}
@@ -161,7 +161,7 @@ export default function StrategyIntelligence() {
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 tab === t.key
                   ? "bg-primary/20 text-primary/70"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
+                  : "text-slate-400 hover:text-foreground hover:bg-black/5"
               }`}
             >
               <t.icon className="w-4 h-4" />
@@ -195,7 +195,7 @@ function MetricCard({ label, value, icon: Icon, color = "text-primary/70", sub }
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-[#12121a] border border-white/5 rounded-xl p-4"
+      className="bg-card border border-black/5 rounded-xl p-4"
     >
       <div className="flex items-center gap-2 mb-2">
         <Icon className={`w-4 h-4 ${color}`} />
@@ -295,7 +295,7 @@ function OverviewTab({ summary, networkRecs }: { summary: any; networkRecs: any[
       )}
 
       {port?.riskDistribution && (
-        <div className="bg-[#12121a] border border-white/5 rounded-xl p-5">
+        <div className="bg-card border border-black/5 rounded-xl p-5">
           <h3 className="text-sm font-medium text-slate-300 mb-3">Risk Distribution</h3>
           <div className="flex gap-2 h-6">
             {["low", "medium", "high", "critical"].map((level) => {
@@ -324,16 +324,16 @@ function OverviewTab({ summary, networkRecs }: { summary: any; networkRecs: any[
       )}
 
       {summary.topRecommendations?.length > 0 && (
-        <div className="bg-[#12121a] border border-white/5 rounded-xl p-5">
+        <div className="bg-card border border-black/5 rounded-xl p-5">
           <h3 className="text-sm font-medium text-slate-300 mb-3">Top Strategic Recommendations</h3>
           <div className="space-y-2">
             {summary.topRecommendations.map((rec: any) => (
-              <div key={rec.id} className="flex items-start gap-3 p-3 bg-white/[0.02] rounded-lg border border-white/5">
+              <div key={rec.id} className="flex items-start gap-3 p-3 bg-black/[0.02] rounded-lg border border-black/5">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_COLORS[rec.priority] ?? ""}`}>
                   {rec.priority}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{rec.title}</p>
+                  <p className="text-sm font-medium text-foreground">{rec.title}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{rec.suggestedAction}</p>
                 </div>
                 <span className="text-xs text-slate-500 shrink-0">{rec.scope}</span>
@@ -344,18 +344,18 @@ function OverviewTab({ summary, networkRecs }: { summary: any; networkRecs: any[
       )}
 
       {networkRecs.length > 0 && (
-        <div className="bg-[#12121a] border border-white/5 rounded-xl p-5">
+        <div className="bg-card border border-black/5 rounded-xl p-5">
           <h3 className="text-sm font-medium text-slate-300 mb-3">
             All Network Recommendations ({networkRecs.length})
           </h3>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {networkRecs.map((rec: any) => (
-              <div key={rec.id} className="flex items-start gap-3 p-3 bg-white/[0.02] rounded-lg border border-white/5">
+              <div key={rec.id} className="flex items-start gap-3 p-3 bg-black/[0.02] rounded-lg border border-black/5">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${PRIORITY_COLORS[rec.priority] ?? ""}`}>
                   {rec.priority}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{rec.title}</p>
+                  <p className="text-sm font-medium text-foreground">{rec.title}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{rec.description}</p>
                 </div>
                 <span className="text-xs text-slate-500 shrink-0 uppercase">{rec.scope}</span>
@@ -398,7 +398,7 @@ function LanesTab({ lanes }: { lanes: any[] }) {
             key={lane.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-[#12121a] border border-white/5 rounded-xl p-4"
+            className="bg-card border border-black/5 rounded-xl p-4"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
@@ -422,10 +422,10 @@ function LanesTab({ lanes }: { lanes: any[] }) {
             </div>
 
             {lane.suggestedActions?.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/5">
+              <div className="mt-3 pt-3 border-t border-black/5">
                 <div className="flex flex-wrap gap-2">
                   {lane.suggestedActions.map((action: string, i: number) => (
-                    <span key={i} className="text-xs text-slate-400 bg-white/[0.03] px-2 py-1 rounded">
+                    <span key={i} className="text-xs text-slate-400 bg-black/[0.03] px-2 py-1 rounded">
                       {action}
                     </span>
                   ))}
@@ -455,7 +455,7 @@ function CarriersTab({ carriers }: { carriers: any[] }) {
         {["PREFERRED", "INCREASE_ALLOCATION", "ACCEPTABLE_MONITOR", "REDUCE_ALLOCATION", "AVOID_CURRENT_CONDITIONS"].map((a) => {
           const count = carriers.filter((c) => c.allocation === a).length;
           return (
-            <div key={a} className="text-center p-2 rounded-lg border border-white/5 bg-[#12121a]">
+            <div key={a} className="text-center p-2 rounded-lg border border-black/5 bg-card">
               <div className={`text-lg font-bold ${ALLOCATION_COLORS[a]}`}>{count}</div>
               <div className="text-xs text-slate-400 mt-0.5">{a.replace(/_/g, " ")}</div>
             </div>
@@ -469,12 +469,12 @@ function CarriersTab({ carriers }: { carriers: any[] }) {
             key={carrier.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-[#12121a] border border-white/5 rounded-xl p-4"
+            className="bg-card border border-black/5 rounded-xl p-4"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium">{carrier.carrierName}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full border border-white/10 ${ALLOCATION_COLORS[carrier.allocation]}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full border border-black/[0.06] ${ALLOCATION_COLORS[carrier.allocation]}`}>
                   {carrier.allocation.replace(/_/g, " ")}
                 </span>
               </div>
@@ -491,10 +491,10 @@ function CarriersTab({ carriers }: { carriers: any[] }) {
             </div>
 
             {carrier.suggestedActions?.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/5">
+              <div className="mt-3 pt-3 border-t border-black/5">
                 <div className="flex flex-wrap gap-2">
                   {carrier.suggestedActions.map((action: string, i: number) => (
-                    <span key={i} className="text-xs text-slate-400 bg-white/[0.03] px-2 py-1 rounded">
+                    <span key={i} className="text-xs text-slate-400 bg-black/[0.03] px-2 py-1 rounded">
                       {action}
                     </span>
                   ))}
@@ -554,7 +554,7 @@ function PortfolioTab({ portfolio }: { portfolio: any }) {
       </div>
 
       {portfolio.trends && (
-        <div className="bg-[#12121a] border border-white/5 rounded-xl p-5">
+        <div className="bg-card border border-black/5 rounded-xl p-5">
           <h3 className="text-sm font-medium text-slate-300 mb-3">Trends</h3>
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -588,7 +588,7 @@ function PortfolioTab({ portfolio }: { portfolio: any }) {
 
 function ExposureTable({ title, data, keyField }: { title: string; data: any[]; keyField: string }) {
   return (
-    <div className="bg-[#12121a] border border-white/5 rounded-xl p-5">
+    <div className="bg-card border border-black/5 rounded-xl p-5">
       <h3 className="text-sm font-medium text-slate-300 mb-3">{title}</h3>
       <div className="space-y-1.5">
         {data.slice(0, 10).map((item: any, i: number) => {
@@ -596,7 +596,7 @@ function ExposureTable({ title, data, keyField }: { title: string; data: any[]; 
           return (
             <div key={i} className="flex items-center gap-3 text-xs">
               <span className="w-32 truncate text-slate-300 shrink-0">{item[keyField]}</span>
-              <div className="flex-1 bg-white/[0.03] rounded h-4">
+              <div className="flex-1 bg-black/[0.03] rounded h-4">
                 <div
                   className="bg-primary/40 h-full rounded"
                   style={{ width: `${(item.exposure / maxExp) * 100}%` }}
@@ -681,16 +681,16 @@ function AttributionTab({ attribution }: { attribution: any }) {
         />
       </div>
 
-      <div className="bg-[#12121a] border border-white/5 rounded-xl p-5">
+      <div className="bg-card border border-black/5 rounded-xl p-5">
         <h3 className="text-sm font-medium text-slate-300 mb-3">Intelligence Impact Comparison</h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 bg-white/[0.02] rounded-lg border border-white/5">
+          <div className="p-4 bg-black/[0.02] rounded-lg border border-black/5">
             <span className="text-xs text-slate-500">Intelligence-Enriched Acceptance</span>
             <div className="text-xl font-bold text-primary/70 mt-1">
               {(attribution.intelligenceEnrichedImpact * 100).toFixed(0)}%
             </div>
           </div>
-          <div className="p-4 bg-white/[0.02] rounded-lg border border-white/5">
+          <div className="p-4 bg-black/[0.02] rounded-lg border border-black/5">
             <span className="text-xs text-slate-500">Internal-Only Acceptance</span>
             <div className="text-xl font-bold text-slate-300 mt-1">
               {(attribution.internalOnlyImpact * 100).toFixed(0)}%
@@ -700,14 +700,14 @@ function AttributionTab({ attribution }: { attribution: any }) {
       </div>
 
       {attribution.attributionDetails?.length > 0 && (
-        <div className="bg-[#12121a] border border-white/5 rounded-xl p-5">
+        <div className="bg-card border border-black/5 rounded-xl p-5">
           <h3 className="text-sm font-medium text-slate-300 mb-3">Attribution Methodology</h3>
           <div className="space-y-2">
             {attribution.attributionDetails.map((d: any, i: number) => (
-              <div key={i} className="flex items-center gap-3 text-xs p-2 bg-white/[0.02] rounded border border-white/5">
+              <div key={i} className="flex items-center gap-3 text-xs p-2 bg-black/[0.02] rounded border border-black/5">
                 <span className="text-slate-500 w-20 shrink-0">{d.category}</span>
                 <span className="text-slate-300 flex-1">{d.metric}</span>
-                <span className="text-white font-medium w-16 text-right">
+                <span className="text-foreground font-medium w-16 text-right">
                   {typeof d.value === "number" && d.value < 1 && d.value > 0
                     ? `${(d.value * 100).toFixed(0)}%`
                     : d.value}

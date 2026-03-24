@@ -70,7 +70,7 @@ export default function AccountingIntegration() {
       <div className="px-8 py-8 max-w-[1000px] mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <Link href="/settings">
-            <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors">
+            <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-colors">
               <ChevronLeft className="w-4 h-4" />
             </button>
           </Link>
@@ -80,7 +80,7 @@ export default function AccountingIntegration() {
           </div>
           <button
             onClick={() => refetch()}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -285,7 +285,7 @@ export default function AccountingIntegration() {
                       </thead>
                       <tbody>
                         {mappings.map((m: any) => (
-                          <tr key={m.id} className="border-b border-card-border last:border-0 hover:bg-white/[0.02]">
+                          <tr key={m.id} className="border-b border-card-border last:border-0 hover:bg-black/[0.02]">
                             <td className="px-4 py-2.5">
                               <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                                 m.entityType === "CUSTOMER" ? "bg-blue-500/10 text-blue-400" :

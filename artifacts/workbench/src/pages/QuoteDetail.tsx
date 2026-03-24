@@ -166,7 +166,7 @@ export default function QuoteDetail() {
       <div className="p-6 max-w-[1100px] mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/quotes">
-            <button className="p-2 rounded-lg hover:bg-[#1a2233] transition-colors">
+            <button className="p-2 rounded-lg hover:bg-black/[0.04] transition-colors">
               <ArrowLeft className="w-4 h-4 text-muted-foreground" />
             </button>
           </Link>
@@ -190,7 +190,7 @@ export default function QuoteDetail() {
                 <button
                   onClick={handleSave}
                   disabled={updateQuote.isPending}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1a2233] text-foreground text-[12px] font-medium hover:bg-[#222d3d] transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black/[0.04] text-foreground text-[12px] font-medium hover:bg-black/[0.06] transition-colors disabled:opacity-50"
                 >
                   <Save className="w-3.5 h-3.5" />
                   {updateQuote.isPending ? "Saving..." : "Save"}
@@ -268,7 +268,7 @@ export default function QuoteDetail() {
 
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-4">
-            <div className="rounded-xl bg-[#121821] border border-[#1a2233] p-5">
+            <div className="rounded-xl bg-card border border-card-border p-5">
               <h2 className="text-[14px] font-semibold text-foreground mb-4">Route & Logistics</h2>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Origin" value={form.origin} field="origin" editable={isEditable} onChange={(v) => setForm({ ...form, origin: v })} />
@@ -280,7 +280,7 @@ export default function QuoteDetail() {
               </div>
             </div>
 
-            <div className="rounded-xl bg-[#121821] border border-[#1a2233] p-5">
+            <div className="rounded-xl bg-card border border-card-border p-5">
               <h2 className="text-[14px] font-semibold text-foreground mb-4">Cargo Details</h2>
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
@@ -294,14 +294,14 @@ export default function QuoteDetail() {
             </div>
 
             {form.notes !== undefined && (
-              <div className="rounded-xl bg-[#121821] border border-[#1a2233] p-5">
+              <div className="rounded-xl bg-card border border-card-border p-5">
                 <h2 className="text-[14px] font-semibold text-foreground mb-3">Notes</h2>
                 {isEditable ? (
                   <textarea
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     rows={3}
-                    className="w-full px-3 py-2 rounded-lg bg-[#0D1219] border border-[#1a2233] text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#00BFA6]/50 resize-none"
+                    className="w-full px-3 py-2 rounded-lg bg-background border border-card-border text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40 resize-none"
                     placeholder="Add notes..."
                   />
                 ) : (
@@ -312,7 +312,7 @@ export default function QuoteDetail() {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-xl bg-[#121821] border border-[#1a2233] p-5">
+            <div className="rounded-xl bg-card border border-card-border p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-[14px] font-semibold text-foreground">Line Items</h2>
                 {quote.quotedAmount && (
@@ -332,11 +332,11 @@ export default function QuoteDetail() {
                   {lineItems.map((li: any) => (
                     <div
                       key={li.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-[#0D1219] border border-[#1a2233]"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-background border border-card-border"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase bg-[#1a2233] text-muted-foreground">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase bg-black/[0.04] text-muted-foreground">
                             {li.chargeType}
                           </span>
                           <span className="text-[12px] text-foreground truncate">
@@ -368,7 +368,7 @@ export default function QuoteDetail() {
               {isDraft && !showLineItemForm && (
                 <button
                   onClick={() => setShowLineItemForm(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-[#1a2233] text-[12px] text-muted-foreground hover:border-[#00BFA6]/30 hover:text-foreground transition-colors w-full justify-center"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-card-border text-[12px] text-muted-foreground hover:border-[#00BFA6]/30 hover:text-foreground transition-colors w-full justify-center"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add Line Item
@@ -379,7 +379,7 @@ export default function QuoteDetail() {
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
-                  className="border border-[#1a2233] rounded-lg p-3 space-y-3"
+                  className="border border-card-border rounded-lg p-3 space-y-3"
                 >
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -387,7 +387,7 @@ export default function QuoteDetail() {
                       <select
                         value={newLineItem.chargeType}
                         onChange={(e) => setNewLineItem({ ...newLineItem, chargeType: e.target.value })}
-                        className="w-full mt-1 px-2 py-1.5 rounded bg-[#0D1219] border border-[#1a2233] text-[12px] text-foreground focus:outline-none focus:border-[#00BFA6]/50"
+                        className="w-full mt-1 px-2 py-1.5 rounded bg-background border border-card-border text-[12px] text-foreground focus:outline-none focus:border-primary/40"
                       >
                         {CHARGE_TYPES.map((ct) => (
                           <option key={ct} value={ct}>{ct.replace(/_/g, " ")}</option>
@@ -399,7 +399,7 @@ export default function QuoteDetail() {
                       <input
                         value={newLineItem.description}
                         onChange={(e) => setNewLineItem({ ...newLineItem, description: e.target.value })}
-                        className="w-full mt-1 px-2 py-1.5 rounded bg-[#0D1219] border border-[#1a2233] text-[12px] text-foreground focus:outline-none focus:border-[#00BFA6]/50"
+                        className="w-full mt-1 px-2 py-1.5 rounded bg-background border border-card-border text-[12px] text-foreground focus:outline-none focus:border-primary/40"
                         placeholder="Description"
                       />
                     </div>
@@ -408,7 +408,7 @@ export default function QuoteDetail() {
                       <input
                         value={newLineItem.unitPrice}
                         onChange={(e) => setNewLineItem({ ...newLineItem, unitPrice: e.target.value })}
-                        className="w-full mt-1 px-2 py-1.5 rounded bg-[#0D1219] border border-[#1a2233] text-[12px] text-foreground focus:outline-none focus:border-[#00BFA6]/50"
+                        className="w-full mt-1 px-2 py-1.5 rounded bg-background border border-card-border text-[12px] text-foreground focus:outline-none focus:border-primary/40"
                         placeholder="0.00"
                         type="number"
                         step="0.01"
@@ -419,7 +419,7 @@ export default function QuoteDetail() {
                       <input
                         value={newLineItem.quantity}
                         onChange={(e) => setNewLineItem({ ...newLineItem, quantity: parseInt(e.target.value) || 1 })}
-                        className="w-full mt-1 px-2 py-1.5 rounded bg-[#0D1219] border border-[#1a2233] text-[12px] text-foreground focus:outline-none focus:border-[#00BFA6]/50"
+                        className="w-full mt-1 px-2 py-1.5 rounded bg-background border border-card-border text-[12px] text-foreground focus:outline-none focus:border-primary/40"
                         placeholder="1"
                         type="number"
                         min="1"
@@ -446,9 +446,9 @@ export default function QuoteDetail() {
             </div>
 
             {quote.pricingSnapshot && (
-              <div className="rounded-xl bg-[#121821] border border-[#1a2233] p-5">
+              <div className="rounded-xl bg-card border border-card-border p-5">
                 <h2 className="text-[14px] font-semibold text-foreground mb-3">Accepted Pricing Snapshot</h2>
-                <div className="p-3 rounded-lg bg-[#0D1219] border border-[#1a2233]">
+                <div className="p-3 rounded-lg bg-background border border-card-border">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] text-muted-foreground">Accepted Amount</span>
                     <span className="text-[14px] font-semibold text-emerald-400">
@@ -501,7 +501,7 @@ function Field({
           type={type}
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full mt-1 px-3 py-2 rounded-lg bg-[#0D1219] border border-[#1a2233] text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#00BFA6]/50"
+          className="w-full mt-1 px-3 py-2 rounded-lg bg-background border border-card-border text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40"
         />
       ) : (
         <p className="mt-1 text-[13px] text-foreground">{value || "-"}</p>
