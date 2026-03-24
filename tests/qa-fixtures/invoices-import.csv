@@ -1,0 +1,6 @@
+invoiceNumber,shipmentReference,customerName,amount,currency,dueDate,status,description
+QA-INV-001,QA-CLEAN-001,Acme Global Trading,12500.00,USD,2026-05-01,DRAFT,Ocean freight LA to Rotterdam
+QA-INV-002,QA-CLEAN-002,Shanghai Export Corp,4500.00,USD,2026-05-15,DRAFT,Container shipping Shanghai-LB
+QA-INV-003,QA-CLEAN-003,Hamburg Logistics GmbH,28000.00,EUR,2026-04-30,DRAFT,Machinery transport Hamburg-Singapore
+QA-INV-004,QA-CLEAN-004,Mumbai Spice Traders,2200.00,USD,2026-06-01,DRAFT,LCL consolidation Mumbai-Felixstowe
+QA-INV-005,QA-CLEAN-005,Tokyo Pharma Inc,15800.00,JPY,2026-04-15,DRAFT,Air freight Tokyo-Vancouver

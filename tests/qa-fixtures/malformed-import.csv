@@ -1,0 +1,6 @@
+reference,origin,destination,mode,status,commodity,cargoValue,currency
+,Los Angeles,Rotterdam,SEA_FCL,DRAFT,Electronics,125000,USD
+QA-BAD-002,,,,DRAFT,Textiles,not_a_number,USD
+QA-BAD-003,Hamburg,Singapore,INVALID_MODE,DRAFT,Machinery,310000,FAKE_CURRENCY
+QA-BAD-004,Mumbai,Felixstowe,SEA_LCL,DRAFT,,18000,
+QA-BAD-005,Tokyo,Vancouver,AIR,INVALID_STATUS,Pharmaceuticals,abc,JPY

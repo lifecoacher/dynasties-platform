@@ -1,0 +1,6 @@
+reference,origin,destination,mode,status,commodity,cargoValue,currency,packageCount,grossWeight
+QA-PART-001,Los Angeles,Rotterdam,SEA_FCL,DRAFT,Electronics,125000,USD,50,18000
+QA-PART-002,Shanghai,Long Beach,SEA_FCL,DRAFT,Textiles,45000,USD,120,8500
+,,,SEA_FCL,DRAFT,,310000,EUR,25,42000
+QA-PART-004,Mumbai,Felixstowe,SEA_LCL,DRAFT,Spices,18000,USD,80,3200
+QA-PART-005,,Vancouver,AIR,DRAFT,Pharmaceuticals,,USD,10,450
