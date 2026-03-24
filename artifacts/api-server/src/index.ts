@@ -23,6 +23,13 @@ async function initStripe() {
     await runMigrations({ databaseUrl } as any);
     console.log('Stripe schema ready');
 
+    const { pool } = await import('@workspace/db');
+    await pool.query(`
+      GRANT USAGE ON SCHEMA stripe TO app_user;
+      GRANT SELECT ON ALL TABLES IN SCHEMA stripe TO app_user;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA stripe GRANT SELECT ON TABLES TO app_user;
+    `).catch(() => {});
+
     const stripeSync = await getStripeSync();
 
     console.log('Setting up managed webhook...');

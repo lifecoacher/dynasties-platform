@@ -1,4 +1,4 @@
-import { db } from "@workspace/db";
+import { db, pool } from "@workspace/db";
 import { companiesTable } from "@workspace/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient.js";
@@ -89,8 +89,8 @@ export class StripeService {
   }
 
   async getProductsWithPrices() {
-    const result = await db.execute(sql`
-      SELECT
+    const result = await pool.query(
+      `SELECT
         p.id as product_id,
         p.name as product_name,
         p.description as product_description,
@@ -104,14 +104,15 @@ export class StripeService {
       FROM stripe.products p
       LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
       WHERE p.active = true
-      ORDER BY pr.unit_amount ASC NULLS LAST
-    `);
+      ORDER BY pr.unit_amount ASC NULLS LAST`
+    );
     return result.rows;
   }
 
   async getSubscription(subscriptionId: string) {
-    const result = await db.execute(
-      sql`SELECT * FROM stripe.subscriptions WHERE id = ${subscriptionId}`
+    const result = await pool.query(
+      `SELECT * FROM stripe.subscriptions WHERE id = $1`,
+      [subscriptionId]
     );
     return result.rows[0] || null;
   }

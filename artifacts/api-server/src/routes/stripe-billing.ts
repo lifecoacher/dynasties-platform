@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
+import { db, pool } from "@workspace/db";
 import { companiesTable, usersTable } from "@workspace/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getCompanyId } from "../middlewares/tenant.js";
@@ -14,31 +14,33 @@ const router = Router();
 const DEMO_MODE_SERVER = process.env.VITE_DEMO_MODE === "true";
 
 async function resolveStripePriceId(planType: string): Promise<string | null> {
-  const result = await db.execute(sql`
-    SELECT pr.id
-    FROM stripe.prices pr
-    JOIN stripe.products p ON pr.product = p.id
-    WHERE p.active = true AND pr.active = true
-    AND p.metadata->>'planType' = ${planType}
-    AND (p.metadata->>'priceType' IS NULL OR p.metadata->>'priceType' = '')
-    AND (pr.metadata->>'priceType' IS NULL OR pr.metadata->>'priceType' = 'subscription')
-    AND pr.recurring IS NOT NULL
-    LIMIT 1
-  `);
-  return (result.rows[0] as any)?.id || null;
+  const result = await pool.query(
+    `SELECT pr.id
+     FROM stripe.prices pr
+     JOIN stripe.products p ON pr.product = p.id
+     WHERE p.active = true AND pr.active = true
+     AND p.metadata->>'planType' = $1
+     AND (p.metadata->>'priceType' IS NULL OR p.metadata->>'priceType' = '')
+     AND (pr.metadata->>'priceType' IS NULL OR pr.metadata->>'priceType' = 'subscription')
+     AND pr.recurring IS NOT NULL
+     LIMIT 1`,
+    [planType]
+  );
+  return result.rows[0]?.id || null;
 }
 
 async function resolveDeploymentFeePriceId(planType: string): Promise<string | null> {
-  const result = await db.execute(sql`
-    SELECT pr.id
-    FROM stripe.prices pr
-    JOIN stripe.products p ON pr.product = p.id
-    WHERE p.active = true AND pr.active = true
-    AND p.metadata->>'planType' = ${planType}
-    AND p.metadata->>'priceType' = 'deployment_fee'
-    LIMIT 1
-  `);
-  return (result.rows[0] as any)?.id || null;
+  const result = await pool.query(
+    `SELECT pr.id
+     FROM stripe.prices pr
+     JOIN stripe.products p ON pr.product = p.id
+     WHERE p.active = true AND pr.active = true
+     AND p.metadata->>'planType' = $1
+     AND p.metadata->>'priceType' = 'deployment_fee'
+     LIMIT 1`,
+    [planType]
+  );
+  return result.rows[0]?.id || null;
 }
 
 router.get("/stripe/plans", async (_req, res) => {

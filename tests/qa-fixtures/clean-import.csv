@@ -1,0 +1,6 @@
+reference,origin,destination,mode,status,commodity,cargoValue,currency,packageCount,grossWeight,portOfLoading,portOfDischarge,carrier,containerNumber
+QA-CLEAN-001,Los Angeles,Rotterdam,SEA_FCL,DRAFT,Electronics,125000,USD,50,18000,USLAX,NLRTM,Maersk,MSKU1234567
+QA-CLEAN-002,Shanghai,Long Beach,SEA_FCL,DRAFT,Textiles,45000,USD,120,8500,CNSHA,USLGB,COSCO,COSU7654321
+QA-CLEAN-003,Hamburg,Singapore,SEA_FCL,DRAFT,Machinery,310000,EUR,25,42000,DEHAM,SGSIN,Hapag-Lloyd,HLCU9876543
+QA-CLEAN-004,Mumbai,Felixstowe,SEA_LCL,DRAFT,Spices,18000,USD,80,3200,INBOM,GBFXT,MSC,MSCU1122334
+QA-CLEAN-005,Tokyo,Vancouver,AIR,DRAFT,Pharmaceuticals,890000,USD,10,450,JPTYO,CAVAN,ANA Cargo,

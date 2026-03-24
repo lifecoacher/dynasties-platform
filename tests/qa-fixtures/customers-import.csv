@@ -1,0 +1,6 @@
+name,type,contactEmail,phone,address,city,country,taxId
+Acme Global Trading,CUSTOMER,orders@acmeglobal.com,+1-555-0101,123 Trade Blvd,Los Angeles,US,US-EIN-123456789
+Shanghai Export Corp,SHIPPER,exports@shanghaiexport.cn,+86-21-5555-0202,88 Pudong Road,Shanghai,CN,CN-USCI-91310000
+Hamburg Logistics GmbH,CARRIER,ops@hamburglogistics.de,+49-40-555-0303,Hafenstrasse 42,Hamburg,DE,DE-VAT-123456789
+Mumbai Spice Traders,CUSTOMER,info@mumbaispice.in,+91-22-5555-0404,12 Spice Market,Mumbai,IN,IN-GSTIN-123456789
+Tokyo Pharma Inc,SHIPPER,logistics@tokyopharma.jp,+81-3-5555-0505,1-1 Marunouchi,Tokyo,JP,JP-TIN-1234567890123
