@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   AlertCircle,
@@ -10,9 +10,12 @@ import {
   Loader2,
   Clock,
   ArrowRight,
+  X,
+  ArrowUpCircle,
+  Send,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useListExceptions, useAlertsSummary } from "@/hooks/use-exceptions";
+import { useListExceptions, useAlertsSummary, useResolveException, useEscalateException } from "@/hooks/use-exceptions";
 
 const SEVERITY_META: Record<string, { dot: string; text: string; icon: typeof AlertTriangle }> = {
   CRITICAL: { dot: "bg-[#E05252]", text: "text-[#E05252]", icon: XCircle },
@@ -60,6 +63,7 @@ function deriveImpact(exc: any) {
 
 export default function ExceptionsPage() {
   const [statusFilter, setStatusFilter] = useState("ACTIVE");
+  const [selectedExc, setSelectedExc] = useState<any | null>(null);
   const { data: exceptionsRes, isLoading } = useListExceptions({ status: statusFilter || undefined });
   const { data: summaryRes } = useAlertsSummary();
 
@@ -77,7 +81,7 @@ export default function ExceptionsPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="mb-1">
           <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Exceptions</h1>
         </div>
@@ -126,35 +130,230 @@ export default function ExceptionsPage() {
           ))}
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30" />
-          </div>
-        ) : exceptions.length === 0 ? (
-          <div className="text-center py-20">
-            <CheckCircle2 className="w-5 h-5 text-primary/20 mx-auto mb-2" />
-            <p className="text-[14px] text-foreground/50 mb-1">All clear</p>
-            <p className="text-[13px] text-muted-foreground/40">No exceptions matching this filter.</p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {critical.length > 0 && (
-              <TriageGroup label="Critical" count={critical.length} exceptions={critical} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30" />
+              </div>
+            ) : exceptions.length === 0 ? (
+              <div className="text-center py-20">
+                <CheckCircle2 className="w-5 h-5 text-primary/20 mx-auto mb-2" />
+                <p className="text-[14px] text-foreground/50 mb-1">All clear</p>
+                <p className="text-[13px] text-muted-foreground/40">No exceptions matching this filter.</p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {critical.length > 0 && (
+                  <TriageGroup label="Critical" count={critical.length} exceptions={critical} onSelect={setSelectedExc} selectedId={selectedExc?.id} />
+                )}
+                {high.length > 0 && (
+                  <TriageGroup label="Needs Attention" count={high.length} exceptions={high} onSelect={setSelectedExc} selectedId={selectedExc?.id} />
+                )}
+                {rest.length > 0 && (
+                  <TriageGroup label="Informational" count={rest.length} exceptions={rest} isMinor onSelect={setSelectedExc} selectedId={selectedExc?.id} />
+                )}
+              </div>
             )}
-            {high.length > 0 && (
-              <TriageGroup label="Needs Attention" count={high.length} exceptions={high} />
-            )}
-            {rest.length > 0 && (
-              <TriageGroup label="Informational" count={rest.length} exceptions={rest} isMinor />
-            )}
           </div>
-        )}
+
+          <div>
+            <AnimatePresence mode="wait">
+              {selectedExc ? (
+                <ExceptionDetailPanel
+                  key={selectedExc.id}
+                  exception={selectedExc}
+                  onClose={() => setSelectedExc(null)}
+                />
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="border border-border/40 rounded-lg p-6 text-center sticky top-6"
+                >
+                  <AlertTriangle size={20} className="mx-auto text-muted-foreground/15 mb-2" />
+                  <p className="text-[13px] text-muted-foreground/30">Select an exception to view details and take action</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
     </AppLayout>
   );
 }
 
-function TriageGroup({ label, count, exceptions, isMinor }: { label: string; count: number; exceptions: any[]; isMinor?: boolean }) {
+function ExceptionDetailPanel({ exception, onClose }: { exception: any; onClose: () => void }) {
+  const [resolutionNotes, setResolutionNotes] = useState("");
+  const [escalateReason, setEscalateReason] = useState("");
+  const [showEscalate, setShowEscalate] = useState(false);
+  const resolveMutation = useResolveException();
+  const escalateMutation = useEscalateException();
+
+  const sev = SEVERITY_META[exception.severity] || SEVERITY_META.LOW;
+  const impact = deriveImpact(exception);
+  const isActive = ["OPEN", "IN_PROGRESS", "ESCALATED"].includes(exception.status);
+  const actions = exception.recommendedActions || [];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className="border border-border/60 rounded-lg overflow-hidden sticky top-6"
+    >
+      <div className="p-4 border-b border-border/40">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${sev.dot}`} />
+            <span className={`text-[11px] font-medium ${sev.text}`}>{exception.severity}</span>
+            <StatusBadge status={exception.status} />
+          </div>
+          <button onClick={onClose} className="text-muted-foreground/30 hover:text-foreground transition-colors">
+            <X size={14} />
+          </button>
+        </div>
+        <h3 className="text-[14px] font-semibold text-foreground mb-1">{exception.title}</h3>
+        <p className="text-[12px] text-muted-foreground/50">{humanizeType(exception.exceptionType)}</p>
+      </div>
+
+      <div className="p-4 space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto">
+        {exception.description && (
+          <div>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-medium">Description</span>
+            <p className="text-[12px] text-foreground/70 mt-1">{exception.description}</p>
+          </div>
+        )}
+
+        {impact && (
+          <div className="px-3 py-2 rounded-lg bg-[#D4A24C]/5 border border-[#D4A24C]/10">
+            <span className="text-[11px] font-medium text-[#D4A24C]">Impact: {impact}</span>
+          </div>
+        )}
+
+        {actions.length > 0 && (
+          <div>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-medium">Recommended Actions</span>
+            <div className="mt-2 space-y-1.5">
+              {actions.map((a: any, i: number) => (
+                <div key={i} className="flex items-start gap-2 text-[12px]">
+                  <span className={`mt-0.5 px-1 py-0.5 text-[9px] font-bold rounded ${
+                    a.priority === "HIGH" ? "bg-[#E05252]/10 text-[#E05252]" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {a.priority}
+                  </span>
+                  <span className="text-foreground/60">{a.action}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {exception.shipmentId && (
+          <Link href={`/shipments/${exception.shipmentId}`}>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 text-primary text-[12px] font-medium hover:bg-primary/10 transition-colors cursor-pointer">
+              <ArrowRight size={12} />
+              View Shipment
+            </div>
+          </Link>
+        )}
+
+        <div className="text-[11px] text-muted-foreground/30 flex items-center gap-3">
+          <span className="flex items-center gap-1"><Clock size={10} /> {new Date(exception.createdAt).toLocaleString()}</span>
+          {exception.detectedFrom && <span>Source: {exception.detectedFrom}</span>}
+        </div>
+
+        {exception.resolutionNotes && (
+          <div>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-medium">Resolution</span>
+            <p className="text-[12px] text-foreground/60 mt-1">{exception.resolutionNotes}</p>
+          </div>
+        )}
+
+        {isActive && (
+          <div className="border-t border-border/30 pt-4 space-y-3">
+            {!showEscalate ? (
+              <>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-medium">Resolution Notes</label>
+                  <textarea
+                    value={resolutionNotes}
+                    onChange={(e) => setResolutionNotes(e.target.value)}
+                    placeholder="Describe how this was resolved..."
+                    className="w-full mt-1 px-3 py-2 text-[12px] bg-background border border-border/60 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!resolutionNotes.trim()) return;
+                      resolveMutation.mutate({ id: exception.id, resolutionNotes }, {
+                        onSuccess: () => onClose(),
+                      });
+                    }}
+                    disabled={!resolutionNotes.trim() || resolveMutation.isPending}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-40 transition-colors"
+                  >
+                    {resolveMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                    Resolve
+                  </button>
+                  <button
+                    onClick={() => setShowEscalate(true)}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-medium bg-[#D4A24C]/10 text-[#D4A24C] rounded-lg hover:bg-[#D4A24C]/15 transition-colors"
+                  >
+                    <ArrowUpCircle size={12} />
+                    Escalate
+                  </button>
+                </div>
+                {resolveMutation.isError && (
+                  <p className="text-[11px] text-[#E05252]">{(resolveMutation.error as Error).message}</p>
+                )}
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-medium">Escalation Reason</label>
+                  <textarea
+                    value={escalateReason}
+                    onChange={(e) => setEscalateReason(e.target.value)}
+                    placeholder="Why is this being escalated?"
+                    className="w-full mt-1 px-3 py-2 text-[12px] bg-background border border-border/60 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[#D4A24C]/30"
+                    rows={2}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      escalateMutation.mutate({ id: exception.id, reason: escalateReason || undefined }, {
+                        onSuccess: () => onClose(),
+                      });
+                    }}
+                    disabled={escalateMutation.isPending}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-medium bg-[#D4A24C] text-white rounded-lg hover:bg-[#D4A24C]/90 disabled:opacity-40 transition-colors"
+                  >
+                    {escalateMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                    Escalate
+                  </button>
+                  <button
+                    onClick={() => setShowEscalate(false)}
+                    className="px-3 py-2 text-[11px] text-muted-foreground/40 hover:text-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function TriageGroup({ label, count, exceptions, isMinor, onSelect, selectedId }: {
+  label: string; count: number; exceptions: any[]; isMinor?: boolean; onSelect: (exc: any) => void; selectedId?: string;
+}) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-3">
@@ -165,6 +364,7 @@ function TriageGroup({ label, count, exceptions, isMinor }: { label: string; cou
         {exceptions.map((exc: any, i: number) => {
           const sev = SEVERITY_META[exc.severity] || SEVERITY_META.LOW;
           const impact = deriveImpact(exc);
+          const isSelected = exc.id === selectedId;
           return (
             <motion.div
               key={exc.id}
@@ -172,40 +372,47 @@ function TriageGroup({ label, count, exceptions, isMinor }: { label: string; cou
               animate={{ opacity: 1 }}
               transition={{ delay: i * 0.02 }}
             >
-              <Link href={exc.shipmentId ? `/shipments/${exc.shipmentId}` : "#"}>
-                <div className={`flex items-start gap-3 px-4 py-3.5 -mx-4 rounded-xl hover:bg-card transition-all cursor-pointer group border-b border-border/30 last:border-b-0 active:scale-[0.998] ${isMinor ? "opacity-40 hover:opacity-80" : ""}`}>
-                  <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${sev.dot}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[13px] font-medium text-foreground">{exc.title}</span>
-                      <span className={`text-[10px] font-medium ${sev.text}`}>{exc.severity}</span>
-                      <StatusBadge status={exc.status} />
-                    </div>
-                    <p className="text-[12px] text-muted-foreground/50 line-clamp-1 mb-1">{exc.description}</p>
-                    <div className="flex items-center gap-3 text-[11px] text-muted-foreground/35">
-                      <span>{humanizeType(exc.exceptionType)}</span>
-                      {impact && (
-                        <>
-                          <span className="text-muted-foreground/15">·</span>
-                          <span className={!isMinor ? "text-foreground/40" : ""}>{impact}</span>
-                        </>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {new Date(exc.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
+              <div
+                onClick={() => onSelect(exc)}
+                className={`flex items-start gap-3 px-4 py-3.5 -mx-4 rounded-xl transition-all cursor-pointer group border-b border-border/30 last:border-b-0 active:scale-[0.998] ${
+                  isSelected
+                    ? "bg-primary/[0.04] border-primary/20"
+                    : isMinor ? "opacity-40 hover:opacity-80 hover:bg-card" : "hover:bg-card"
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${sev.dot}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[13px] font-medium text-foreground">{exc.title}</span>
+                    <span className={`text-[10px] font-medium ${sev.text}`}>{exc.severity}</span>
+                    <StatusBadge status={exc.status} />
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 mt-1">
-                    {exc.shipmentId && !isMinor && (
-                      <span className="text-[11px] font-medium text-primary transition-colors">
-                        Resolve
-                      </span>
+                  <p className="text-[12px] text-muted-foreground/50 line-clamp-1 mb-1">{exc.description}</p>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground/35">
+                    <span>{humanizeType(exc.exceptionType)}</span>
+                    {impact && (
+                      <>
+                        <span className="text-muted-foreground/15">·</span>
+                        <span className={!isMinor ? "text-foreground/40" : ""}>{impact}</span>
+                      </>
                     )}
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/15 group-hover:text-muted-foreground/40 transition-colors" />
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(exc.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
-              </Link>
+                <div className="flex items-center gap-2 shrink-0 mt-1">
+                  {exc.shipmentId && !isMinor && (
+                    <Link href={`/shipments/${exc.shipmentId}`} onClick={(e: any) => e.stopPropagation()}>
+                      <span className="text-[11px] font-medium text-primary transition-colors">
+                        Shipment
+                      </span>
+                    </Link>
+                  )}
+                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/15 group-hover:text-muted-foreground/40 transition-colors" />
+                </div>
+              </div>
             </motion.div>
           );
         })}

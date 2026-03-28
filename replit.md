@@ -113,6 +113,16 @@ The system automates various freight forwarding stages, including:
 - **T004 404 UX**: ShipmentDetail shows "Shipment Not Found" page (not infinite spinner) when shipment doesn't exist or user lacks access. Includes back-navigation link.
 - **T005 Data Normalization**: Verified — `formatWeight`, `formatCurrency`, entity name fallbacks already handle null/undefined gracefully.
 
+## Pre-Beta Stabilization Sprint (Complete)
+- **T001 Document Generation → Validation**: `runDocumentValidation()` now awaited (not fire-and-forget) after generate/regenerate. Response includes validation result for immediate state consistency.
+- **T002 Work Queue from Real Issues**: `POST /tasks/generate-from-issues` scans active exceptions, creates tasks via EXCEPTION_TO_TASK mapping. Dedup by `metadata->>'exceptionId'`. UI: "Scan Issues" button on WorkQueue page.
+- **T003 Notifications Pipeline**: `POST /notifications/generate` creates notifications from critical exceptions, overdue tasks, blocked docs/compliance. Dedup by source entity ID (exception/task ID), not shipment. Schema extended with EXCEPTION_CRITICAL, EXCEPTION_HIGH, EXCEPTION_RESOLVED, SLA_BREACH, COMPLIANCE_BLOCK, DOCUMENT_BLOCKED event types. UI: "Scan for alerts" button on NotificationsPanel.
+- **T005 Stripe Connect Honesty**: Explicit blocked-state UI banners in SubscriptionBilling.tsx for ONBOARDING_IN_PROGRESS and PENDING_VERIFICATION states — no implied payment readiness.
+- **T006 Quote Send Validation**: `sendQuote()` validates origin, destination, cargo description, customer, and at least one line item before allowing send.
+- **T007 Billing Aging Truth**: Aging buckets (current/1-30/31-60/61-90/90+) reconciled with totalOutstanding. `agingTotal` field exposed. Outstanding corrected to match aging sum when divergent.
+- **T008 Exception Detail/Resolution**: ExceptionsPage.tsx rewritten — 3-group triage list with sticky side panel, resolve form, escalate form, recommended actions, impact display.
+- **T004/T009/T010**: Reviewed — accounting sync already returns isDemoMode+demoWarning, compliance counts structurally correct, no AI assistant exists.
+
 ## Critical Fix Sprint (Complete)
 - **T001 Billing Usage Counter**: `getActualShipmentCount()` uses `COUNT(*) FROM shipments` instead of stale counter. Drift detection logs divergence.
 - **T002 Risk + Decision Engine**: Block threshold=70, `enforceInvariants()` on ALL return paths, Zod schemas (`DecisionInputSchema`, `DecisionOutputSchema`) for input validation, terminal status fix (DELIVERED→APPROVED+releaseAllowed=true), frontend risk reconciliation (decision.unifiedRisk.finalScore preferred).

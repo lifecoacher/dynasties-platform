@@ -216,6 +216,20 @@ export default function WorkQueue() {
     },
   });
 
+  const generateTasksMutation = useMutation({
+    mutationFn: () => apiPost("/tasks/generate-from-issues"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+
+  const generateNotifsMutation = useMutation({
+    mutationFn: () => apiPost("/notifications/generate"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
   const markAllReadMutation = useMutation({
     mutationFn: () => apiPatch("/notifications/read-all", {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
@@ -255,6 +269,14 @@ export default function WorkQueue() {
             </p>
           </div>
           <div className="flex gap-2">
+            <button
+              onClick={() => generateTasksMutation.mutate()}
+              disabled={generateTasksMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium bg-primary/10 text-primary rounded-lg hover:bg-primary/15 disabled:opacity-50 transition-colors"
+            >
+              <TrendingUp size={13} className={generateTasksMutation.isPending ? "animate-spin" : ""} />
+              {generateTasksMutation.isPending ? "Scanning..." : "Scan Issues"}
+            </button>
             <button
               onClick={() => applyBatchMutation.mutate()}
               disabled={applyBatchMutation.isPending}
@@ -492,6 +514,8 @@ export default function WorkQueue() {
             notifications={notifData?.data || []}
             onMarkAllRead={() => markAllReadMutation.mutate()}
             isMarking={markAllReadMutation.isPending}
+            onGenerate={() => generateNotifsMutation.mutate()}
+            isGenerating={generateNotifsMutation.isPending}
           />
         )}
       </div>
@@ -741,22 +765,38 @@ function NotificationsPanel({
   notifications,
   onMarkAllRead,
   isMarking,
+  onGenerate,
+  isGenerating,
 }: {
   notifications: any[];
   onMarkAllRead: () => void;
   isMarking: boolean;
+  onGenerate?: () => void;
+  isGenerating?: boolean;
 }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-[14px] font-semibold text-foreground font-heading">Notifications</h2>
-        <button
-          onClick={onMarkAllRead}
-          disabled={isMarking}
-          className="text-[11px] text-primary hover:text-primary/80 font-medium disabled:opacity-50 transition-colors"
-        >
-          Mark all read
-        </button>
+        <div className="flex items-center gap-3">
+          {onGenerate && (
+            <button
+              onClick={onGenerate}
+              disabled={isGenerating}
+              className="flex items-center gap-1.5 text-[11px] text-primary hover:text-primary/80 font-medium disabled:opacity-50 transition-colors"
+            >
+              {isGenerating ? <Loader2 size={11} className="animate-spin" /> : <Bell size={11} />}
+              {isGenerating ? "Scanning..." : "Scan for alerts"}
+            </button>
+          )}
+          <button
+            onClick={onMarkAllRead}
+            disabled={isMarking}
+            className="text-[11px] text-primary hover:text-primary/80 font-medium disabled:opacity-50 transition-colors"
+          >
+            Mark all read
+          </button>
+        </div>
       </div>
 
       {notifications.length === 0 ? (

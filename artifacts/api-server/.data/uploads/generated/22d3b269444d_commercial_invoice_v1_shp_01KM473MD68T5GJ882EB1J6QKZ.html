@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commercial Invoice</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; line-height: 1.5; }
+  .page { max-width: 800px; margin: 0 auto; padding: 40px 48px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #00BFA6; padding-bottom: 16px; margin-bottom: 24px; }
+  .header-left h1 { font-size: 20px; font-weight: 700; color: #0D1219; letter-spacing: 0.02em; }
+  .header-left .subtitle { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .header-right { text-align: right; }
+  .header-right .doc-number { font-size: 13px; font-weight: 600; color: #00BFA6; }
+  .header-right .date { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .party-box { padding: 12px 16px; background: #f8f9fb; border: 1px solid #e5e7eb; border-radius: 6px; }
+  .party-box .label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #00BFA6; margin-bottom: 6px; }
+  .party-box .name { font-size: 12px; font-weight: 600; color: #1a1a2e; }
+  .party-box .detail { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .section { margin-bottom: 20px; }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #0D1219; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #e5e7eb; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  th { background: #f0f1f3; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; padding: 8px 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 8px 10px; border-bottom: 1px solid #f0f1f3; font-size: 11px; color: #1a1a2e; }
+  tr:last-child td { border-bottom: 1px solid #e5e7eb; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .totals { margin-left: auto; width: 260px; }
+  .totals tr td { border-bottom: 1px solid #f0f1f3; }
+  .totals .grand-total td { font-weight: 700; font-size: 13px; border-top: 2px solid #00BFA6; border-bottom: none; padding-top: 10px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 16px; }
+  .info-item { display: flex; gap: 6px; }
+  .info-item .info-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; min-width: 100px; }
+  .info-item .info-value { font-size: 11px; color: #1a1a2e; font-weight: 500; }
+  .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #9ca3af; text-align: center; }
+  .stamp { display: inline-block; padding: 4px 12px; border: 2px solid #00BFA6; color: #00BFA6; font-weight: 700; font-size: 12px; letter-spacing: 0.1em; transform: rotate(-3deg); margin-top: 16px; }
+  .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 8px 12px; border-radius: 4px; font-size: 10px; color: #856404; margin-bottom: 16px; }
+  @media print { .page { padding: 20px; } body { font-size: 10px; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+    <div class="header">
+      <div class="header-left">
+        <h1>COMMERCIAL INVOICE</h1>
+        <div class="subtitle">International Trade Document</div>
+      </div>
+      <div class="header-right">
+        <div class="doc-number">LOR-00093</div>
+        <div class="date">March 28, 2026</div>
+      </div>
+    </div>
+
+    <div class="parties">
+      <div class="party-box">
+    <div class="label">Seller / Exporter</div>
+    <div class="name">Shenzhen MegaTech Electronics</div>
+    <div class="detail">88 Huaqiang Road, Futian District</div>
+    <div class="detail">Shenzhen, CN</div>
+    
+    
+  </div>
+      <div class="party-box">
+    <div class="label">Buyer / Importer</div>
+    <div class="name">Maersk Line Ltd</div>
+    <div class="detail">Esplanaden 50, Copenhagen, Denmark</div>
+    
+    
+    <div class="detail">ops@maersk.com</div>
+  </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Shipment Details</div>
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">Reference</span><span class="info-value">SHP-MMY3VAG6</span></div>
+        <div class="info-item"><span class="info-label">Incoterms</span><span class="info-value">CIF</span></div>
+        <div class="info-item"><span class="info-label">Port of Loading</span><span class="info-value">USLAX</span></div>
+        <div class="info-item"><span class="info-label">Port of Discharge</span><span class="info-value">DEHAM</span></div>
+        <div class="info-item"><span class="info-label">Vessel / Voyage</span><span class="info-value">N/A</span></div>
+        <div class="info-item"><span class="info-label">Currency</span><span class="info-value">USD</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Items</div>
+      
+      <table>
+        <thead><tr>
+          <th class="text-center" style="width:40px">#</th>
+          <th>Description</th>
+          <th class="text-center" style="width:60px">Qty</th>
+          <th class="text-right" style="width:100px">Unit Price</th>
+          <th class="text-right" style="width:100px">Amount</th>
+        </tr></thead>
+        <tbody>
+      <tr>
+        <td class="text-center">1</td>
+        <td>Ocean freight LA-Hamburg</td>
+        <td class="text-center">1</td>
+        <td class="text-right">USD 6,800.00</td>
+        <td class="text-right">USD 6,800.00</td>
+      </tr>
+    
+      <tr>
+        <td class="text-center">2</td>
+        <td>BAF/LSS surcharges</td>
+        <td class="text-center">1</td>
+        <td class="text-right">USD 680.00</td>
+        <td class="text-right">USD 680.00</td>
+      </tr>
+    
+      <tr>
+        <td class="text-center">3</td>
+        <td>Marine cargo insurance</td>
+        <td class="text-center">1</td>
+        <td class="text-right">USD 450.00</td>
+        <td class="text-right">USD 450.00</td>
+      </tr>
+    
+      <tr>
+        <td class="text-center">4</td>
+        <td>Import customs clearance</td>
+        <td class="text-center">1</td>
+        <td class="text-right">USD 520.00</td>
+        <td class="text-right">USD 520.00</td>
+      </tr>
+    
+      <tr>
+        <td class="text-center">5</td>
+        <td>B/L and documentation fees</td>
+        <td class="text-center">1</td>
+        <td class="text-right">USD 200.00</td>
+        <td class="text-right">USD 200.00</td>
+      </tr>
+    
+      <tr>
+        <td class="text-center">6</td>
+        <td>Terminal handling charges</td>
+        <td class="text-center">1</td>
+        <td class="text-right">USD 350.00</td>
+        <td class="text-right">USD 350.00</td>
+      </tr>
+    </tbody>
+      </table>
+    
+    </div>
+
+    <table class="totals">
+      <tr><td>Subtotal</td><td class="text-right">USD 9,000.00</td></tr>
+      
+      <tr class="grand-total"><td>Total Due</td><td class="text-right">USD 9,000.00</td></tr>
+    </table>
+
+    <div style="margin-top:12px;font-size:10px;color:#6b7280">Payment Terms: NET_30</div>
+  
+<div class="footer">
+  Generated by Dynasties Document Engine &mdash; 2026-03-28
+   &mdash; LOR-00093
+</div>
+</div>
+</body>
+</html>

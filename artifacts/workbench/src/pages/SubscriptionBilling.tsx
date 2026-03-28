@@ -336,6 +336,22 @@ function ConnectSection({
                 <span className="font-medium">Fully connected and ready to receive payments</span>
               </div>
             )}
+            {hasAccount && !fullyConnected && connectState === "PENDING_VERIFICATION" && (
+              <div className="mt-2 px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/15">
+                <p className="text-[11px] text-blue-400">
+                  Stripe is verifying your account. Charges and payouts are disabled until verification is complete.
+                  Customer billing and invoicing features that depend on payment processing will be unavailable.
+                </p>
+              </div>
+            )}
+            {hasAccount && !fullyConnected && connectState === "ONBOARDING_IN_PROGRESS" && (
+              <div className="mt-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/15">
+                <p className="text-[11px] text-amber-400">
+                  Onboarding is incomplete. Complete the Stripe onboarding process to enable charges and payouts.
+                  Payment collection, invoicing, and financial features are unavailable until onboarding is finished.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

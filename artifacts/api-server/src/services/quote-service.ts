@@ -262,6 +262,20 @@ export async function sendQuote(
   if (!quote) throw new Error("Quote not found");
   if (quote.status !== "DRAFT") throw new Error("Only DRAFT quotes can be sent");
 
+  const missing: string[] = [];
+  if (!quote.origin) missing.push("origin");
+  if (!quote.destination) missing.push("destination");
+  if (!quote.cargoSummary && !quote.commodity) missing.push("cargo description (cargo summary or commodity)");
+  if (!quote.customerId) missing.push("customer");
+  if (missing.length > 0) {
+    throw new Error(`Cannot send quote: missing ${missing.join(", ")}. Complete these fields before sending.`);
+  }
+
+  const lineItems = await getLineItems(quoteId);
+  if (lineItems.length === 0) {
+    throw new Error("Cannot send quote: no line items. Add at least one charge before sending.");
+  }
+
   const [updated] = await db
     .update(quotesTable)
     .set({ status: "SENT" })
