@@ -1,0 +1,262 @@
+You are acting as the CTO, Principal Engineer, and Release Stabilization Lead for Dynasties.
+
+This is a PRE-BETA STABILIZATION sprint.
+
+Do NOT work on UI polish.
+Do NOT summarize existing features.
+Do NOT add new product modules.
+
+Your task is to fix the trust-breaking operational gaps identified in the latest full-platform audit.
+
+We are optimizing for:
+- truthful system state
+- operator trust
+- commercial readiness
+- workflow integrity
+
+Work in this exact priority order.
+
+==================================================
+P0 — LAUNCH BLOCKERS
+==================================================
+
+T001 — DOCUMENT GENERATION MUST UPDATE VALIDATION / READINESS STATE
+
+Problem:
+Shipments can successfully generate documents, but validation/readiness still says blocked/missing/0%.
+
+Fix:
+- When a document is generated successfully, update the corresponding validation state and readiness metrics immediately
+- Distinguish clearly between:
+  - available to generate
+  - generated
+  - filed/validated (if separate concepts exist)
+- Eliminate contradictions between:
+  - Document Engine
+  - Document Validation
+  - Readiness %
+
+Return:
+- exact logic changed
+- exact fields/state transitions updated
+- proof that generated documents now affect validation/readiness truthfully
+
+--------------------------------------------------
+
+T002 — WORK QUEUE MUST POPULATE FROM REAL ISSUES
+
+Problem:
+Work Queue shows “System operating normally” while critical exceptions and pending reviews exist.
+
+Fix:
+Wire Work Queue task generation from real sources:
+- active exceptions
+- blocked / pending review shipments
+- critical control tower recommendations
+- unresolved invoice/reconciliation issues
+- any queued operational tasks that should already exist
+
+Requirements:
+- Queue page must show actionable tasks when real issues exist
+- Empty state must only appear when there is actually no actionable work
+- Each task must include:
+  - type
+  - reason
+  - priority
+  - direct link/action
+
+Return:
+- exact task generation sources
+- why the queue was previously empty
+- proof that queue now populates from real state
+
+--------------------------------------------------
+
+T003 — NOTIFICATIONS PIPELINE MUST WORK
+
+Problem:
+Notifications tab is empty despite critical exceptions and urgent issues.
+
+Fix:
+- Ensure critical exceptions and urgent system events create notifications
+- Ensure notifications surface in the UI
+- Add categories if needed:
+  - operational
+  - financial
+  - compliance
+  - system
+
+Return:
+- exact events that now generate notifications
+- proof that critical issues appear in notifications
+
+--------------------------------------------------
+
+T004 — ACCOUNTING SYNC BACKLOG / TRUTH FIX
+
+Problem:
+92/93 invoices pending sync makes the accounting integration effectively non-functional.
+
+Fix:
+- Determine whether this is a real sync backlog, stale demo data, or broken sync scheduling
+- If demo-only, represent it honestly
+- If a real backlog, provide a recovery path:
+  - bulk sync / retry
+  - stale status detection
+  - last successful sync truth
+- Ensure the accounting page does not imply healthy sync if almost nothing has synced
+
+Return:
+- root cause
+- fix implemented
+- whether sync is manual, scheduled, or simulated
+- what the UI now states truthfully
+
+--------------------------------------------------
+
+T005 — STRIPE CONNECT PRODUCTION HONESTY
+
+Problem:
+Connect is still onboarding-in-progress and not ready for live charges/payouts.
+
+Fix:
+- Keep current UI honest
+- Explicitly show what is blocked until onboarding completes
+- Do not imply production readiness while charges/payouts are not enabled
+- If any actions depend on Connect readiness, gate them clearly
+
+Return:
+- exact blocked/unblocked behavior
+- exact user-facing state
+- anything still required for true live readiness
+
+==================================================
+P1 — PRE-SERIOUS-BETA FIXES
+==================================================
+
+T006 — QUOTE SEND VALIDATION
+
+Problem:
+Quotes can be sent with effectively no required data.
+
+Fix:
+Require at minimum before Send Quote:
+- origin
+- destination
+- cargo type or shipment type
+- at least one meaningful commercial/logistics field
+- any required pricing/line-item fields if needed
+
+Return:
+- required field set
+- validation behavior
+- proof empty quotes can no longer be sent
+
+--------------------------------------------------
+
+T007 — BILLING AGING / OUTSTANDING TRUTH
+
+Problem:
+Outstanding amount and aging buckets contradict each other.
+
+Fix:
+- Recompute aging buckets from real invoice due dates and balances
+- Ensure:
+  - outstanding total
+  - open receivable count
+  - aging bucket totals
+  all reconcile exactly
+
+Return:
+- formula/source of truth
+- proof totals now reconcile
+
+--------------------------------------------------
+
+T008 — EXCEPTION DETAIL / RESOLUTION FLOW
+
+Problem:
+Exceptions route users back into the shipment with no focused exception workflow.
+
+Fix:
+Implement a focused exception detail/resolution view or drawer that includes:
+- exception summary
+- severity
+- impacted shipment
+- root issue
+- actions
+- resolution note / status update
+
+Return:
+- new exception resolution flow
+- whether it is standalone or in-context
+- proof operators can resolve exceptions directly
+
+--------------------------------------------------
+
+T009 — COMPLIANCE COUNT / PERSISTENCE TRUTH
+
+Problem:
+Only 3/30 shipments show compliant, suggesting either strict logic or bad persistence.
+
+Fix:
+- audit compliance state persistence
+- confirm whether screening results are saving correctly
+- ensure dashboard and shipment-level compliance states reconcile
+
+Return:
+- root cause
+- whether counts were wrong or logic is intentionally strict
+- proof dashboard and detail now agree
+
+--------------------------------------------------
+
+T010 — AI ASSISTANT HONESTY
+
+Problem:
+AI assistant says “no delays detected” while Control Tower shows +4d delays.
+
+Fix:
+- ensure chat answers are grounded in live system state
+- if grounding is incomplete, reduce scope and answer honestly
+- never state a system-wide claim unless backed by current data
+
+Return:
+- root cause of false answer
+- new grounding behavior
+- proof chat no longer contradicts operational state
+
+==================================================
+P2 — CLEANUP IF TIME REMAINS
+==================================================
+
+T011 — EVENT LOG CATEGORIZATION
+- ensure right-panel/event log reflects real event types, not repetitive generic entries
+
+T012 — REMOVE / ISOLATE TEST DATA POLLUTION
+- isolate “Beta Journey Test” invoices or clearly label them as fixtures
+
+T013 — SETTINGS / ADMIN SURFACE GAP LIST
+- document what is missing for enterprise admin readiness without overbuilding now
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+Return exactly:
+
+1. P0 fixes completed
+2. P1 fixes completed
+3. Any P0/P1 items not completed and why
+4. Root causes for each major issue
+5. Exact files / logic changed
+6. Updated known limitations
+7. Whether the platform is now:
+   - internal only
+   - controlled beta ready
+   - client-demo ready
+   - production ready
+
+No vague summaries.
+No unrelated UI commentary.
+Fix truth and workflow integrity first.

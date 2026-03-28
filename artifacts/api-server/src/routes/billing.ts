@@ -1093,6 +1093,11 @@ router.get("/billing/receivables/overview", async (req, res) => {
     }
   }
 
+  const agingTotal = aging.current + aging.days1to30 + aging.days31to60 + aging.days61to90 + aging.days90plus;
+  if (Math.abs(agingTotal - totalOutstanding) > 0.01) {
+    totalOutstanding = agingTotal;
+  }
+
   res.json({
     data: {
       totalOutstanding,
@@ -1117,6 +1122,7 @@ router.get("/billing/receivables/overview", async (req, res) => {
         ? financedRecords.reduce((s, r) => s + (r.clientFacingFeeRate || 0), 0) / financedRecords.length
         : 0,
       aging,
+      agingTotal,
       currency: "USD",
     },
   });
