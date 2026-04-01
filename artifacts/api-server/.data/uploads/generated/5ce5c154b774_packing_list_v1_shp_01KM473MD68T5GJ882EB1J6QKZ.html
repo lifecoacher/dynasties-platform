@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Packing List</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; line-height: 1.5; }
+  .page { max-width: 800px; margin: 0 auto; padding: 40px 48px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #00BFA6; padding-bottom: 16px; margin-bottom: 24px; }
+  .header-left h1 { font-size: 20px; font-weight: 700; color: #0D1219; letter-spacing: 0.02em; }
+  .header-left .subtitle { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .header-right { text-align: right; }
+  .header-right .doc-number { font-size: 13px; font-weight: 600; color: #00BFA6; }
+  .header-right .date { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .party-box { padding: 12px 16px; background: #f8f9fb; border: 1px solid #e5e7eb; border-radius: 6px; }
+  .party-box .label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #00BFA6; margin-bottom: 6px; }
+  .party-box .name { font-size: 12px; font-weight: 600; color: #1a1a2e; }
+  .party-box .detail { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .section { margin-bottom: 20px; }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #0D1219; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #e5e7eb; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  th { background: #f0f1f3; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; padding: 8px 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 8px 10px; border-bottom: 1px solid #f0f1f3; font-size: 11px; color: #1a1a2e; }
+  tr:last-child td { border-bottom: 1px solid #e5e7eb; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .totals { margin-left: auto; width: 260px; }
+  .totals tr td { border-bottom: 1px solid #f0f1f3; }
+  .totals .grand-total td { font-weight: 700; font-size: 13px; border-top: 2px solid #00BFA6; border-bottom: none; padding-top: 10px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 16px; }
+  .info-item { display: flex; gap: 6px; }
+  .info-item .info-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; min-width: 100px; }
+  .info-item .info-value { font-size: 11px; color: #1a1a2e; font-weight: 500; }
+  .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #9ca3af; text-align: center; }
+  .stamp { display: inline-block; padding: 4px 12px; border: 2px solid #00BFA6; color: #00BFA6; font-weight: 700; font-size: 12px; letter-spacing: 0.1em; transform: rotate(-3deg); margin-top: 16px; }
+  .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 8px 12px; border-radius: 4px; font-size: 10px; color: #856404; margin-bottom: 16px; }
+  @media print { .page { padding: 20px; } body { font-size: 10px; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+    <div class="header">
+      <div class="header-left">
+        <h1>PACKING LIST</h1>
+        <div class="subtitle">Shipment Packing Details</div>
+      </div>
+      <div class="header-right">
+        <div class="doc-number">PL-SHP-MMY3VAG6</div>
+        <div class="date">April 1, 2026</div>
+      </div>
+    </div>
+
+    <div class="parties">
+      <div class="party-box">
+    <div class="label">Shipper</div>
+    <div class="name">Shenzhen MegaTech Electronics</div>
+    <div class="detail">88 Huaqiang Road, Futian District</div>
+    <div class="detail">Shenzhen, CN</div>
+    
+    
+  </div>
+      <div class="party-box">
+    <div class="label">Consignee</div>
+    <div class="name">Maersk Line Ltd</div>
+    <div class="detail">Esplanaden 50, Copenhagen, Denmark</div>
+    
+    
+    <div class="detail">ops@maersk.com</div>
+  </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Shipment Information</div>
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">Reference</span><span class="info-value">SHP-MMY3VAG6</span></div>
+        <div class="info-item"><span class="info-label">B/L Number</span><span class="info-value">N/A</span></div>
+        <div class="info-item"><span class="info-label">Booking No.</span><span class="info-value">N/A</span></div>
+        <div class="info-item"><span class="info-label">Vessel / Voyage</span><span class="info-value">N/A</span></div>
+        <div class="info-item"><span class="info-label">Port of Loading</span><span class="info-value">USLAX</span></div>
+        <div class="info-item"><span class="info-label">Port of Discharge</span><span class="info-value">DEHAM</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Cargo Details</div>
+      <table>
+        <thead><tr>
+          <th class="text-center" style="width:40px">#</th>
+          <th>Description / Commodity</th>
+          <th class="text-center">Packages</th>
+          <th class="text-center">Gross Weight</th>
+          <th class="text-center">Volume</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="text-center">1</td>
+            <td>
+              Automotive Parts
+              <br><span style="color:#6b7280;font-size:10px">HS Code: 8708.99</span>
+            </td>
+            <td class="text-center">45</td>
+            <td class="text-center">12500 KG</td>
+            <td class="text-center">65 CBM</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Totals</div>
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">Total Packages</span><span class="info-value">45</span></div>
+        <div class="info-item"><span class="info-label">Total Gross Weight</span><span class="info-value">12500 KG</span></div>
+        <div class="info-item"><span class="info-label">Total Volume</span><span class="info-value">65 CBM</span></div>
+      </div>
+    </div>
+
+    
+  
+<div class="footer">
+  Generated by Dynasties Document Engine &mdash; 2026-04-01
+   &mdash; PL-SHP-MMY3VAG6
+</div>
+</div>
+</body>
+</html>

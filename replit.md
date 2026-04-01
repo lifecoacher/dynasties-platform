@@ -113,6 +113,14 @@ The system automates various freight forwarding stages, including:
 - **T004 404 UX**: ShipmentDetail shows "Shipment Not Found" page (not infinite spinner) when shipment doesn't exist or user lacks access. Includes back-navigation link.
 - **T005 Data Normalization**: Verified — `formatWeight`, `formatCurrency`, entity name fallbacks already handle null/undefined gracefully.
 
+## Data Integrity & Systems Wiring Sprint (Complete)
+- **T001 Doc↔Validation↔Decision**: Validation reads `generatedDocumentsTable` alongside shipment+ingested docs. `BILL_OF_LADING→BOL` type mapping via `GEN_TO_VALIDATION_TYPE`. Generate/regenerate chains: persist → validation → decision recompute (all awaited).
+- **T002 Event Pipeline Auto-Population**: `syncTasksFromExceptions()` extracted as reusable fn. `GET /tasks` auto-calls it before returning results — queue auto-populates on page load. Entity-ID-based dedup prevents duplicates.
+- **T003 Billing Source of Truth**: `outstanding = max(0, invoiced - collected)` — single computation. Aging buckets computed independently from receivables. No override of outstanding from aging total.
+- **T004 Dev Error Exposure**: `runtimeErrorOverlay()` gated on `NODE_ENV !== 'production'`. React `ErrorBoundary` wraps app with "Something went wrong / Refresh" UI.
+- **T005 AI Surface Truthfulness**: `CommandInput` stripped of scripted fake responses. Only email-ingestion intent (requires both email/ingest + create/shipment keywords) triggers API call. All other queries → "This feature is not yet available."
+- **T006 Work Queue Auto-Population**: GET /tasks auto-syncs. "Scan Issues" renamed to "Refresh Queue" (supplementary). Queue populated on load.
+
 ## Pre-Beta Stabilization Sprint (Complete)
 - **T001 Document Generation → Validation**: `runDocumentValidation()` now awaited (not fire-and-forget) after generate/regenerate. Response includes validation result for immediate state consistency.
 - **T002 Work Queue from Real Issues**: `POST /tasks/generate-from-issues` scans active exceptions, creates tasks via EXCEPTION_TO_TASK mapping. Dedup by `metadata->>'exceptionId'`. UI: "Scan Issues" button on WorkQueue page.

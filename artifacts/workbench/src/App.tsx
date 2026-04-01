@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkProvider, SignIn } from "@clerk/clerk-react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 import NotFound from "@/pages/not-found";
 import CommandCenter from "./pages/CommandCenter";
 import ShipmentsPage from "./pages/ShipmentsPage";
@@ -37,6 +38,47 @@ import ExceptionsPage from "./pages/ExceptionsPage";
 import AccountingIntegration from "./pages/AccountingIntegration";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 import { DEMO_MODE } from "./hooks/use-demo";
+
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[ErrorBoundary]", error, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="max-w-md text-center p-8">
+            <div className="relative inline-block mb-4">
+              <span className="font-heading text-[24px] font-medium text-foreground" style={{ letterSpacing: '0.22em' }}>DYNASTIES</span>
+              <div className="absolute -bottom-1.5 left-0 w-[1.3em] h-[2.5px] rounded-full bg-primary" />
+            </div>
+            <p className="text-[15px] font-medium text-foreground mt-4">Something went wrong</p>
+            <p className="text-[13px] text-muted-foreground mt-2">
+              An unexpected error occurred. Please refresh the page to continue.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -176,24 +218,26 @@ function AppInner() {
 function App() {
   if (clerkEnabled) {
     return (
-      <ClerkProvider
-        publishableKey={CLERK_PUBLISHABLE_KEY}
-        appearance={{
-          variables: {
-            colorPrimary: "#00A692",
-            colorBackground: "#FFFFFF",
-            colorText: "#1E2330",
-            colorInputBackground: "#F2F4F7",
-            colorInputText: "#1E2330",
-          },
-        }}
-      >
-        <AppInner />
-      </ClerkProvider>
+      <ErrorBoundary>
+        <ClerkProvider
+          publishableKey={CLERK_PUBLISHABLE_KEY}
+          appearance={{
+            variables: {
+              colorPrimary: "#00A692",
+              colorBackground: "#FFFFFF",
+              colorText: "#1E2330",
+              colorInputBackground: "#F2F4F7",
+              colorInputText: "#1E2330",
+            },
+          }}
+        >
+          <AppInner />
+        </ClerkProvider>
+      </ErrorBoundary>
     );
   }
 
-  return <AppInner />;
+  return <ErrorBoundary><AppInner /></ErrorBoundary>;
 }
 
 export default App;

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, Sparkles, Loader2, Ship, Shield, TrendingUp, FileText } from "lucide-react";
+import { ArrowUp, Sparkles, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -13,11 +13,7 @@ interface CommandResult {
 }
 
 const SUGGESTIONS = [
-  "Show delayed shipments",
-  "Check compliance status",
-  "List high-risk shipments",
   "Create shipment from email",
-  "Show insurance coverage",
 ];
 
 function getBaseUrl() {
@@ -42,10 +38,11 @@ export function CommandInput() {
     setPhase("understanding");
     setResult(null);
 
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 300));
     setPhase("processing");
 
-    if (cmd.includes("email") || cmd.includes("ingest") || cmd.includes("create shipment")) {
+    const isEmailIngest = (cmd.includes("email") || cmd.includes("ingest")) && (cmd.includes("create") || cmd.includes("shipment") || cmd.includes("ingest"));
+    if (isEmailIngest) {
       try {
         const res = await fetch(`${getBaseUrl()}/api/demo/ingest`, {
           method: "POST",
@@ -66,42 +63,15 @@ export function CommandInput() {
       } catch {
         setResult({ type: "error", title: "Network error", detail: "Could not reach the API" });
       }
-    } else if (cmd.includes("delay") || cmd.includes("late")) {
-      setResult({
-        type: "info",
-        title: "Delayed Shipments",
-        detail: "All shipments are currently on schedule. No delays detected.",
-        actions: [{ label: "View All Shipments", href: "/shipments" }],
-      });
-    } else if (cmd.includes("compliance")) {
-      setResult({
-        type: "success",
-        title: "Compliance Overview",
-        detail: "All active shipments have been screened. View the Intelligence page for details.",
-        actions: [{ label: "Intelligence", href: "/intelligence" }],
-      });
-    } else if (cmd.includes("risk") || cmd.includes("high risk")) {
-      setResult({
-        type: "info",
-        title: "Risk Analysis",
-        detail: "Risk scores are computed by the Risk Intelligence Agent across geopolitical, route, and cargo dimensions.",
-        actions: [{ label: "View Intelligence", href: "/intelligence" }],
-      });
-    } else if (cmd.includes("insurance") || cmd.includes("coverage")) {
-      setResult({
-        type: "info",
-        title: "Insurance Coverage",
-        detail: "Insurance quotes are generated automatically by the Insurance Agent for each shipment.",
-        actions: [{ label: "View Shipments", href: "/shipments" }],
-      });
     } else {
       setResult({
         type: "info",
-        title: "Command understood",
-        detail: `Processing: "${value}". Use the navigation to access specific areas.`,
+        title: "This feature is not yet available",
+        detail: "Natural language queries are coming in a future release. Use the navigation to access specific areas.",
         actions: [
           { label: "Shipments", href: "/shipments" },
-          { label: "Intelligence", href: "/intelligence" },
+          { label: "Exceptions", href: "/exceptions" },
+          { label: "Work Queue", href: "/work-queue" },
         ],
       });
     }
@@ -122,7 +92,7 @@ export function CommandInput() {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            placeholder="Ask Dynasties anything..."
+            placeholder="Create shipment from email..."
             className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground/60 outline-none"
             disabled={isProcessing}
           />
@@ -145,7 +115,7 @@ export function CommandInput() {
             className="mt-3 flex items-center gap-2 px-4 text-[12px] text-muted-foreground"
           >
             <Loader2 className="w-3 h-3 animate-spin" />
-            {phase === "understanding" ? "Understanding your request..." : "Agents processing..."}
+            {phase === "understanding" ? "Processing..." : "Working..."}
           </motion.div>
         )}
       </AnimatePresence>
@@ -161,7 +131,7 @@ export function CommandInput() {
                 ? "bg-primary/5 border-primary/20"
                 : result.type === "error"
                   ? "bg-destructive/5 border-destructive/20"
-                  : "bg-primary/5 border-primary/20"
+                  : "bg-card border-card-border"
             }`}
           >
             <p className="text-[13px] font-semibold text-foreground">{result.title}</p>

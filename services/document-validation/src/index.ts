@@ -5,8 +5,9 @@ import {
   shipmentsTable,
   shipmentDocumentsTable,
   ingestedDocumentsTable,
+  generatedDocumentsTable,
 } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import {
   runDeterministicChecks,
@@ -118,6 +119,48 @@ export async function runDocumentValidation(
         extractedData: doc.extractedData,
         extractionStatus: doc.extractionStatus,
         documentTypeConfidence: doc.documentTypeConfidence,
+      });
+    }
+  }
+
+  const generatedDocs = await db
+    .select({
+      id: generatedDocumentsTable.id,
+      documentType: generatedDocumentsTable.documentType,
+      generationStatus: generatedDocumentsTable.generationStatus,
+      sourceSnapshot: generatedDocumentsTable.sourceSnapshot,
+    })
+    .from(generatedDocumentsTable)
+    .where(
+      and(
+        eq(generatedDocumentsTable.shipmentId, shipmentId),
+        eq(generatedDocumentsTable.companyId, companyId),
+        ne(generatedDocumentsTable.generationStatus, "SUPERSEDED"),
+      ),
+    );
+
+  const GEN_TO_VALIDATION_TYPE: Record<string, string> = {
+    COMMERCIAL_INVOICE: "COMMERCIAL_INVOICE",
+    PACKING_LIST: "PACKING_LIST",
+    BILL_OF_LADING: "BOL",
+    CUSTOMS_DECLARATION: "CUSTOMS_DECLARATION",
+    SHIPMENT_SUMMARY: "SHIPMENT_SUMMARY",
+  };
+
+  for (const gen of generatedDocs) {
+    const validationType = GEN_TO_VALIDATION_TYPE[gen.documentType] || gen.documentType;
+    const alreadyPresent = documents.some(
+      (d) => d.documentType === validationType || d.documentType === gen.documentType,
+    );
+    if (!alreadyPresent) {
+      const snapshot = gen.sourceSnapshot as Record<string, any> | null;
+      documents.push({
+        documentId: gen.id,
+        documentType: validationType,
+        filename: `Generated ${gen.documentType}`,
+        extractedData: snapshot || {},
+        extractionStatus: gen.generationStatus === "GENERATED" ? "EXTRACTED" : null,
+        documentTypeConfidence: 1.0,
       });
     }
   }

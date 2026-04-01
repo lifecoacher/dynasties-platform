@@ -268,11 +268,18 @@ router.post(
 
 router.get("/tasks", async (req, res) => {
   const companyId = getCompanyId(req);
+  const userId = req.user!.userId;
   const status = req.query.status as string | undefined;
   const taskType = req.query.taskType as string | undefined;
   const assignedTo = req.query.assignedTo as string | undefined;
   const queue = req.query.queue as string | undefined;
   const overdue = req.query.overdue as string | undefined;
+
+  try {
+    await syncTasksFromExceptions(companyId, userId);
+  } catch (err: any) {
+    console.warn(`[tasks] Auto-sync from exceptions failed: ${err.message}`);
+  }
 
   let query = db
     .select()
@@ -638,9 +645,10 @@ const EXCEPTION_TO_TASK: Record<string, { taskType: string; priority: string }> 
   REWEIGH_RECLASS: { taskType: "CARRIER_REVIEW", priority: "MEDIUM" },
 };
 
-router.post("/tasks/generate-from-issues", requireMinRole("OPERATOR"), async (req, res) => {
-  const companyId = getCompanyId(req);
-  const userId = req.user!.userId;
+async function syncTasksFromExceptions(
+  companyId: string,
+  userId: string,
+): Promise<Array<{ id: string; taskType: string; title: string }>> {
   const created: Array<{ id: string; taskType: string; title: string }> = [];
 
   const activeExceptions = await db
@@ -706,6 +714,13 @@ router.post("/tasks/generate-from-issues", requireMinRole("OPERATOR"), async (re
     created.push({ id: taskId, taskType: mapping.taskType, title: exc.title });
   }
 
+  return created;
+}
+
+router.post("/tasks/generate-from-issues", requireMinRole("OPERATOR"), async (req, res) => {
+  const companyId = getCompanyId(req);
+  const userId = req.user!.userId;
+  const created = await syncTasksFromExceptions(companyId, userId);
   res.json({ data: { generated: created.length, tasks: created } });
 });
 
