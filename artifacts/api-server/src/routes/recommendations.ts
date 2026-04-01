@@ -4,18 +4,22 @@ import {
   recommendationsTable,
   recommendationOutcomesTable,
   eventsTable,
+  workflowTasksTable,
+  aiEventLogTable,
 } from "@workspace/db/schema";
 import { eq, and, desc, inArray, notInArray, sql, lt } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { validateBody } from "../middlewares/validate.js";
 import { requireMinRole } from "../middlewares/auth.js";
-import { publishDecisionJob } from "@workspace/queue";
+import { publishDecisionJob, publishAiRuntimeJob } from "@workspace/queue";
 import { z } from "zod";
+import { handleRecommendationResponse } from "@workspace/svc-ai-runtime/task-sync";
 
 const router: IRouter = Router();
 
 const TERMINAL_STATUSES = ["EXPIRED", "SUPERSEDED"] as const;
+const RESPONDED_STATUSES = ["ACCEPTED", "MODIFIED", "REJECTED", "IGNORED", "IMPLEMENTED"] as const;
 const ACTIVE_STATUSES = ["PENDING", "SHOWN"] as const;
 
 async function expireStaleRecommendations(companyId: string): Promise<number> {
@@ -140,7 +144,7 @@ router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validate
     return;
   }
 
-  if ([...TERMINAL_STATUSES].includes(rec.status as any)) {
+  if ([...TERMINAL_STATUSES, ...RESPONDED_STATUSES].includes(rec.status as any)) {
     res.status(400).json({ error: `Cannot respond to a ${rec.status} recommendation` });
     return;
   }
@@ -185,6 +189,26 @@ router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validate
       },
     });
   });
+
+  try {
+    await handleRecommendationResponse(recId, action as "ACCEPTED" | "MODIFIED" | "REJECTED", companyId, rec.shipmentId);
+  } catch (err) {
+    console.error(`[recommendations] task sync error for rec=${recId}:`, err);
+  }
+
+  if (action === "ACCEPTED" || action === "REJECTED") {
+    try {
+      publishAiRuntimeJob({
+        companyId,
+        shipmentId: rec.shipmentId,
+        triggerType: "RECOMMENDATION_RESPONDED",
+        triggerSourceEntityId: recId,
+        triggerSourceEntityType: "recommendation",
+      });
+    } catch (err) {
+      console.error(`[recommendations] reanalysis trigger error for rec=${recId}:`, err);
+    }
+  }
 
   res.json({ data: { id: recId, status: newStatus, action } });
 });
@@ -481,6 +505,181 @@ router.post("/shipments/:id/analyze", requireMinRole("OPERATOR"), async (req, re
   });
 
   res.json({ data: { message: "Decision analysis queued", shipmentId } });
+});
+
+async function handleRecAction(
+  req: any,
+  res: any,
+  action: "ACCEPTED" | "MODIFIED" | "REJECTED" | "IGNORED",
+  statusToSet: "ACCEPTED" | "MODIFIED" | "REJECTED" | "IGNORED",
+) {
+  const companyId = getCompanyId(req);
+  const recId = String(req.params.id);
+  const modificationNotes = req.body?.modificationNotes || null;
+
+  const [rec] = await db
+    .select()
+    .from(recommendationsTable)
+    .where(
+      and(
+        eq(recommendationsTable.id, recId),
+        eq(recommendationsTable.companyId, companyId),
+      ),
+    )
+    .limit(1);
+
+  if (!rec) {
+    res.status(404).json({ error: "Recommendation not found" });
+    return;
+  }
+
+  if ([...TERMINAL_STATUSES, ...RESPONDED_STATUSES].includes(rec.status as any)) {
+    res.status(400).json({ error: `Cannot respond to a ${rec.status} recommendation` });
+    return;
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(recommendationsTable)
+      .set({
+        status: statusToSet,
+        respondedAt: new Date(),
+        respondedBy: req.user!.userId,
+      })
+      .where(eq(recommendationsTable.id, recId));
+
+    await tx.insert(recommendationOutcomesTable).values({
+      id: generateId(),
+      companyId,
+      recommendationId: recId,
+      shipmentId: rec.shipmentId,
+      action,
+      modificationNotes,
+      actorId: req.user!.userId,
+      actorType: "USER",
+      outcomeEvaluation: "PENDING",
+    });
+
+    await tx.insert(eventsTable).values({
+      id: generateId(),
+      companyId,
+      eventType: "RECOMMENDATION_RESPONDED",
+      entityType: "recommendation",
+      entityId: recId,
+      actorType: "USER",
+      userId: req.user!.userId,
+      metadata: {
+        action,
+        shipmentId: rec.shipmentId,
+        recommendationType: rec.type,
+        modificationNotes,
+      },
+    });
+  });
+
+  try {
+    await handleRecommendationResponse(recId, action, companyId, rec.shipmentId);
+  } catch (err) {
+    console.error(`[recommendations] task sync error for rec=${recId}:`, err);
+  }
+
+  try {
+    publishAiRuntimeJob({
+      companyId,
+      shipmentId: rec.shipmentId,
+      triggerType: "RECOMMENDATION_RESPONDED",
+      triggerSourceEntityId: recId,
+      triggerSourceEntityType: "recommendation",
+    });
+  } catch (err) {
+    console.error(`[recommendations] reanalysis trigger error for rec=${recId}:`, err);
+  }
+
+  res.json({ data: { id: recId, status: statusToSet, action } });
+}
+
+router.post(
+  "/recommendations/:id/accept",
+  requireMinRole("OPERATOR"),
+  async (req, res) => handleRecAction(req, res, "ACCEPTED", "ACCEPTED"),
+);
+
+router.post(
+  "/recommendations/:id/reject",
+  requireMinRole("OPERATOR"),
+  async (req, res) => handleRecAction(req, res, "REJECTED", "REJECTED"),
+);
+
+const modifySchema = z.object({
+  modificationNotes: z.string().min(1),
+});
+
+router.post(
+  "/recommendations/:id/modify",
+  requireMinRole("OPERATOR"),
+  validateBody(modifySchema),
+  async (req, res) => handleRecAction(req, res, "MODIFIED", "MODIFIED"),
+);
+
+router.post(
+  "/recommendations/:id/ignore",
+  requireMinRole("OPERATOR"),
+  async (req, res) => handleRecAction(req, res, "IGNORED", "IGNORED"),
+);
+
+router.get("/shipments/:id/recommendations/with-tasks", async (req, res) => {
+  const companyId = getCompanyId(req);
+  const shipmentId = String(req.params.id);
+
+  await expireStaleRecommendations(companyId);
+
+  const recs = await db
+    .select()
+    .from(recommendationsTable)
+    .where(
+      and(
+        eq(recommendationsTable.shipmentId, shipmentId),
+        eq(recommendationsTable.companyId, companyId),
+        notInArray(recommendationsTable.status, [...TERMINAL_STATUSES]),
+      ),
+    )
+    .orderBy(desc(recommendationsTable.createdAt));
+
+  const tasks = await db
+    .select()
+    .from(workflowTasksTable)
+    .where(
+      and(
+        eq(workflowTasksTable.shipmentId, shipmentId),
+        eq(workflowTasksTable.companyId, companyId),
+      ),
+    );
+
+  const tasksByRecId = new Map<string, typeof tasks[0]>();
+  for (const task of tasks) {
+    const meta = task.metadata as Record<string, unknown> | undefined;
+    const recId = meta?.recommendationId as string | undefined;
+    if (recId) tasksByRecId.set(recId, task);
+  }
+
+  const data = recs.map((r) => {
+    const linkedTask = tasksByRecId.get(r.id);
+    return {
+      ...serializeRec(r),
+      linkedTask: linkedTask
+        ? {
+            id: linkedTask.id,
+            status: linkedTask.status,
+            taskType: linkedTask.taskType,
+            priority: linkedTask.priority,
+            priorityReason: (linkedTask.metadata as Record<string, unknown>)?.priorityReason ?? null,
+            assignedTo: linkedTask.assignedTo,
+          }
+        : null,
+    };
+  });
+
+  res.json({ data });
 });
 
 export default router;

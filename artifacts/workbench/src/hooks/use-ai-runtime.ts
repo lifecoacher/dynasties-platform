@@ -61,3 +61,57 @@ export function useAiReanalyze(shipmentId: string | undefined) {
     },
   });
 }
+
+export function useRecommendationsWithTasks(shipmentId: string | undefined) {
+  return useQuery({
+    queryKey: ["recommendations-with-tasks", shipmentId],
+    queryFn: () => apiFetch(`/shipments/${shipmentId}/recommendations/with-tasks`),
+    enabled: !!shipmentId,
+    refetchInterval: 15000,
+  });
+}
+
+export function useAcceptRecommendation(shipmentId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (recId: string) =>
+      apiFetch(`/recommendations/${recId}/accept`, { method: "POST" }),
+    onSuccess: () => invalidateRecQueries(qc, shipmentId),
+  });
+}
+
+export function useRejectRecommendation(shipmentId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (recId: string) =>
+      apiFetch(`/recommendations/${recId}/reject`, { method: "POST" }),
+    onSuccess: () => invalidateRecQueries(qc, shipmentId),
+  });
+}
+
+export function useModifyRecommendation(shipmentId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ recId, modificationNotes }: { recId: string; modificationNotes: string }) =>
+      apiFetch(`/recommendations/${recId}/modify`, {
+        method: "POST",
+        body: JSON.stringify({ modificationNotes }),
+      }),
+    onSuccess: () => invalidateRecQueries(qc, shipmentId),
+  });
+}
+
+export function useIgnoreRecommendation(shipmentId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (recId: string) =>
+      apiFetch(`/recommendations/${recId}/ignore`, { method: "POST" }),
+    onSuccess: () => invalidateRecQueries(qc, shipmentId),
+  });
+}
+
+function invalidateRecQueries(qc: ReturnType<typeof useQueryClient>, shipmentId: string | undefined) {
+  qc.invalidateQueries({ queryKey: ["recommendations-with-tasks", shipmentId] });
+  qc.invalidateQueries({ queryKey: ["ai-state", shipmentId] });
+  qc.invalidateQueries({ queryKey: ["ai-analysis-history", shipmentId] });
+}

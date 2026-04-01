@@ -1,0 +1,455 @@
+You are the lead principal engineer for Dynasties. Work directly in the existing Dynasties monorepo and implement the next phase of the AI runtime so Dynasties becomes a true AI-native operating system for trade, not just a system with persisted AI state and analysis visibility.
+
+This is an implementation task, not a brainstorming task.
+
+CURRENT STATE OF THE CODEBASE
+
+The prior AI Runtime Integration Sprint is already complete. The following now exists in the codebase and must be preserved and extended, not replaced carelessly:
+
+1. Persistent AI runtime foundation already built
+- shipment_ai_state table
+- shipment_ai_analysis_runs table
+- ai_event_log table
+- central orchestrator runShipmentAnalysis
+- event-triggered reanalysis from compliance, risk, insurance, pricing, and exception processing
+- endpoints:
+  - GET /shipments/:id/ai-state
+  - GET /shipments/:id/ai-analysis-history
+  - GET /shipments/:id/ai-event-log
+  - POST /shipments/:id/ai-reanalyze
+- Shipment Detail UI now includes an “AI Runtime” section as the first collapsible section with:
+  - score rings
+  - confidence bar
+  - analysis timeline
+  - manual reanalyze button
+
+2. Previously completed data integrity sprint items must remain intact
+- document generation chains validation -> decision recompute
+- syncTasksFromExceptions() extracted and reusable
+- GET /tasks auto-syncs work queue population on page load
+- work queue auto-load remains intact
+- “Refresh Queue” remains supplementary and not required
+- billing outstanding remains strictly invoiced - collected with no aging override
+- dev error overlay only in development
+- ErrorBoundary remains in place
+- command input only triggers email-ingestion API when intent is clearly scoped
+
+3. Existing broader Dynasties context
+- React 19 + Vite operator workbench
+- Express API monolith
+- PostgreSQL + Drizzle ORM
+- Zod schemas and validated AI output pattern
+- Anthropic-based agent usage already present in document extraction, compliance, pricing/routing reasoning, claims narrative, etc.
+- existing work queue, exception system, billing, document generation, shipment detail, trade-lane intelligence, intelligence ingestion
+
+MISSION OF THIS SPRINT
+
+The last sprint proved that persistent AI state exists. This sprint must prove that AI materially changes operations.
+
+Implement the missing operational AI layer so that:
+1. recommendations become first-class persisted objects
+2. operator actions on recommendations are captured and stored
+3. AI controls queue behavior in a meaningful, explainable way
+4. event handling is durable and idempotent, not dependent on a naive 10-second throttle
+5. AI state transitions are tied to recommendation lifecycle and task lifecycle
+6. the system can honestly claim that it does not merely analyze shipments, but actively governs work
+
+NON-NEGOTIABLE GOALS
+
+When this sprint is complete, Dynasties must have:
+- first-class persisted shipment recommendations
+- recommendation lifecycle and supersession rules
+- operator outcome tracking for recommendations
+- AI-driven task creation, reprioritization, suppression, reopening, and closure logic
+- replacement of simplistic throttle behavior with proper dedupe/idempotency/coalescing
+- end-to-end consistency between shipment AI state, recommendations, tasks, timeline, and operator actions
+- strong tests proving that AI now changes operational behavior and not merely advisory display
+
+DO NOT return a plan without code.
+DO NOT implement this as loose helper functions.
+DO NOT break the existing AI runtime foundation.
+DO NOT remove any previously completed sprint functionality.
+
+IMPLEMENTATION PHILOSOPHY
+
+- Preserve validated AI output -> deterministic safety -> transactionally persisted outcomes
+- No raw LLM text directly mutates core entities
+- Recommendations must be durable, queryable, versioned, and auditable
+- Queue behavior must be explainable from AI recommendations and AI state
+- Reanalysis/event processing must be idempotent and safe under concurrent or bursty conditions
+- Tenant isolation is mandatory everywhere
+- Existing domain services should be reused and integrated, not replaced gratuitously
+- Every AI-driven work artifact should be traceable back to analysis runs and trigger events
+
+REQUIRED IMPLEMENTATION SCOPE
+
+A. FIRST-CLASS RECOMMENDATION MODEL
+
+Implement or formalize a persistent recommendation system as first-class entities, not embedded/transient output blobs.
+
+Create all necessary schema, migration, ORM, domain model, API, and UI changes for a recommendation system with at minimum:
+
+- shipment_recommendations table
+- shipment_recommendation_outcomes table
+- optional recommendation_task_links table if needed
+- optional recommendation_change_log or use analysis run metadata if sufficient
+
+Each recommendation record should include:
+- id
+- shipmentId
+- companyId
+- analysisRunId
+- recommendationType
+- title
+- summary
+- explanation
+- machineReadableActionPayload
+- urgency / priority
+- confidence
+- severity or operational impact if needed
+- status
+  - active
+  - accepted
+  - rejected
+  - modified
+  - ignored
+  - expired
+  - superseded
+  - suppressed
+- supersedesRecommendationId if applicable
+- createdAt
+- updatedAt
+- retiredAt or equivalent
+
+Recommendation types should cover existing Dynasties operational logic where relevant, such as:
+- compliance escalation
+- document correction
+- shipment hold / release
+- route adjustment
+- carrier switch
+- pricing adjustment
+- insurance action
+- margin warning
+- delay mitigation
+- customer communication
+- claims readiness
+- queue reprioritization
+- workflow escalation
+- operational follow-up task
+
+Do not leave recommendations as display-only artifacts inside shipment AI state.
+
+B. RECOMMENDATION LIFECYCLE / SUPERSESSION RULES
+
+Implement explicit lifecycle logic so recommendations do not pile up chaotically.
+
+Rules must include:
+- if a new analysis produces materially equivalent active recommendations, update or preserve correctly without duplication
+- if a recommendation is no longer relevant after reanalysis, mark it expired or superseded
+- if a recommendation is replaced by a more recent/better version, create proper supersession linkage
+- ensure at most the correct set of active recommendations exists per shipment at any given time
+- define clear comparison and dedupe logic
+- preserve historical traceability
+
+This must be deterministic and tested.
+
+C. OPERATOR OUTCOME TRACKING / DECISION MEMORY
+
+Implement operator actions on recommendations as first-class stored outcomes.
+
+Supported actions:
+- accept
+- reject
+- modify
+- ignore if relevant
+- optional resolve/complete where needed
+
+Each outcome record must capture:
+- recommendationId
+- shipmentId
+- companyId
+- operator userId
+- prior recommendation status
+- new recommendation status
+- operator note
+- modified payload if applicable
+- timestamp
+- contextual metadata useful for later analytics
+
+If “modify” is supported:
+- store both original and modified action payload
+- reflect this clearly in status/history
+
+This must be reflected in:
+- APIs
+- UI
+- task behavior where appropriate
+- audit/history
+
+D. AI-DRIVEN TASK / QUEUE OWNERSHIP
+
+The queue must stop being only exception-driven with AI sprinkled on top.
+
+Implement AI-driven operational work orchestration so recommendations can:
+- create new tasks
+- update priority on existing tasks
+- suppress or close stale tasks when recommendations expire or risk disappears
+- reopen tasks when risk returns
+- attach machine-readable and human-readable reason metadata to each task
+- link task lifecycle to recommendation lifecycle
+
+Every AI-created or AI-updated task should expose:
+- recommendationId
+- analysisRunId or source analysis reference
+- why the task exists
+- why the priority is what it is
+- current status reason
+
+The queue should materially react to AI state changes.
+
+Examples of desired behavior:
+- risk increase -> task priority increases
+- compliance escalation recommendation -> task created or escalated automatically
+- recommendation expires -> task suppressed or closed if safe
+- risk returns after prior resolution -> task reopened
+
+Preserve existing syncTasksFromExceptions behavior, but extend work orchestration so AI recommendations are first-class queue inputs.
+
+E. REPLACE SIMPLE THROTTLE WITH REAL EVENT CONTROL
+
+The current central orchestrator uses a 10-second throttle. This is not sufficient as a production-grade mechanism.
+
+Replace or upgrade this with a real event handling strategy that prevents duplicate or chaotic reanalysis without silently dropping important changes.
+
+Implement a robust approach using some combination of:
+- idempotency keys
+- event dedupe keys
+- event coalescing
+- last meaningful input hash
+- per-shipment work serialization
+- transactional locks where appropriate
+- queue job uniqueness
+- analysis reason merging during bursts
+
+Requirements:
+- rapid repeated domain events must not create duplicate active recommendations or duplicate tasks
+- important changes must not be lost
+- concurrent triggers must not corrupt AI state
+- if several events arrive close together, system should either serialize or intelligently coalesce them rather than blindly skip
+- analysis timeline should still make sense after burst scenarios
+
+Document the chosen strategy in code comments and implementation docs.
+
+F. SHIPMENT AI STATE CONSISTENCY
+
+Extend shipment_ai_state so it is fully consistent with recommendation/task lifecycle.
+
+AI state should accurately reflect:
+- active recommendation count
+- current highest urgency
+- confidence summary
+- latest meaningful operational concerns
+- last successful analysis
+- last failed analysis if relevant
+- whether fallback was used
+- whether queue-impacting actions occurred
+
+Do not let shipment_ai_state and recommendation/task reality drift apart.
+
+G. API SURFACE
+
+Add or update all needed endpoints and DTOs.
+
+At minimum implement:
+- GET /shipments/:id/recommendations
+- GET /shipments/:id/recommendations/:recommendationId/history if useful
+- POST /shipments/:id/recommendations/:recommendationId/accept
+- POST /shipments/:id/recommendations/:recommendationId/reject
+- POST /shipments/:id/recommendations/:recommendationId/modify
+- optional POST /shipments/:id/recommendations/:recommendationId/ignore
+- task/recommendation link inspection endpoint if useful for QA/admin
+
+Requirements:
+- align DTOs precisely with UI expectations
+- preserve company scoping
+- normalize confidence/score fields consistently
+- add rigorous validation
+- wrap errors consistently
+- update OpenAPI spec and generated client/hooks/types
+
+H. UI / WORKBENCH
+
+Extend the Shipment Detail “AI Runtime” area and any related work queue UI so operators can truly use the recommendation system.
+
+Add or update:
+1. Active Recommendations panel
+- list active recommendations
+- show urgency, confidence, explanation, status
+- clear badges for type and state
+- accept / reject / modify controls
+- superseded/expired visibility where relevant
+
+2. Recommendation history panel or timeline integration
+- show historical recommendations and status transitions
+- show which analysis run created/updated/superseded them
+
+3. Task reason visibility
+- for AI-generated or AI-updated tasks, show why this task exists and why the priority is set as it is
+
+4. Change visibility
+- make it clear what changed after latest reanalysis
+- e.g. new recommendation, priority increased, prior recommendation expired, task reopened, etc.
+
+5. Safe UX
+- no dead controls
+- no fake loading states
+- clear failure states when action recording or reanalysis fails
+
+Make the UI feel native to the current Dynasties workbench. Do not redesign the whole app.
+
+I. TRANSACTIONS / CONCURRENCY / IDEMPOTENCY
+
+This sprint must materially improve correctness around concurrent events.
+
+Requirements:
+- use database transactions for multi-step writes involving ai state + recommendation + task linkage + outcome recording
+- prevent duplicate active recommendations from concurrent reanalysis
+- prevent duplicate task creation under event bursts
+- ensure one shipment’s latest AI state cannot be partially overwritten by an older or stale run
+- define clear ordering/versioning semantics
+- ensure reanalysis completion updates are safe if multiple runs overlap
+
+If needed, introduce:
+- optimistic concurrency fields
+- analysis version checks
+- row locking
+- dedupe tables
+- unique constraints
+
+Implement the safest architecture-compatible version you can.
+
+J. TENANT ISOLATION / SECURITY
+
+Maintain strict company scoping for:
+- recommendation reads
+- recommendation writes
+- task links
+- recommendation outcomes
+- admin/QA actions
+
+Ensure:
+- no cross-tenant read/write leakage
+- route handlers validate ownership correctly
+- service layer is company-aware
+- any new tables are compatible with stronger future RLS enforcement
+
+Do not weaken existing security posture.
+
+K. ANALYTICS-READY OUTCOME MEMORY
+
+Even if this sprint does not build full adaptive learning, store the data correctly so future analytics and learning are possible.
+
+Outcome records should be useful for future queries like:
+- which recommendations get accepted most by lane/customer/mode/company
+- which operators often modify recommendations
+- where recommendations are ignored or rejected
+- which recommendation types most often lead to resolved tasks
+- where model recommendations diverge from operator behavior
+
+Store enough structured metadata to make future analysis practical without bloating the schema carelessly.
+
+L. TESTING
+
+Add real automated tests. This is mandatory.
+
+1. Unit tests
+- recommendation dedupe logic
+- supersession rules
+- outcome recording logic
+- modified payload persistence
+- task sync rules from recommendation lifecycle
+- event coalescing / dedupe strategy
+- AI state summary updates
+- fallback handling where recommendations cannot be safely created
+
+2. Integration tests
+- analysis run creates persisted recommendations
+- reanalysis updates/supersedes recommendations correctly
+- active recommendation count in shipment_ai_state stays accurate
+- accept/reject/modify endpoints persist correctly
+- recommendation action updates tasks correctly
+- recommendation expiration/supersession updates tasks correctly
+- rapid repeated events do not create duplicates
+- concurrent trigger simulation preserves correct latest state
+- tenant isolation for recommendation APIs and task links
+- preserved prior sprint regressions remain green
+
+3. End-to-end tests if practical
+- create shipment -> see ai runtime -> see active recommendations -> accept/reject/modify -> queue updates accordingly
+- trigger new intel -> recommendation/task priorities update in UI
+
+4. Regression tests
+Keep all prior completed sprint behavior intact:
+- doc generation chains validation -> recompute
+- queue auto-populates
+- billing source of truth remains correct
+- dev overlay only in development
+- command input remains guarded
+- refresh queue remains supplementary
+
+M. DOCUMENTATION
+
+Add implementation docs covering:
+- recommendation architecture
+- recommendation lifecycle and statuses
+- task linkage rules
+- event dedupe/coalescing strategy
+- concurrency/idempotency approach
+- API endpoints and DTOs
+- local test strategy
+- known tradeoffs and future enhancements
+
+Update any relevant internal architecture docs and README sections.
+
+N. CODE QUALITY
+
+Requirements:
+- follow existing monorepo conventions
+- keep route handlers thin
+- place domain logic in services/orchestrators
+- reuse existing queue/event abstractions where sensible
+- add migrations cleanly
+- keep naming coherent
+- remove dead code paths caused by this refactor
+- do not leave fake TODO-complete stubs
+- do not hardcode IDs or company context
+
+O. DELIVERABLE FORMAT
+
+When complete, provide:
+1. summary of what was built
+2. exact migrations added
+3. exact files/modules added or changed
+4. API routes added or updated
+5. UI panels/components added or changed
+6. test files added and what they verify
+7. explanation of the event dedupe/coalescing approach
+8. explanation of recommendation supersession logic
+9. open risks/tradeoffs if any remain
+10. exact local validation steps
+11. focused QA checklist proving that AI now materially changes operations
+
+SUCCESS CRITERIA
+
+This sprint is only successful if all of the following are true:
+- recommendations are persisted as first-class entities
+- operator outcomes are recorded and visible
+- queue/task behavior changes meaningfully in response to AI recommendations
+- duplicate bursts do not create queue/recommendation chaos
+- AI state stays consistent with recommendations/tasks
+- all relevant APIs and UI surfaces work end-to-end
+- tests prove operational AI behavior, not just advisory display
+- prior sprint gains remain intact
+- Dynasties can honestly claim it has an AI layer that changes work, not just one that analyzes and displays information
+
+Now inspect the current codebase, design the strongest architecture-compatible implementation, and implement this entire operational AI layer fully in code.
