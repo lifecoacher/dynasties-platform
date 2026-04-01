@@ -24,6 +24,14 @@ export const recommendationsTable = pgTable(
         "DOCUMENT_CORRECTION",
         "RISK_MITIGATION",
         "PRICING_ALERT",
+        "SHIPMENT_HOLD",
+        "SHIPMENT_RELEASE",
+        "CUSTOMER_COMMUNICATION",
+        "CLAIMS_READINESS",
+        "QUEUE_REPRIORITIZATION",
+        "WORKFLOW_ESCALATION",
+        "OPERATIONAL_FOLLOWUP",
+        "DELAY_MITIGATION",
       ],
     }).notNull(),
     title: text("title").notNull(),
@@ -38,7 +46,7 @@ export const recommendationsTable = pgTable(
     expectedRiskReduction: real("expected_risk_reduction"),
     recommendedAction: text("recommended_action").notNull(),
     status: text("status", {
-      enum: ["PENDING", "SHOWN", "ACCEPTED", "MODIFIED", "REJECTED", "IMPLEMENTED", "EXPIRED", "SUPERSEDED"],
+      enum: ["PENDING", "SHOWN", "ACCEPTED", "MODIFIED", "REJECTED", "IMPLEMENTED", "EXPIRED", "SUPERSEDED", "IGNORED", "SUPPRESSED"],
     })
       .notNull()
       .default("PENDING"),

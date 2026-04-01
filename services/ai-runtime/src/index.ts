@@ -17,9 +17,11 @@ import { generateId } from "@workspace/shared-utils";
 import { runDecisionEngine } from "@workspace/svc-decision-engine";
 import type { AiTriggerType } from "@workspace/db/schema";
 import { syncTasksFromRecommendations } from "./task-sync.js";
-
-const recentAnalysisMap = new Map<string, number>();
-const THROTTLE_MS = 10_000;
+import {
+  shouldCoalesce,
+  computeInputHash,
+  logCoalescedEvent,
+} from "./event-coalescing.js";
 
 export interface ReanalysisRequest {
   shipmentId: string;
@@ -29,11 +31,12 @@ export interface ReanalysisRequest {
   triggerSourceEntityType?: string;
 }
 
-export function shouldThrottle(shipmentId: string): boolean {
-  const last = recentAnalysisMap.get(shipmentId);
-  if (last && Date.now() - last < THROTTLE_MS) return true;
-  return false;
-}
+const URGENCY_ORDER: Record<string, number> = {
+  CRITICAL: 4,
+  HIGH: 3,
+  MEDIUM: 2,
+  LOW: 1,
+};
 
 export async function ensureAiState(
   shipmentId: string,
@@ -92,12 +95,15 @@ export async function runShipmentAnalysis(
 ): Promise<{ runId: string; success: boolean; error?: string }> {
   const { shipmentId, companyId, triggerType, triggerSourceEntityId, triggerSourceEntityType } = request;
 
-  if (shouldThrottle(shipmentId)) {
-    console.log(`[ai-runtime] throttled reanalysis for shipment=${shipmentId}`);
-    return { runId: "", success: true, error: "throttled" };
-  }
+  const coalesceDecision = await shouldCoalesce(shipmentId, companyId, triggerType);
 
-  recentAnalysisMap.set(shipmentId, Date.now());
+  if (!coalesceDecision.shouldAnalyze) {
+    console.log(
+      `[ai-runtime] skipping analysis for shipment=${shipmentId} reason=${coalesceDecision.reason}`,
+    );
+    await logCoalescedEvent(companyId, shipmentId, [triggerType], coalesceDecision);
+    return { runId: "", success: true, error: coalesceDecision.reason };
+  }
 
   const currentState = await ensureAiState(shipmentId, companyId);
   const runId = generateId();
@@ -188,6 +194,15 @@ export async function runShipmentAnalysis(
 
     const confidenceScore = computeConfidence(activeRecs, usedFallback);
 
+    const highestUrgency = activeRecs.reduce<string | null>((highest, r) => {
+      if (!highest) return r.urgency;
+      return (URGENCY_ORDER[r.urgency] ?? 0) > (URGENCY_ORDER[highest] ?? 0)
+        ? r.urgency
+        : highest;
+    }, null);
+
+    const inputHash = await computeInputHash(shipmentId, companyId);
+
     const afterStateData = {
       riskScore,
       analysisVersion: newVersion,
@@ -227,6 +242,9 @@ export async function runShipmentAnalysis(
             : "Deterministic analysis (AI fallback)",
           activeIssuesSummary: issuesSummary,
           activeRecommendationCount: activeRecs.length,
+          highestUrgency: highestUrgency as any,
+          lastInputHash: inputHash,
+          lastFailedAt: null,
           usedDeterministicFallback: usedFallback,
           isStale: false,
         })
@@ -312,7 +330,7 @@ export async function runShipmentAnalysis(
 
     await db
       .update(shipmentAiStateTable)
-      .set({ analysisStatus: "FAILED", isStale: true })
+      .set({ analysisStatus: "FAILED", isStale: true, lastFailedAt: new Date() })
       .where(eq(shipmentAiStateTable.id, currentState.id));
 
     await db.insert(aiEventLogTable).values({

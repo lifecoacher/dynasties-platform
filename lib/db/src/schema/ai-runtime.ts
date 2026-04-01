@@ -48,6 +48,11 @@ export const shipmentAiStateTable = pgTable(
     usedDeterministicFallback: boolean("used_deterministic_fallback")
       .notNull()
       .default(false),
+    highestUrgency: text("highest_urgency", {
+      enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+    }),
+    lastFailedAt: timestamp("last_failed_at"),
+    lastInputHash: text("last_input_hash"),
     isStale: boolean("is_stale").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
@@ -176,6 +181,8 @@ export const aiEventLogTable = pgTable(
         "AI_STATE_UPDATED",
         "AI_FALLBACK_USED",
         "AI_RECOMMENDATION_RESPONDED",
+        "AI_EVENT_COALESCED",
+        "AI_ANALYSIS_SKIPPED_NO_CHANGE",
       ],
     }).notNull(),
     analysisRunId: text("analysis_run_id"),
