@@ -9,6 +9,7 @@ import {
 } from "@workspace/svc-doc-engine";
 import { GENERATED_DOC_TYPES } from "@workspace/db/schema";
 import { runDocumentValidation } from "@workspace/svc-document-validation";
+import { runShipmentDecision } from "@workspace/svc-shipment-decision";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
 
@@ -74,7 +75,14 @@ router.post("/shipments/:id/generated-documents/:type/generate", requireMinRole(
       console.warn(`[doc-engine] Post-generation validation recheck failed shipment=${shipmentId}:`, err.message);
     }
 
-    res.json({ data: { ...result, validation: validationResult } });
+    let decisionResult = null;
+    try {
+      decisionResult = await runShipmentDecision(shipmentId, companyId);
+    } catch (err: any) {
+      console.warn(`[doc-engine] Post-generation decision recompute failed shipment=${shipmentId}:`, err.message);
+    }
+
+    res.json({ data: { ...result, validation: validationResult, decision: decisionResult?.data || null } });
   } catch (err: any) {
     console.error(`[doc-engine] Generation FAILED company=${companyId} shipment=${shipmentId} type=${docType}:`, err.message);
     res.status(500).json({ error: "Document generation failed", code: "DOC_GENERATION_ERROR", message: "Unable to generate document. Please verify shipment data is complete and try again." });
@@ -130,7 +138,14 @@ router.post("/shipments/:id/generated-documents/:documentId/regenerate", require
       console.warn(`[doc-engine] Post-regeneration validation recheck failed shipment=${shipmentId}:`, err.message);
     }
 
-    res.json({ data: { ...result, validation: validationResult } });
+    let decisionResult = null;
+    try {
+      decisionResult = await runShipmentDecision(shipmentId, companyId);
+    } catch (err: any) {
+      console.warn(`[doc-engine] Post-regeneration decision recompute failed shipment=${shipmentId}:`, err.message);
+    }
+
+    res.json({ data: { ...result, validation: validationResult, decision: decisionResult?.data || null } });
   } catch (err: any) {
     console.error(`[doc-engine] Regeneration FAILED company=${companyId} shipment=${shipmentId} doc=${documentId}:`, err.message);
     res.status(500).json({ error: "Document regeneration failed", code: "DOC_REGENERATION_ERROR", message: "Unable to regenerate document. Please try again." });

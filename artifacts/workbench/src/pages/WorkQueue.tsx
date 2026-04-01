@@ -274,8 +274,8 @@ export default function WorkQueue() {
               disabled={generateTasksMutation.isPending}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium bg-primary/10 text-primary rounded-lg hover:bg-primary/15 disabled:opacity-50 transition-colors"
             >
-              <TrendingUp size={13} className={generateTasksMutation.isPending ? "animate-spin" : ""} />
-              {generateTasksMutation.isPending ? "Scanning..." : "Scan Issues"}
+              <RefreshCw size={13} className={generateTasksMutation.isPending ? "animate-spin" : ""} />
+              {generateTasksMutation.isPending ? "Syncing..." : "Refresh Queue"}
             </button>
             <button
               onClick={() => applyBatchMutation.mutate()}

@@ -1,0 +1,185 @@
+You are acting as Principal Engineer and Systems Integrity Lead.
+
+The platform is failing due to broken state synchronization and inconsistent sources of truth.
+
+This is NOT a UI sprint.
+This is NOT a feature sprint.
+This is a DATA INTEGRITY AND SYSTEM WIRING sprint.
+
+Your goal is to eliminate contradictions at the system level.
+
+==================================================
+RULE 1 — SINGLE SOURCE OF TRUTH
+==================================================
+
+For each domain below, define ONE authoritative source:
+
+- Documents
+- Validation
+- Shipment decision state
+- Exceptions
+- Work queue tasks
+- Notifications
+- Invoices
+- Aging / receivables
+
+No derived layer is allowed to invent or override truth.
+
+==================================================
+T001 — DOCUMENT ↔ VALIDATION ↔ DECISION INTEGRITY
+==================================================
+
+Problem:
+Document engine and validation engine are disconnected.
+
+Fix:
+- Validation must read directly from stored/generated document records
+- Remove any “assumed” or static validation state
+- On document generation:
+  - persist document record
+  - trigger validation recompute
+  - update readiness + decision state from same data source
+
+Validation must answer:
+"Do required documents exist?" based ONLY on stored documents.
+
+Return:
+- exact schema used for documents
+- how validation queries it
+- proof that generating a document changes validation state immediately and truthfully
+
+==================================================
+T002 — EVENT PIPELINE (EXCEPTIONS → TASKS → NOTIFICATIONS)
+==================================================
+
+Problem:
+Queue and notifications are not driven by real events.
+
+Fix:
+- Define event model:
+  - exception_created
+  - exception_updated
+  - shipment_blocked
+  - document_missing
+  - etc.
+
+- Work Queue:
+  must be derived from current system state (not manual scan)
+
+- Notifications:
+  must be event-driven and deduplicated by:
+    (event_type + entity_id)
+
+NOT by message text
+NOT by shipment only
+
+Return:
+- event schema
+- task generation logic
+- notification dedup logic
+- proof that:
+  - 4 exceptions → 4 tasks
+  - no duplicates
+  - no manual scan required
+
+==================================================
+T003 — BILLING SOURCE OF TRUTH
+==================================================
+
+Problem:
+Dashboard is not reflecting real invoice state.
+
+Fix:
+- Define invoice source of truth:
+  status: DRAFT | SENT | PAID | VOID
+
+- Outstanding = sum of SENT invoices with unpaid balance
+
+- Aging buckets:
+  computed from due_date vs today
+
+NO guard conditions that hide data
+
+Return:
+- query used for outstanding
+- query used for aging buckets
+- proof that:
+  invoice $5,420 appears in:
+    - outstanding
+    - correct aging bucket
+    - receivable count
+
+==================================================
+T004 — REMOVE DEV ERROR EXPOSURE
+==================================================
+
+Problem:
+Vite dev overlay leaks source paths.
+
+Fix:
+- disable dev overlay in production build
+- replace with controlled UI error handling
+
+Return:
+- confirmation overlay is removed
+- example user-facing validation error
+
+==================================================
+T005 — AI SURFACE TRUTHFULNESS
+==================================================
+
+Problem:
+Fake AI interface returning scripted or incorrect responses.
+
+Fix:
+Choose ONE:
+
+OPTION A — REMOVE
+- remove "Ask Dynasties" entirely
+
+OPTION B — STRICT MODE
+- only answer when data is explicitly queried
+- otherwise respond:
+  "This feature is not yet available"
+
+NO fabricated answers
+NO system-wide claims without data
+
+Return:
+- which option chosen
+- proof no false statements can be generated
+
+==================================================
+T006 — WORK QUEUE AUTO-POPULATION
+==================================================
+
+Problem:
+Queue requires manual scan.
+
+Fix:
+- queue must be computed on page load from:
+  - active exceptions
+  - blocked shipments
+  - pending reviews
+
+Return:
+- query used
+- proof queue loads populated without any button
+
+==================================================
+STRICT OUTPUT
+==================================================
+
+1. Root causes (per system)
+2. New data flow diagrams (text form)
+3. Queries / logic for:
+   - validation
+   - queue
+   - notifications
+   - billing
+4. Proof of consistency (before vs after)
+5. Remaining limitations
+
+No UI commentary.
+No summaries.
+Only system truth and logic.

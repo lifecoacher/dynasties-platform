@@ -1002,48 +1002,11 @@ router.get("/billing/receivables/overview", async (req, res) => {
 
   const now = new Date();
 
-  let totalOutstanding = 0;
-  let totalOverdue = 0;
-  let totalCurrent = 0;
-  let totalDisputed = 0;
-  let countOverdue = 0;
-  for (const r of receivables) {
-    const amt = Number(r.outstandingAmount);
-    if (r.receivableTransferred) continue;
-    totalOutstanding += amt;
-    if (r.disputeStatus === "OPEN") totalDisputed += amt;
-    if (r.dueDate < now && amt > 0 && r.financeStatus !== "FUNDED" && r.financeStatus !== "REPAID") {
-      totalOverdue += amt;
-      countOverdue++;
-    } else if (amt > 0) {
-      totalCurrent += amt;
-    }
-  }
-
-  const overdueInvoiceIds = new Set(
-    allInvoices
-      .filter((i) => i.status === "OVERDUE" && i.financeStatus !== "FUNDED" && i.financeStatus !== "REPAID")
-      .map((i) => i.id),
-  );
-  totalOverdue = 0;
-  countOverdue = 0;
-  for (const r of receivables) {
-    if (!overdueInvoiceIds.has(r.invoiceId)) continue;
-    if (r.receivableTransferred) continue;
-    const amt = Number(r.outstandingAmount);
-    if (amt > 0) {
-      totalOverdue += amt;
-      countOverdue++;
-    }
-  }
-  const disputedInvoices = allInvoices.filter((i) => i.status === "DISPUTED");
-  const paidInvoices = allInvoices.filter((i) => i.status === "PAID");
-  const paidThisMonth = paidInvoices
-    .filter((i) => i.paidAt && i.paidAt.getMonth() === now.getMonth() && i.paidAt.getFullYear() === now.getFullYear())
-    .reduce((s, i) => s + Number(i.grandTotal), 0);
   const activeInvoices = allInvoices.filter((i) => i.status !== "CANCELLED" && i.status !== "DRAFT");
-  const totalInvoiced = activeInvoices.reduce((s, i) => s + Number(i.grandTotal || 0), 0);
+  const paidInvoices = allInvoices.filter((i) => i.status === "PAID");
+  const disputedInvoices = allInvoices.filter((i) => i.status === "DISPUTED");
 
+  const totalInvoiced = activeInvoices.reduce((s, i) => s + Number(i.grandTotal || 0), 0);
   const totalCollected = paidInvoices.reduce((s, i) => s + Number(i.grandTotal || 0), 0);
   const partiallyPaidInvoices = allInvoices.filter((i) => i.status === "PARTIALLY_PAID");
   const partialCollected = partiallyPaidInvoices.reduce((s, i) => {
@@ -1054,13 +1017,27 @@ router.get("/billing/receivables/overview", async (req, res) => {
     return s;
   }, 0);
   const totalCollectedAll = totalCollected + partialCollected;
+  let totalOutstanding = Math.max(0, totalInvoiced - totalCollectedAll);
 
-  const computedOutstanding = Math.max(0, totalInvoiced - totalCollectedAll);
-  if (totalOutstanding === 0 && computedOutstanding > 0) {
-    totalOutstanding = computedOutstanding;
-  }
-  if (Math.abs((totalCollectedAll + totalOutstanding) - totalInvoiced) > 0.01) {
-    totalOutstanding = Math.max(0, totalInvoiced - totalCollectedAll);
+  const paidThisMonth = paidInvoices
+    .filter((i) => i.paidAt && i.paidAt.getMonth() === now.getMonth() && i.paidAt.getFullYear() === now.getFullYear())
+    .reduce((s, i) => s + Number(i.grandTotal), 0);
+
+  let totalOverdue = 0;
+  let totalCurrent = 0;
+  let totalDisputed = 0;
+  let countOverdue = 0;
+  for (const r of receivables) {
+    if (r.receivableTransferred) continue;
+    const amt = Number(r.outstandingAmount);
+    if (amt <= 0) continue;
+    if (r.disputeStatus === "OPEN") totalDisputed += amt;
+    if (r.dueDate && r.dueDate < now && r.financeStatus !== "FUNDED" && r.financeStatus !== "REPAID") {
+      totalOverdue += amt;
+      countOverdue++;
+    } else {
+      totalCurrent += amt;
+    }
   }
 
   const financedRecords = await db
@@ -1094,9 +1071,6 @@ router.get("/billing/receivables/overview", async (req, res) => {
   }
 
   const agingTotal = aging.current + aging.days1to30 + aging.days31to60 + aging.days61to90 + aging.days90plus;
-  if (Math.abs(agingTotal - totalOutstanding) > 0.01) {
-    totalOutstanding = agingTotal;
-  }
 
   res.json({
     data: {
