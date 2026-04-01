@@ -45,6 +45,7 @@ export const recommendationsTable = pgTable(
     sourceAgent: text("source_agent").notNull(),
     externalReasonCodes: jsonb("external_reason_codes").$type<string[]>(),
     signalEvidence: jsonb("signal_evidence").$type<Record<string, unknown>[]>(),
+    analysisRunId: text("analysis_run_id"),
     intelligenceEnriched: text("intelligence_enriched").default("false"),
     snapshotId: text("snapshot_id"),
     sourceData: jsonb("source_data").$type<Record<string, unknown>>(),

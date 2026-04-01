@@ -203,6 +203,9 @@ importers:
       '@workspace/storage':
         specifier: workspace:*
         version: link:../../lib/storage
+      '@workspace/svc-ai-runtime':
+        specifier: workspace:*
+        version: link:../../services/ai-runtime
       '@workspace/svc-billing':
         specifier: workspace:*
         version: link:../../services/billing
@@ -844,6 +847,34 @@ importers:
         version: 4.21.0
 
   services/agent-worker: {}
+
+  services/ai-runtime:
+    dependencies:
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/queue':
+        specifier: workspace:*
+        version: link:../../lib/queue
+      '@workspace/shared-utils':
+        specifier: workspace:*
+        version: link:../../lib/shared-utils
+      '@workspace/svc-decision-engine':
+        specifier: workspace:*
+        version: link:../decision-engine
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      vitest:
+        specifier: ^3.2.1
+        version: 3.2.4(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
 
   services/billing:
     dependencies:

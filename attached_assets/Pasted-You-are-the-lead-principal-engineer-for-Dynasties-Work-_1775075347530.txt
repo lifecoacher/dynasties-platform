@@ -1,0 +1,428 @@
+You are the lead principal engineer for Dynasties. Work directly in the existing Dynasties monorepo and implement a production-grade AI runtime layer that turns the current AI-assisted freight platform into a persistent, event-driven, tenant-safe operating system for trade.
+
+Read this entire prompt carefully and execute it fully. Do not treat this as a brainstorming task. This is an implementation task.
+
+CRITICAL CONTEXT
+
+Dynasties already has meaningful architecture and domain modeling in place. The platform currently includes:
+- React 19 + Vite operator workbench
+- Express API monolith
+- PostgreSQL + Drizzle ORM
+- Zod-validated schemas
+- Anthropic-based agents already used for document extraction, compliance screening, risk intelligence, insurance rationale, pricing recommendations, exception classification, trade-lane intelligence, and claims narrative generation
+- Existing pipeline from ingestion to shipment construction to downstream services
+- Existing work queue, exception handling, billing, document generation, and trade-lane intelligence
+- Existing AI safety pattern: context assembly -> LLM call -> Zod validation -> deterministic fallback
+
+The prior audits found:
+- The AI/agent architecture is well-designed with proper safety controls and validated outputs before DB writes
+- The queue system is still effectively a development placeholder with in-process consumers
+- No PostgreSQL row-level security
+- Serious production gaps around tests, transactions, tenant isolation, and reliability
+- “AI agents affect outcomes” is only partially implemented; AI currently enriches recommendations but is not yet embedded as a first-class always-on runtime layer
+- There is a configuration mismatch around Anthropic environment variables
+- The workflow orchestrator is effectively a placeholder
+- Local filesystem storage is still a deployment risk
+- For the broader Phase 1 blueprint, the payments/financial layer is still largely unbuilt, but this sprint is NOT for Stripe or billing expansion unless directly necessary for AI-state integrity hooks
+
+Your mission in this sprint:
+Build the best possible AI runtime layer inside Dynasties so AI becomes a persistent, event-driven, auditable subsystem that continuously evaluates shipments, updates stored AI state, influences queue behavior, tracks decision outcomes, and connects together the existing agent capabilities already present in the product. This should materially close the gap between “AI exists in scattered service calls” and “Dynasties is an AI-native operating system.”
+
+NON-NEGOTIABLE GOAL
+
+When this sprint is complete, Dynasties must have:
+1. Persistent AI state per shipment
+2. Automatic reanalysis on meaningful domain events
+3. AI recommendations stored with history, versioning, and outcomes
+4. AI-driven task/queue impact, not just passive suggestion text
+5. Strong guardrails: schema validation, deterministic fallback, idempotency, auditability, tenant isolation
+6. Clear APIs and UI surfaces showing current AI state, history, confidence, explanations, and changes over time
+7. Sufficient tests to prove the AI runtime is real and durable
+8. No fake “agentic” marketing veneer unsupported by the code
+
+DO NOT implement this as a loose collection of helper functions.
+Implement it as a coherent runtime subsystem.
+
+IMPLEMENTATION PHILOSOPHY
+
+- Preserve and extend the existing pattern of validated AI outputs and deterministic fallback
+- Never allow raw LLM text to directly mutate core entities without validated structured contracts
+- AI must be additive to safety, not destructive to reliability
+- AI outputs must be versioned and traceable
+- Every AI-triggered change must be explainable
+- Prefer durable background execution over request-bound execution where practical
+- No hallucinated autonomy. If the system cannot safely take an action, it should recommend and explain
+- Any automation must remain company-scoped and tenant-safe
+- Treat production reliability as part of the feature, not a later concern
+
+SCOPE OF THIS SPRINT
+
+Build an “AI Runtime Layer” with the following capabilities:
+
+A. SHIPMENT AI STATE
+Every shipment must have persistent AI state stored in the database. This must not be computed only on page load.
+
+Create a normalized model for persistent AI state. This should likely include:
+- shipmentAiState table
+- shipmentAiAnalysisRuns table
+- shipmentRecommendations table
+- shipmentRecommendationOutcomes table
+- aiEventLog or equivalent
+- optional task generation linkage table if needed for traceability
+
+The persistent AI state for a shipment should include, at minimum:
+- shipmentId
+- companyId
+- current analysis status
+- analysis version
+- last analyzed at
+- last triggering event
+- current risk score
+- current compliance risk
+- current margin risk
+- current operational readiness score
+- current confidence score
+- recommended actions summary
+- explanation snapshot
+- active issues summary
+- stale / superseded flags where relevant
+- createdAt / updatedAt
+
+You may refine the shape, but do not omit the concept. The AI state must be queryable, durable, and understandable.
+
+B. ANALYSIS RUN HISTORY
+Store each AI analysis run as a first-class record.
+Each run should capture:
+- trigger type
+- trigger source entity/event
+- input snapshot metadata
+- model(s) used
+- deterministic services involved
+- output version
+- validation status
+- fallback usage
+- errors encountered
+- latency/timing
+- token usage if available
+- created tasks / updated recommendations / changed scores
+- before/after summary if possible
+
+This history must make it possible to answer:
+- Why did the AI state change?
+- What event caused it?
+- Which recommendations were created, updated, retired, or preserved?
+- Did the model succeed or did deterministic fallback carry the result?
+
+C. EVENT-DRIVEN REANALYSIS
+Implement a real reanalysis orchestration path.
+Meaningful events must trigger AI reanalysis automatically.
+
+At minimum, trigger reanalysis on:
+- shipment created
+- shipment fields materially changed
+- document uploaded to a shipment
+- document validation completed
+- document generation completed
+- exception created
+- exception severity/status changed
+- exception resolved
+- pricing updated
+- insurance updated
+- compliance screening updated
+- risk intelligence updated
+- billing state materially changed if relevant to margin/ops scoring
+- trade-lane intelligence updated
+- vessel intelligence updated
+- port congestion/disruption/weather/sanctions intel updated for impacted shipments
+- operator action taken on an AI recommendation
+- manual admin/QA forced reanalysis
+
+Do not implement this as ad hoc calls sprinkled randomly through route handlers.
+Centralize it behind a dedicated orchestration layer.
+
+Design a clean event contract such as:
+- AI_REANALYSIS_REQUESTED
+- AI_REANALYSIS_STARTED
+- AI_REANALYSIS_COMPLETED
+- AI_REANALYSIS_FAILED
+- AI_RECOMMENDATIONS_UPDATED
+- AI_TASKS_SYNCED
+
+Use the existing queue architecture if necessary, but improve the implementation so this path is durable and idempotent. If the current queue abstraction is too weak, improve it in the least disruptive way possible. If SQS wiring already exists in Terraform and can be integrated cleanly, use it or at minimum make the code queue-backend-agnostic and production-ready.
+
+D. RECOMMENDATION ENGINE
+Create or formalize a recommendation engine that produces structured, persisted recommendations per shipment.
+
+Recommendations must not just be transient UI hints. They should be stored records with:
+- id
+- shipmentId
+- companyId
+- analysisRunId
+- recommendation type
+- title
+- machine-readable action payload
+- explanation
+- rationale source
+- urgency / priority
+- confidence
+- status (active, accepted, rejected, modified, expired, superseded, suppressed)
+- supersedesRecommendationId if applicable
+- createdAt / updatedAt / retiredAt
+
+Possible recommendation types include:
+- compliance escalation
+- document correction
+- route adjustment
+- carrier switch
+- pricing adjustment
+- insurance coverage action
+- margin warning
+- delay mitigation
+- customer communication task
+- billing or follow-up operational action
+- hold / release recommendation
+- claims package readiness action
+- workflow prioritization action
+
+Use the already-existing domain services and outputs to inform recommendation generation. Do not throw away existing logic. Integrate it into a coherent recommendation model.
+
+E. DECISION MEMORY / OUTCOME TRACKING
+Every recommendation must support operator outcomes:
+- accepted
+- rejected
+- modified
+- ignored
+- expired
+
+Each outcome record must capture:
+- recommendationId
+- shipmentId
+- companyId
+- operator userId
+- previous recommendation status
+- new recommendation status
+- optional operator note
+- modified payload if operator adjusted the action
+- timestamp
+- contextual metadata (lane, customer, shipment mode, etc. where useful and safe)
+
+This should support future learning and analytics. Even if you do not build adaptive learning logic in this sprint, the outcome memory must be stored correctly now.
+
+F. AI-DRIVEN TASKING / QUEUE IMPACT
+The AI layer must materially influence the work queue.
+
+It must be able to:
+- create tasks from active recommendations
+- reprioritize tasks based on new analysis
+- suppress stale tasks when recommendation risk disappears
+- reopen tasks if risk returns
+- attach explanation/reason metadata to tasks
+- sync task state with recommendation lifecycle
+
+Tasks should clearly expose:
+- why this task exists
+- which AI analysis run created or updated it
+- which recommendation it maps to
+- why its priority is what it is
+
+Do not make the queue purely exception-driven anymore. AI state and recommendations should become a first-class input into work orchestration.
+
+G. AI EXPLANATION AND CHANGE VISIBILITY
+Operators must be able to understand:
+- the current AI state
+- why it is what it is
+- what changed after the latest reanalysis
+- which recommendations are active
+- how confident the system is
+- whether deterministic fallback was used
+- which events drove the current state
+
+Build explanation surfaces that are useful, not fluffy. Avoid fake anthropomorphic language. Use plain operator-facing language.
+
+H. GUARDRAILS / SAFETY
+Preserve and extend the current validated AI pattern.
+
+Requirements:
+- all AI outputs must be validated against strict Zod schemas before use
+- if validation fails, use deterministic fallback
+- if model call fails, use deterministic fallback
+- if no safe recommendation can be created, store that fact clearly
+- never allow cross-tenant context
+- never allow one company’s recommendation/task/state to leak to another
+- ensure analysis jobs are idempotent
+- avoid duplicate recommendations on concurrent events
+- protect against races in reanalysis triggering
+- use transactions for multi-step writes that must remain consistent
+- log AI-triggered changes in a traceable way
+- standardize Anthropic environment variable usage so the AI client does not break depending on env naming mismatch
+- add cost/token logging aggregation where easy and low-risk, but do not let that derail core runtime work
+
+I. TRANSACTIONS / IDEMPOTENCY / CONSISTENCY
+The previous audit flagged missing or weak transaction safety and non-atomic idempotency checks. This sprint must not make those problems worse. Ideally, it should improve them where the AI runtime touches data.
+
+Requirements:
+- use DB transactions for multi-step AI state updates, recommendation writes, task sync writes, and outcome recording
+- design idempotency keys or dedupe semantics for reanalysis jobs
+- ensure repeated identical events do not create duplicate active recommendations or duplicate tasks
+- ensure concurrent reanalysis requests do not corrupt current AI state
+- define clear supersession rules so only one current “latest” AI state/version exists per shipment while preserving history
+- preserve existing entity/event records if they already provide useful audit trails; extend rather than duplicate blindly
+
+J. TENANT ISOLATION / SECURITY
+The prior audits flagged cross-tenant exposure and lack of RLS. For this sprint:
+- implement the AI runtime in a tenant-safe manner everywhere
+- ensure every query is company-scoped
+- add additional backend guards where missing
+- if practical without massive disruption, introduce foundational RLS-ready patterns or actual row-level security policies for the new AI tables
+- do not expose admin-only AI data broadly
+- ensure AI state APIs cannot read or mutate other tenants’ records
+
+K. UI / OPERATOR EXPERIENCE
+Implement clean, operator-usable UI surfaces in the existing workbench. These should feel native to the current product.
+
+At minimum add:
+1. Shipment AI Summary panel
+   - current scores
+   - confidence
+   - last analyzed timestamp
+   - trigger source
+   - active recommendation count
+   - current status
+
+2. Recommendations panel
+   - active recommendations
+   - urgency/confidence
+   - explanation
+   - accept / reject / modify controls
+   - superseded / expired indication
+
+3. Analysis timeline / history panel
+   - analysis run history
+   - trigger events
+   - changed fields / changed recommendations summary
+   - fallback used indicator where applicable
+
+4. Queue reason visibility
+   - for AI-generated or AI-updated tasks, clearly show why priority is what it is
+
+5. Admin/QA utilities
+   - manual reanalyze action
+   - visible last run result
+   - safe error states if analysis failed
+
+Do not build bloated UI. Build clear, high-signal operator tooling.
+
+L. API SURFACE
+Add or extend APIs for:
+- get shipment AI state
+- get shipment AI analysis history
+- get shipment recommendations
+- record recommendation outcome
+- force reanalysis for admin/QA
+- inspect task-to-recommendation mapping if needed
+- optionally list AI-impacting events for a shipment
+
+Update OpenAPI spec and generated client hooks/types accordingly. Keep types rigorous.
+
+M. TESTING
+The audits called out near-zero or zero real test coverage. That cannot continue.
+
+Build a real automated test set for this sprint.
+
+Minimum required:
+1. Unit tests
+   - recommendation generation logic
+   - state merge/versioning logic
+   - supersession rules
+   - outcome recording logic
+   - dedupe/idempotency helpers
+   - deterministic fallback behavior
+
+2. Integration tests
+   - shipment creation triggers AI state creation
+   - document validation/generation triggers reanalysis
+   - exception updates trigger reanalysis
+   - recommendation acceptance updates state and tasks
+   - repeated identical event does not create duplicates
+   - concurrent trigger simulation does not produce broken current state
+   - tenant isolation on AI tables and APIs
+   - analysis failure uses fallback and preserves integrity
+
+3. End-to-end tests if practical
+   - ingest/create shipment -> AI state visible in UI
+   - new issue -> recommendation appears -> task created -> operator accepts/rejects -> UI updates correctly
+
+4. Regression tests
+   Preserve previously completed sprint fixes:
+   - document generation chains validation -> decision recompute
+   - syncTasksFromExceptions remains reusable and queue auto-populates on load
+   - billing outstanding remains strictly invoiced - collected, no aging override competing truth
+   - dev error overlay only in development, ErrorBoundary remains in place
+   - command input remains guarded by clear intent logic
+   - work queue auto-load behavior remains intact and “Refresh Queue” remains supplementary, not required
+
+N. DOCUMENTATION
+Add implementation docs in-repo for this AI runtime subsystem:
+- architecture overview
+- event flow
+- data model
+- recommendation lifecycle
+- outcome tracking
+- task sync rules
+- guardrails and fallback model
+- how to test locally
+- env vars and configuration
+- known tradeoffs / future improvements
+
+Also update any relevant README or internal architecture docs.
+
+O. CODE QUALITY / DESIGN EXPECTATIONS
+- Keep modules cohesive and named clearly
+- Avoid route handler bloat
+- Prefer dedicated services and orchestration modules
+- Follow existing monorepo conventions
+- Reuse shared schemas where appropriate
+- Add new schemas in the right place
+- Keep domain logic out of UI
+- Use generated API clients/hooks rather than bespoke fetches where that is the existing pattern
+- Keep migrations clean and reversible
+- Do not leave TODO stubs pretending to be complete
+- Do not hardcode credentials or tenant IDs
+- Do not leave dead code paths behind
+
+P. DELIVERABLE FORMAT
+When you finish, provide:
+1. A concise summary of what was built
+2. The exact files/modules added or changed
+3. The DB migrations added
+4. The API routes/endpoints added or changed
+5. The UI surfaces/pages/panels added or changed
+6. The tests added and what they verify
+7. Any open risks or tradeoffs still remaining
+8. Exact steps to run locally and validate
+9. A short QA checklist specifically for verifying that AI now exists as a persistent, event-driven runtime layer rather than scattered service calls
+
+Q. SUCCESS CRITERIA
+This sprint is successful only if ALL of the following are true:
+- creating or materially changing a shipment causes durable AI state to exist and update automatically
+- recommendations are persisted and historically traceable
+- tasks/queue are materially influenced by AI state and recommendation lifecycle
+- recommendation outcomes are stored and visible
+- operators can see what changed and why
+- repeated or concurrent events do not produce duplicate active recommendations or queue chaos
+- AI remains behind validation + deterministic fallback
+- tenant isolation remains intact
+- automated tests prove the above
+- the codebase now supports an honest statement that Dynasties has a persistent AI operating layer, not just isolated AI function calls
+
+R. IMPORTANT LIMITS
+- Do not drift into implementing the full payments / Stripe / financing blueprint in this sprint unless needed for minor hooks
+- Do not rebuild unrelated parts of the platform
+- Do not waste time on cosmetic redesign
+- Do not invent “autonomy” that makes unsafe external actions on behalf of users
+- Do not return with a partial architecture memo and no code
+- Do not treat this as optional or exploratory
+
+EXECUTION INSTRUCTION
+
+Now inspect the current Dynasties codebase, determine the best architecture-compatible implementation plan, and implement the AI Runtime Integration Sprint fully in code. Make the design decisions necessary to deliver the strongest production-grade result possible within the existing architecture, while fixing any directly related blockers encountered along the way.

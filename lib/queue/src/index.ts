@@ -103,6 +103,14 @@ export interface ReanalysisJob {
   affectedVessels: string[];
 }
 
+export interface AiRuntimeJob {
+  companyId: string;
+  shipmentId: string;
+  triggerType: string;
+  triggerSourceEntityId?: string;
+  triggerSourceEntityType?: string;
+}
+
 export interface IngestionJob {
   sourceId: string;
   sourceType: string;
@@ -132,6 +140,7 @@ type DecisionHandler = (job: DecisionJob) => Promise<void>;
 type IngestionHandler = (job: IngestionJob) => Promise<void>;
 type ReanalysisHandler = (job: ReanalysisJob) => Promise<void>;
 type IntelligenceLinkingHandler = (job: IntelligenceLinkingJob) => Promise<void>;
+type AiRuntimeHandler = (job: AiRuntimeJob) => Promise<void>;
 
 interface QueueMessage<T> {
   id: string;
@@ -273,6 +282,7 @@ const DECISION_QUEUE = "decision-jobs";
 const INGESTION_QUEUE = "ingestion-jobs";
 const REANALYSIS_QUEUE = "reanalysis-jobs";
 const INTELLIGENCE_LINKING_QUEUE = "intelligence-linking-jobs";
+const AI_RUNTIME_QUEUE = "ai-runtime-jobs";
 
 let extractionWrapper: ((job: ExtractionJob) => void) | null = null;
 let pipelineWrapper: ((job: ShipmentPipelineJob) => void) | null = null;
@@ -289,6 +299,7 @@ let decisionWrapper: ((job: DecisionJob) => void) | null = null;
 let ingestionWrapper: ((job: IngestionJob) => void) | null = null;
 let reanalysisWrapper: ((job: ReanalysisJob) => void) | null = null;
 let intelligenceLinkingWrapper: ((job: IntelligenceLinkingJob) => void) | null = null;
+let aiRuntimeWrapper: ((job: AiRuntimeJob) => void) | null = null;
 
 function wrapWithRetry<T>(
   queueName: string,
@@ -410,6 +421,10 @@ export function registerIntelligenceLinkingConsumer(fn: IntelligenceLinkingHandl
   intelligenceLinkingWrapper = registerConsumer(INTELLIGENCE_LINKING_QUEUE, fn, intelligenceLinkingWrapper);
 }
 
+export function registerAiRuntimeConsumer(fn: AiRuntimeHandler): void {
+  aiRuntimeWrapper = registerConsumer(AI_RUNTIME_QUEUE, fn, aiRuntimeWrapper);
+}
+
 async function publish(queueName: string, job: Record<string, unknown>): Promise<void> {
   const client = await getSqs();
   if (client) {
@@ -485,6 +500,10 @@ export function publishIntelligenceLinkingJob(job: IntelligenceLinkingJob): void
   publish(INTELLIGENCE_LINKING_QUEUE, job as unknown as Record<string, unknown>);
 }
 
+export function publishAiRuntimeJob(job: AiRuntimeJob): void {
+  publish(AI_RUNTIME_QUEUE, job as unknown as Record<string, unknown>);
+}
+
 export function publishM4Jobs(companyId: string, shipmentId: string): void {
   publishComplianceJob({ companyId, shipmentId, trigger: "shipment_created" });
   publishRiskJob({ companyId, shipmentId, trigger: "shipment_created" });
@@ -509,5 +528,6 @@ export function getQueueStats(): Record<string, number | string> {
     ingestionListeners: emitter.listenerCount(INGESTION_QUEUE),
     reanalysisListeners: emitter.listenerCount(REANALYSIS_QUEUE),
     intelligenceLinkingListeners: emitter.listenerCount(INTELLIGENCE_LINKING_QUEUE),
+    aiRuntimeListeners: emitter.listenerCount(AI_RUNTIME_QUEUE),
   };
 }

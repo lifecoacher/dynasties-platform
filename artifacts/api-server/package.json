@@ -41,6 +41,7 @@
     "@workspace/svc-risk-intelligence": "workspace:*",
     "@workspace/svc-shipment-construction": "workspace:*",
     "@workspace/svc-trade-lane-intelligence": "workspace:*",
+    "@workspace/svc-ai-runtime": "workspace:*",
     "@workspace/svc-workflow-orchestrator": "workspace:*",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",

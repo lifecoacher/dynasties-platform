@@ -14,6 +14,7 @@ import {
   registerIngestionConsumer,
   registerReanalysisConsumer,
   registerIntelligenceLinkingConsumer,
+  registerAiRuntimeConsumer,
   setDlqPersistHandler,
 } from "@workspace/queue";
 import type {
@@ -32,6 +33,7 @@ import type {
   IngestionJob,
   ReanalysisJob,
   IntelligenceLinkingJob,
+  AiRuntimeJob,
 } from "@workspace/queue";
 import { processExtractionJob } from "@workspace/svc-document-extraction";
 import { runShipmentPipeline } from "@workspace/svc-shipment-construction";
@@ -49,6 +51,8 @@ import { runIngestionPipeline } from "@workspace/svc-intelligence-ingestion";
 import { runIntelligenceLinking } from "@workspace/svc-intelligence-ingestion/linker";
 import { findImpactedShipments, triggerReanalysis } from "@workspace/svc-intelligence-ingestion/reanalysis";
 import { computeAndPersistScores } from "@workspace/svc-decision-engine/scoring";
+import { runShipmentAnalysis } from "@workspace/svc-ai-runtime";
+import { triggerAiReanalysis } from "@workspace/svc-ai-runtime/triggers";
 import { db } from "@workspace/db";
 import {
   deadLetterJobsTable,
@@ -127,6 +131,7 @@ export function startConsumers(): void {
         `[consumer] compliance complete: shipment=${job.shipmentId} status=${result.status} matches=${result.matchCount}`,
       );
       await tryTriggerDecisionEngine(job.shipmentId, job.companyId);
+      triggerAiReanalysis(job.companyId, job.shipmentId, "COMPLIANCE_UPDATED");
     } else {
       console.log(`[consumer] compliance failed: ${result.error}`);
     }
@@ -140,6 +145,7 @@ export function startConsumers(): void {
         `[consumer] risk complete: shipment=${job.shipmentId} score=${result.compositeScore} action=${result.recommendedAction}`,
       );
       await tryTriggerDecisionEngine(job.shipmentId, job.companyId);
+      triggerAiReanalysis(job.companyId, job.shipmentId, "RISK_UPDATED");
     } else {
       console.log(`[consumer] risk failed: ${result.error}`);
     }
@@ -153,6 +159,7 @@ export function startConsumers(): void {
         `[consumer] insurance complete: shipment=${job.shipmentId} coverage=${result.coverageType} premium=${result.estimatedPremium}`,
       );
       await tryTriggerDecisionEngine(job.shipmentId, job.companyId);
+      triggerAiReanalysis(job.companyId, job.shipmentId, "INSURANCE_UPDATED");
     } else {
       console.log(`[consumer] insurance failed: ${result.error}`);
     }
@@ -165,6 +172,7 @@ export function startConsumers(): void {
       console.log(
         `[consumer] pricing complete: shipment=${job.shipmentId} charges=${result.chargeCount} total=$${result.totalAmount.toFixed(2)}`,
       );
+      triggerAiReanalysis(job.companyId, job.shipmentId, "PRICING_UPDATED");
     } else {
       console.log(`[consumer] pricing failed: ${result.error}`);
     }
@@ -201,6 +209,9 @@ export function startConsumers(): void {
       console.log(
         `[consumer] exceptions complete: shipment=${job.shipmentId} found=${result.exceptionsCreated} types=${result.exceptionTypes.join(",") || "none"}`,
       );
+      if (result.exceptionsCreated > 0) {
+        triggerAiReanalysis(job.companyId, job.shipmentId, "EXCEPTION_CREATED");
+      }
     } else {
       console.log(`[consumer] exceptions failed: ${result.error}`);
     }
@@ -258,6 +269,25 @@ export function startConsumers(): void {
     );
   });
   console.log("[consumer] intelligence-linking consumer registered");
+
+  registerAiRuntimeConsumer(async (job: AiRuntimeJob) => {
+    console.log(`[consumer] ai-runtime: shipment=${job.shipmentId} trigger=${job.triggerType}`);
+    try {
+      const result = await runShipmentAnalysis({
+        shipmentId: job.shipmentId,
+        companyId: job.companyId,
+        triggerType: job.triggerType as any,
+        triggerSourceEntityId: job.triggerSourceEntityId,
+        triggerSourceEntityType: job.triggerSourceEntityType,
+      });
+      console.log(
+        `[consumer] ai-runtime complete: shipment=${job.shipmentId} runId=${result.runId} success=${result.success}`,
+      );
+    } catch (err) {
+      console.error(`[consumer] ai-runtime failed for shipment=${job.shipmentId}:`, err);
+    }
+  });
+  console.log("[consumer] ai-runtime consumer registered");
 
   registerReanalysisConsumer(async (job: ReanalysisJob) => {
     const impacted = await findImpactedShipments(

@@ -19,6 +19,7 @@ import {
   getAuthToken,
 } from "@workspace/api-client-react";
 import { useShipmentActions } from "@/hooks/use-shipment-actions";
+import { AiRuntimeSection } from "@/components/ai/AiRuntimeSection";
 import { useShipmentAlerts } from "@/hooks/use-exceptions";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { format } from "date-fns";
@@ -62,6 +63,7 @@ import {
   Plus,
   Calendar,
   AlertTriangle,
+  Zap,
 } from "lucide-react";
 import { OutcomeForm, type OutcomeData } from "@/components/recommendations/OutcomeForm";
 import { useToast } from "@/hooks/use-toast";
@@ -180,10 +182,11 @@ const SHIPMENT_EVENT_OPTIONS = [
   "CUSTOMS_HOLD", "CUSTOMS_RELEASED", "DELAYED", "OUT_FOR_DELIVERY", "DELIVERED",
 ];
 
-const SECTION_KEYS = ["decision", "exceptions", "documents", "compliance", "risk", "journey", "financials", "advanced", "shipmentData"] as const;
+const SECTION_KEYS = ["aiRuntime", "decision", "exceptions", "documents", "compliance", "risk", "journey", "financials", "advanced", "shipmentData"] as const;
 type SectionKey = typeof SECTION_KEYS[number];
 
 const SECTION_LABELS: Record<SectionKey, string> = {
+  aiRuntime: "AI Runtime",
   decision: "Decision",
   exceptions: "Exceptions",
   documents: "Documents",
@@ -195,7 +198,7 @@ const SECTION_LABELS: Record<SectionKey, string> = {
   shipmentData: "Shipment Data",
 };
 
-const DEFAULT_OPEN: Set<SectionKey> = new Set(["decision", "exceptions", "documents"]);
+const DEFAULT_OPEN: Set<SectionKey> = new Set(["aiRuntime", "decision", "exceptions", "documents"]);
 
 export default function ShipmentDetail() {
   const [, params] = useRoute("/shipments/:id");
@@ -852,6 +855,16 @@ export default function ShipmentDetail() {
         })()}
 
         <div className="space-y-5 mt-5">
+          <CollapsibleSection
+            refCb={(el) => { sectionRefs.current.aiRuntime = el; }}
+            title="AI Runtime"
+            icon={<Zap className="w-4 h-4 text-primary" />}
+            open={openSections.has("aiRuntime")}
+            onToggle={() => toggleSection("aiRuntime")}
+          >
+            <AiRuntimeSection shipmentId={id} />
+          </CollapsibleSection>
+
           <CollapsibleSection
             refCb={(el) => { sectionRefs.current.decision = el; }}
             title="Decision & Intelligence"
