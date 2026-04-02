@@ -155,6 +155,7 @@ export function RecommendationsPanel({ shipmentId }: { shipmentId: string }) {
   const [modifyModalId, setModifyModalId] = useState<string | null>(null);
   const [modifyNotes, setModifyNotes] = useState("");
   const [showResolved, setShowResolved] = useState(false);
+  const [actionInFlight, setActionInFlight] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -193,8 +194,8 @@ export function RecommendationsPanel({ shipmentId }: { shipmentId: string }) {
     const Icon = typeIcons[rec.type] || Zap;
     const isPending = rec.status === "PENDING" || rec.status === "SHOWN";
     const isExpanded = expandedId === rec.id;
-    const isMutating =
-      acceptMut.isPending || rejectMut.isPending || modifyMut.isPending || ignoreMut.isPending;
+    const thisInFlight = actionInFlight === rec.id;
+    const anyInFlight = actionInFlight !== null;
 
     return (
       <motion.div
@@ -341,35 +342,44 @@ export function RecommendationsPanel({ shipmentId }: { shipmentId: string }) {
             {isPending && (
               <div className="flex gap-1.5 mt-2.5">
                 <button
-                  onClick={() => acceptMut.mutate(rec.id)}
-                  disabled={isMutating}
+                  onClick={() => {
+                    setActionInFlight(rec.id);
+                    acceptMut.mutate(rec.id, { onSettled: () => setActionInFlight(null) });
+                  }}
+                  disabled={anyInFlight}
                   className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-primary/15 text-primary rounded hover:bg-primary/25 transition-colors border border-primary/25 disabled:opacity-50"
                 >
-                  <Check size={10} /> Accept
+                  {thisInFlight && acceptMut.isPending ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />} Accept
                 </button>
                 <button
                   onClick={() => {
                     setModifyModalId(rec.id);
                     setModifyNotes("");
                   }}
-                  disabled={isMutating}
+                  disabled={anyInFlight}
                   className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-primary/8 text-primary/70 rounded hover:bg-primary/15 transition-colors border border-primary/20 disabled:opacity-50"
                 >
                   <Pencil size={10} /> Modify
                 </button>
                 <button
-                  onClick={() => rejectMut.mutate(rec.id)}
-                  disabled={isMutating}
+                  onClick={() => {
+                    setActionInFlight(rec.id);
+                    rejectMut.mutate(rec.id, { onSettled: () => setActionInFlight(null) });
+                  }}
+                  disabled={anyInFlight}
                   className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-[#E05252]/12 text-[#E05252] rounded hover:bg-[#E05252]/20 transition-colors border border-[#E05252]/25 disabled:opacity-50"
                 >
-                  <X size={10} /> Reject
+                  {thisInFlight && rejectMut.isPending ? <Loader2 size={10} className="animate-spin" /> : <X size={10} />} Reject
                 </button>
                 <button
-                  onClick={() => ignoreMut.mutate(rec.id)}
-                  disabled={isMutating}
+                  onClick={() => {
+                    setActionInFlight(rec.id);
+                    ignoreMut.mutate(rec.id, { onSettled: () => setActionInFlight(null) });
+                  }}
+                  disabled={anyInFlight}
                   className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-black/[0.03] text-foreground/40 rounded hover:bg-black/[0.06] transition-colors border border-black/[0.06] disabled:opacity-50"
                 >
-                  <EyeOff size={10} /> Ignore
+                  {thisInFlight && ignoreMut.isPending ? <Loader2 size={10} className="animate-spin" /> : <EyeOff size={10} />} Ignore
                 </button>
               </div>
             )}

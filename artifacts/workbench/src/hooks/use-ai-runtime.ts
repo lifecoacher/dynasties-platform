@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthToken } from "@workspace/api-client-react";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE = import.meta.env.VITE_API_URL || "/api";
 
@@ -71,42 +72,92 @@ export function useRecommendationsWithTasks(shipmentId: string | undefined) {
   });
 }
 
-export function useAcceptRecommendation(shipmentId: string | undefined) {
+function useRecMutation(shipmentId: string | undefined, action: string) {
   const qc = useQueryClient();
+  const { toast } = useToast();
+  return {
+    qc,
+    toast,
+    onMutate: async (recId: string) => {
+      await qc.cancelQueries({ queryKey: ["recommendations-with-tasks", shipmentId] });
+      const prev = qc.getQueryData(["recommendations-with-tasks", shipmentId]);
+      qc.setQueryData(["recommendations-with-tasks", shipmentId], (old: any[]) =>
+        (old || []).map((r: any) => r.id === recId ? { ...r, status: action, respondedAt: new Date().toISOString() } : r),
+      );
+      return { prev };
+    },
+    onError: (_err: any, _recId: string, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(["recommendations-with-tasks", shipmentId], ctx.prev);
+      toast({ title: "Action failed", description: `Could not ${action.toLowerCase()} recommendation. Please try again.`, variant: "destructive" });
+    },
+    onSettled: () => invalidateRecQueries(qc, shipmentId),
+    onSuccess: () => {
+      toast({ title: `Recommendation ${action.toLowerCase()}` });
+    },
+  };
+}
+
+export function useAcceptRecommendation(shipmentId: string | undefined) {
+  const helpers = useRecMutation(shipmentId, "ACCEPTED");
   return useMutation({
     mutationFn: (recId: string) =>
       apiFetch(`/recommendations/${recId}/accept`, { method: "POST" }),
-    onSuccess: () => invalidateRecQueries(qc, shipmentId),
+    onMutate: helpers.onMutate,
+    onError: helpers.onError,
+    onSettled: helpers.onSettled,
+    onSuccess: helpers.onSuccess,
   });
 }
 
 export function useRejectRecommendation(shipmentId: string | undefined) {
-  const qc = useQueryClient();
+  const helpers = useRecMutation(shipmentId, "REJECTED");
   return useMutation({
     mutationFn: (recId: string) =>
       apiFetch(`/recommendations/${recId}/reject`, { method: "POST" }),
-    onSuccess: () => invalidateRecQueries(qc, shipmentId),
+    onMutate: helpers.onMutate,
+    onError: helpers.onError,
+    onSettled: helpers.onSettled,
+    onSuccess: helpers.onSuccess,
   });
 }
 
 export function useModifyRecommendation(shipmentId: string | undefined) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   return useMutation({
     mutationFn: ({ recId, modificationNotes }: { recId: string; modificationNotes: string }) =>
       apiFetch(`/recommendations/${recId}/modify`, {
         method: "POST",
         body: JSON.stringify({ modificationNotes }),
       }),
-    onSuccess: () => invalidateRecQueries(qc, shipmentId),
+    onMutate: async ({ recId }) => {
+      await qc.cancelQueries({ queryKey: ["recommendations-with-tasks", shipmentId] });
+      const prev = qc.getQueryData(["recommendations-with-tasks", shipmentId]);
+      qc.setQueryData(["recommendations-with-tasks", shipmentId], (old: any[]) =>
+        (old || []).map((r: any) => r.id === recId ? { ...r, status: "MODIFIED", respondedAt: new Date().toISOString() } : r),
+      );
+      return { prev };
+    },
+    onError: (_err: any, _vars: any, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(["recommendations-with-tasks", shipmentId], ctx.prev);
+      toast({ title: "Modification failed", description: "Could not modify recommendation. Please try again.", variant: "destructive" });
+    },
+    onSettled: () => invalidateRecQueries(qc, shipmentId),
+    onSuccess: () => {
+      toast({ title: "Recommendation modified" });
+    },
   });
 }
 
 export function useIgnoreRecommendation(shipmentId: string | undefined) {
-  const qc = useQueryClient();
+  const helpers = useRecMutation(shipmentId, "IGNORED");
   return useMutation({
     mutationFn: (recId: string) =>
       apiFetch(`/recommendations/${recId}/ignore`, { method: "POST" }),
-    onSuccess: () => invalidateRecQueries(qc, shipmentId),
+    onMutate: helpers.onMutate,
+    onError: helpers.onError,
+    onSettled: helpers.onSettled,
+    onSuccess: helpers.onSuccess,
   });
 }
 
@@ -114,4 +165,6 @@ function invalidateRecQueries(qc: ReturnType<typeof useQueryClient>, shipmentId:
   qc.invalidateQueries({ queryKey: ["recommendations-with-tasks", shipmentId] });
   qc.invalidateQueries({ queryKey: ["ai-state", shipmentId] });
   qc.invalidateQueries({ queryKey: ["ai-analysis-history", shipmentId] });
+  qc.invalidateQueries({ queryKey: ["recommendations", "pending"] });
+  qc.invalidateQueries({ queryKey: ["recommendations", "prioritized"] });
 }

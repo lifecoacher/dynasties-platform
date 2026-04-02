@@ -318,6 +318,18 @@ router.post("/stripe/activate-demo", requireMinRole("ADMIN"), async (req, res) =
   }
 
   const config = getPlanConfig(planType);
+
+  const seatInfo = await checkSeatLimit(companyId);
+  if (seatInfo.seatsUsed > config.seatLimit) {
+    res.status(400).json({
+      error: `Cannot switch to ${planType}: you have ${seatInfo.seatsUsed} active seats but this plan allows ${config.seatLimit}. Remove ${seatInfo.seatsUsed - config.seatLimit} seat(s) first.`,
+      code: "SEAT_LIMIT_EXCEEDED",
+      seatsUsed: seatInfo.seatsUsed,
+      newLimit: config.seatLimit,
+    });
+    return;
+  }
+
   const deployFeeStatus = config.deploymentFeeRequirement === "NOT_REQUIRED"
     ? "NOT_REQUIRED" : "PENDING";
 

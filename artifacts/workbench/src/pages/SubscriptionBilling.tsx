@@ -518,9 +518,17 @@ export default function SubscriptionBilling() {
     refetch();
   };
 
+  const [seatError, setSeatError] = useState<string | null>(null);
   const handleDemoActivate = async (planType: string) => {
-    await activate(planType);
-    refetch();
+    setSeatError(null);
+    try {
+      await activate(planType);
+      refetch();
+    } catch (err: any) {
+      if (err?.code === "SEAT_LIMIT_EXCEEDED" || err?.message?.includes("seat")) {
+        setSeatError(err.message || "Too many seats for this plan. Remove users first.");
+      }
+    }
   };
 
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -762,6 +770,19 @@ export default function SubscriptionBilling() {
 
             <div className="mb-6">
               <h2 className="text-[15px] font-semibold text-foreground mb-4">Available Plans</h2>
+
+              {seatError && (
+                <div className="mb-4 p-3 rounded-lg bg-[#E05252]/10 border border-[#E05252]/20 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-[#E05252] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[12px] font-medium text-[#E05252]">Cannot change plan</p>
+                    <p className="text-[11px] text-[#E05252]/80 mt-0.5">{seatError}</p>
+                  </div>
+                  <button onClick={() => setSeatError(null)} className="ml-auto text-[#E05252]/60 hover:text-[#E05252]">
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
               {configs.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

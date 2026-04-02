@@ -1,0 +1,211 @@
+You are a senior staff engineer responsible for stabilizing a production-grade SaaS platform (Dynasties Operator Workbench).
+
+Your goal is NOT to build new features.
+
+Your goal is to eliminate all inconsistencies between:
+	•	backend state
+	•	UI state
+	•	aggregated metrics
+	•	user actions
+
+You must assume:
+The backend logic mostly works.
+The UI layer, aggregation layer, and enforcement logic are inconsistent and must be fixed.
+
+⸻
+
+OBJECTIVES
+
+You must implement a Product Integrity Layer across the entire system with three guarantees:
+	1.	State Truth Guarantee
+Any action taken must immediately and visibly reflect in:
+
+	•	UI components
+	•	counters
+	•	aggregates
+	•	linked modules
+
+	2.	Rule Enforcement Guarantee
+The system must BLOCK invalid states, not tolerate them.
+	3.	User Feedback Guarantee
+Every user action must produce:
+
+	•	loading state
+	•	success confirmation
+	•	or error feedback
+
+No silent failures. No dead clicks.
+
+⸻
+
+SCOPE OF FIXES
+
+1. GLOBAL ERROR HANDLING (CRITICAL)
+	•	Disable Vite runtime overlay in all non-dev environments
+	•	Implement centralized error handler:
+	•	wrap all async hooks (especially quotes, shipments, billing)
+	•	catch all errors
+	•	map to:
+	•	inline field errors (forms)
+	•	toast notifications (actions)
+	•	NEVER expose:
+	•	stack traces
+	•	file paths
+	•	internal hooks
+
+⸻
+
+2. RECOMMENDATION UI STATE SYNCHRONIZATION
+
+Fix recommendation cards across:
+	•	Shipments
+	•	Control Tower
+
+Requirements:
+	•	On Accept / Reject / Modify / Ignore:
+	•	immediately update UI state
+	•	disable buttons
+	•	show status badge (Accepted, Rejected, etc.)
+	•	optionally remove from active list
+	•	Prevent double-click actions
+	•	Ensure UI reflects DB state without requiring refresh
+
+⸻
+
+3. TASK + RECOMMENDATION CONSISTENCY
+	•	Ensure:
+	•	when recommendation changes → task updates immediately
+	•	when recommendation resolves → task closes
+	•	when recommendation is ignored → task respects operatorLocked
+	•	Remove duplicate task creation for same issue
+	•	Ensure bidirectional sync is deterministic
+
+⸻
+
+4. BILLING + ACCOUNTING SINGLE SOURCE OF TRUTH
+
+Fix all aggregation inconsistencies:
+	•	Open receivables count must match outstanding invoices
+	•	“Collected this month” must sum actual paid invoices
+	•	Aging buckets must reflect real invoice states
+	•	Invoice counts must match across:
+	•	Billing module
+	•	Accounting integration
+
+Refactor:
+	•	create shared aggregation service (single query source)
+	•	remove duplicated calculation logic across modules
+
+⸻
+
+5. PLAN / SEAT ENFORCEMENT (CRITICAL)
+
+Before allowing plan downgrade:
+	•	check:
+current_active_users > new_plan_limit
+
+If true:
+	•	BLOCK downgrade
+	•	show modal:
+“You have X users but this plan allows Y. Remove users first.”
+
+Never allow invalid seat states (e.g., 5 / 3)
+
+⸻
+
+6. WORK QUEUE FUNCTIONALITY
+	•	Make task cards clickable → open detail panel/page
+	•	Implement:
+	•	task description
+	•	linked shipment
+	•	assignment
+	•	activity log
+	•	Fix “Mark All Read”:
+	•	clear notification state
+	•	update badge counters
+	•	Add confirmation modal for Auto-Process:
+	•	show number of tasks to be created
+
+Hide Analytics tab entirely if no real data exists
+
+⸻
+
+7. DOCUMENT VALIDATION CONSISTENCY
+	•	Ensure Document Engine and Validation use SAME data source
+	•	Fix:
+	•	READY vs MISSING contradiction
+	•	Allow re-run validation:
+	•	button must remain accessible
+	•	show loading state
+	•	update results deterministically
+
+⸻
+
+8. GLOBAL LOADING STATES
+
+Fix blank screen issue:
+	•	Add global loading boundary (React Suspense or equivalent)
+	•	Implement skeleton loaders for:
+	•	Shipments
+	•	Control Tower
+	•	Work Queue
+	•	Billing
+	•	Settings
+	•	NEVER render blank white screen during fetch
+
+⸻
+
+9. UI ACTION FEEDBACK STANDARD
+
+Apply to ALL buttons:
+
+Every action must:
+	•	show loading indicator immediately
+	•	disable button while processing
+	•	show success toast OR inline result
+	•	show error toast if failed
+
+Audit all:
+	•	Save
+	•	Submit
+	•	Run Validation
+	•	Create Task
+	•	Sync
+	•	etc.
+
+Remove all dead or non-functional buttons:
+	•	Reconcile
+	•		•	Carrier Invoice (until implemented)
+
+⸻
+
+10. CONTROL TOWER + SHIPMENTS PARITY
+	•	Ensure same recommendation actions exist in both:
+	•	Accept
+	•	Modify
+	•	Reject
+	•	Ignore
+	•	Remove inconsistency between modules
+
+⸻
+
+OUTPUT REQUIREMENTS
+
+Return:
+	1.	List of all files modified
+	2.	Summary of fixes per module
+	3.	Before vs After behavior explanation
+	4.	Any architectural changes made
+	5.	Confirmation that:
+	•	no invalid states are possible
+	•	UI always reflects backend truth
+	•	all actions produce feedback
+
+⸻
+
+CONSTRAINTS
+	•	Do NOT add new features
+	•	Do NOT redesign UI unnecessarily
+	•	Focus ONLY on correctness, consistency, and trust
+	•	Prefer shared services over duplicated logic
+	•	Minimize technical debt

@@ -22,6 +22,8 @@ import {
   Ban,
   TrendingUp,
   Activity,
+  EyeOff,
+  Loader2,
 } from "lucide-react";
 
 interface SignalEvidence {
@@ -85,6 +87,7 @@ const statusBadgeColors: Record<string, string> = {
   ACCEPTED: "bg-primary/20 text-primary border-primary/40",
   MODIFIED: "bg-primary/10 text-primary/70 border-primary/30",
   REJECTED: "bg-[#E05252]/20 text-[#E05252] border-[#E05252]/40",
+  IGNORED: "bg-black/[0.05] text-foreground/40 border-white/20",
   IMPLEMENTED: "bg-primary/20 text-primary border-primary/40",
   EXPIRED: "bg-black/[0.05] text-foreground/40 border-white/20",
   SUPERSEDED: "bg-black/[0.05] text-foreground/40 border-white/20",
@@ -137,16 +140,17 @@ const externalReasonCodeLabels: Record<string, string> = {
 
 interface Props {
   recommendation: Recommendation;
-  onRespond?: (id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED", notes?: string) => void;
+  onRespond?: (id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED" | "IGNORED", notes?: string) => void;
   showShipmentRef?: boolean;
   compact?: boolean;
+  isLoading?: boolean;
 }
 
-export function RecommendationCard({ recommendation: rec, onRespond, showShipmentRef, compact }: Props) {
+export function RecommendationCard({ recommendation: rec, onRespond, showShipmentRef, compact, isLoading }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [responding, setResponding] = useState(false);
   const [showModifyModal, setShowModifyModal] = useState(false);
   const [modifyNotes, setModifyNotes] = useState("");
+  const [localLock, setLocalLock] = useState(false);
 
   const Icon = typeIcons[rec.type] || Zap;
   const colorClass = urgencyColors[rec.urgency] || urgencyColors.LOW;
@@ -155,10 +159,11 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
   const isEnriched = rec.intelligenceEnriched === "true";
   const extCodes = rec.externalReasonCodes || [];
   const evidence = rec.signalEvidence || [];
+  const responding = !!isLoading || localLock;
 
-  const handleRespond = (action: "ACCEPTED" | "MODIFIED" | "REJECTED", notes?: string) => {
-    if (onRespond) {
-      setResponding(true);
+  const handleRespond = (action: "ACCEPTED" | "MODIFIED" | "REJECTED" | "IGNORED", notes?: string) => {
+    if (onRespond && !responding) {
+      setLocalLock(true);
       onRespond(rec.id, action, notes);
     }
   };
@@ -297,26 +302,40 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
               )}
             </AnimatePresence>
 
-            {isPending && onRespond && !responding && (
+            {isPending && onRespond && (
               <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => handleRespond("ACCEPTED")}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-primary/20 text-primary rounded hover:bg-primary/30 transition-colors border border-primary/30"
-                >
-                  <Check size={12} /> Accept
-                </button>
-                <button
-                  onClick={() => setShowModifyModal(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-primary/10 text-primary/70 rounded hover:bg-primary/20 transition-colors border border-primary/20"
-                >
-                  <Pencil size={12} /> Modify
-                </button>
-                <button
-                  onClick={() => handleRespond("REJECTED")}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-[#E05252]/20 text-[#E05252] rounded hover:bg-[#E05252]/30 transition-colors border border-[#E05252]/30"
-                >
-                  <X size={12} /> Reject
-                </button>
+                {responding ? (
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-foreground/40">
+                    <Loader2 size={12} className="animate-spin" /> Processing...
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleRespond("ACCEPTED")}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-primary/20 text-primary rounded hover:bg-primary/30 transition-colors border border-primary/30"
+                    >
+                      <Check size={12} /> Accept
+                    </button>
+                    <button
+                      onClick={() => setShowModifyModal(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-primary/10 text-primary/70 rounded hover:bg-primary/20 transition-colors border border-primary/20"
+                    >
+                      <Pencil size={12} /> Modify
+                    </button>
+                    <button
+                      onClick={() => handleRespond("REJECTED")}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-[#E05252]/20 text-[#E05252] rounded hover:bg-[#E05252]/30 transition-colors border border-[#E05252]/30"
+                    >
+                      <X size={12} /> Reject
+                    </button>
+                    <button
+                      onClick={() => handleRespond("IGNORED")}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-black/[0.04] text-foreground/50 rounded hover:bg-black/[0.08] transition-colors border border-black/[0.08]"
+                    >
+                      <EyeOff size={12} /> Ignore
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>

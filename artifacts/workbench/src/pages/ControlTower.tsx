@@ -25,6 +25,7 @@ import {
   WeatherRisksWidget,
 } from "@/components/intelligence/IntelligenceWidgets";
 import { useTriggerIngestion } from "@/hooks/use-intelligence";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE = `${import.meta.env.BASE_URL}api`;
 
@@ -38,7 +39,9 @@ export default function ControlTower() {
   const { data: shipmentsData } = useListShipments();
   const respondMutation = useRespondToRecommendation();
   const triggerIngestion = useTriggerIngestion();
+  const { toast } = useToast();
   const [ingesting, setIngesting] = useState(false);
+  const [actionInFlight, setActionInFlight] = useState<string | null>(null);
 
   const { data: prioritizedData, refetch: refetchPrioritized } = useQuery({
     queryKey: ["recommendations", "prioritized", sortBy],
@@ -82,17 +85,46 @@ export default function ControlTower() {
 
   const hasSignals = criticalRecs.length > 0 || complianceAlerts.length > 0 || delayWarnings.length > 0 || marginWarnings.length > 0;
 
-  const handleRespond = useCallback((id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED", notes?: string) => {
+  const handleRespond = useCallback(async (id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED" | "IGNORED", notes?: string) => {
+    setActionInFlight(id);
+    const refetchAll = () => {
+      refetchRecs();
+      if (viewMode === "impact") refetchPrioritized();
+    };
+    const actionLabel = action.charAt(0) + action.slice(1).toLowerCase();
+
+    if (action === "IGNORED") {
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${BASE}/recommendations/${id}/ignore`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        });
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        toast({ title: `Recommendation ${actionLabel}` });
+        refetchAll();
+      } catch (err: any) {
+        toast({ variant: "destructive", title: "Action failed", description: err?.message || "Could not ignore recommendation" });
+      } finally {
+        setActionInFlight(null);
+      }
+      return;
+    }
     respondMutation.mutate(
       { id, data: { action, modificationNotes: notes } },
       {
         onSuccess: () => {
-          refetchRecs();
-          if (viewMode === "impact") refetchPrioritized();
+          toast({ title: `Recommendation ${actionLabel}` });
+          refetchAll();
+          setActionInFlight(null);
+        },
+        onError: (err: any) => {
+          toast({ variant: "destructive", title: "Action failed", description: err?.message || "Could not respond to recommendation" });
+          setActionInFlight(null);
         },
       },
     );
-  }, [respondMutation, refetchRecs, refetchPrioritized, viewMode]);
+  }, [respondMutation, refetchRecs, refetchPrioritized, viewMode, toast]);
 
   const handleRefresh = useCallback(() => {
     refetchRecs();
@@ -204,6 +236,7 @@ export default function ControlTower() {
             onSortChange={setSortBy}
             onRespond={handleRespond}
             navigate={navigate}
+            actionInFlight={actionInFlight}
           />
         ) : (
           <UrgencyView
@@ -214,6 +247,7 @@ export default function ControlTower() {
             recommendations={recommendations}
             onRespond={handleRespond}
             navigate={navigate}
+            actionInFlight={actionInFlight}
           />
         )}
 
@@ -238,12 +272,14 @@ function ImpactPriorityView({
   onSortChange,
   onRespond,
   navigate,
+  actionInFlight,
 }: {
   data: any[];
   sortBy: SortMode;
   onSortChange: (s: SortMode) => void;
-  onRespond: (id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED", notes?: string) => void;
+  onRespond: (id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED" | "IGNORED", notes?: string) => void;
   navigate: (path: string) => void;
+  actionInFlight: string | null;
 }) {
   const sortOptions: { value: SortMode; label: string }[] = [
     { value: "impact", label: "Impact" },
@@ -310,6 +346,7 @@ function ImpactPriorityView({
                 recommendation={rec}
                 onRespond={onRespond}
                 showShipmentRef
+                isLoading={actionInFlight === rec.id}
               />
             </div>
           </div>
@@ -327,14 +364,16 @@ function UrgencyView({
   recommendations,
   onRespond,
   navigate,
+  actionInFlight,
 }: {
   criticalRecs: any[];
   highRecs: any[];
   otherRecs: any[];
   needsIntervention: any[];
   recommendations: any[];
-  onRespond: (id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED", notes?: string) => void;
+  onRespond: (id: string, action: "ACCEPTED" | "MODIFIED" | "REJECTED" | "IGNORED", notes?: string) => void;
   navigate: (path: string) => void;
+  actionInFlight: string | null;
 }) {
   const urgentRecs = [...criticalRecs, ...highRecs];
   const hasUrgent = urgentRecs.length > 0;
@@ -359,6 +398,7 @@ function UrgencyView({
                     recommendation={rec}
                     onRespond={onRespond}
                     showShipmentRef
+                    isLoading={actionInFlight === rec.id}
                   />
                 ))}
               </div>
@@ -442,6 +482,7 @@ function UrgencyView({
                 recommendation={rec}
                 onRespond={onRespond}
                 showShipmentRef
+                isLoading={actionInFlight === rec.id}
               />
             ))}
           </div>
