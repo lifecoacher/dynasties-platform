@@ -153,6 +153,15 @@ The system automates various freight forwarding stages, including:
 - **T007 Dashboard Metrics**: New `/api/dashboard/stats` endpoint with server-side aggregate queries. `useDashboardStats()` hook replaces paginated-list derivation in Command Center.
 - **T008 Demo Mode Signal**: Centralized `use-demo.ts` hook exports `DEMO_MODE` constant. Global "DEMO MODE" banner in AppLayout. All consumers import from single source.
 
+## Product Integrity Layer Sprint (Complete)
+- **T001 Global Error Handling & Loading States**: React.lazy + Suspense for all page routes with PageSkeleton fallback. Global MutationCache onError handler surfaces unhandled mutation errors as toasts. Skeleton, PageSkeleton, CardSkeleton, TableSkeleton components. extractErrorMessage helper handles JSON/network errors.
+- **T002 Recommendation UI State Sync**: Optimistic updates + error rollback + toast feedback on all 4 rec mutations. Per-rec actionInFlight spinner in RecommendationsPanel. Ignore button added to RecommendationCard. ControlTower handleRespond supports IGNORED action.
+- **T003 Work Queue Improvements**: Auto-Process confirmation modal. 6 missing task type labels + icons added.
+- **T004 Plan/Seat Downgrade Enforcement**: Server-side seat check on activate-demo (returns 400 SEAT_LIMIT_EXCEEDED). UI error banner with dismiss.
+- **T005 UI Action Feedback Standard**: All action buttons audited — loading/disabled/success/error states present. ControlTower IGNORED path: silent catch → toast feedback. Per-rec actionInFlight in ControlTower. RecommendationCard isLoading prop with Loader2 spinner.
+- **T006 Billing Aggregation Consistency**: Audited — already correct.
+- **T007 Document Validation Consistency**: Audited — already correct.
+
 ## External Dependencies
 - **AI Integration:** Anthropic Claude via `@workspace/integrations-anthropic-ai`.
 - **Authentication:** Clerk (`@clerk/clerk-react`, `@clerk/express`), `jsonwebtoken`.

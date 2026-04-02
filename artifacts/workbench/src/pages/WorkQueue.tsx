@@ -115,6 +115,12 @@ const TASK_TYPE_LABELS: Record<string, string> = {
   DISRUPTION_RESPONSE_TASK: "Disruption",
   RISK_MITIGATION_TASK: "Risk",
   DELAY_RESPONSE_TASK: "Delay",
+  CUSTOMER_COMMUNICATION_TASK: "Customer Comms",
+  CLAIMS_TASK: "Claims",
+  ESCALATION_TASK: "Escalation",
+  OPERATIONAL_FOLLOWUP_TASK: "Follow-up",
+  HOLD_REVIEW_TASK: "Hold Review",
+  RELEASE_REVIEW_TASK: "Release Review",
 };
 
 const TASK_TYPE_ICONS: Record<string, any> = {
@@ -127,6 +133,12 @@ const TASK_TYPE_ICONS: Record<string, any> = {
   DISRUPTION_RESPONSE_TASK: AlertTriangle,
   RISK_MITIGATION_TASK: Zap,
   DELAY_RESPONSE_TASK: Clock,
+  CUSTOMER_COMMUNICATION_TASK: Bell,
+  CLAIMS_TASK: ClipboardList,
+  ESCALATION_TASK: ArrowUpCircle,
+  OPERATIONAL_FOLLOWUP_TASK: RefreshCw,
+  HOLD_REVIEW_TASK: AlertTriangle,
+  RELEASE_REVIEW_TASK: CheckCircle2,
 };
 
 export default function WorkQueue() {
@@ -136,6 +148,7 @@ export default function WorkQueue() {
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>("queue");
+  const [showAutoProcessConfirm, setShowAutoProcessConfirm] = useState(false);
   const userId = user?.id;
 
   const buildQueryParams = () => {
@@ -278,7 +291,7 @@ export default function WorkQueue() {
               {generateTasksMutation.isPending ? "Syncing..." : "Refresh Queue"}
             </button>
             <button
-              onClick={() => applyBatchMutation.mutate()}
+              onClick={() => setShowAutoProcessConfirm(true)}
               disabled={applyBatchMutation.isPending}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium bg-primary/10 text-primary rounded-lg hover:bg-primary/15 disabled:opacity-50 transition-colors"
             >
@@ -517,6 +530,37 @@ export default function WorkQueue() {
             onGenerate={() => generateNotifsMutation.mutate()}
             isGenerating={generateNotifsMutation.isPending}
           />
+        )}
+
+        {showAutoProcessConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="rounded-xl bg-card border border-card-border p-5 w-full max-w-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Bot size={18} className="text-primary" />
+                <h2 className="text-[15px] font-semibold text-foreground">Auto-Process Tasks</h2>
+              </div>
+              <p className="text-[12px] text-foreground/60 mb-4">
+                This will automatically process eligible open tasks using policy rules. Tasks requiring manual review will be skipped.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowAutoProcessConfirm(false)}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-foreground/60 hover:bg-black/[0.03] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAutoProcessConfirm(false);
+                    applyBatchMutation.mutate();
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </AppLayout>

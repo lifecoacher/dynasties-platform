@@ -1,43 +1,46 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkProvider, SignIn } from "@clerk/clerk-react";
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode, Suspense, lazy } from "react";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import NotFound from "@/pages/not-found";
-import CommandCenter from "./pages/CommandCenter";
-import ShipmentsPage from "./pages/ShipmentsPage";
-import ShipmentDetail from "./pages/ShipmentDetail";
-import IntelligencePage from "./pages/IntelligencePage";
-import DecisionTrace from "./pages/DecisionTrace";
-import CustomersPage from "./pages/CustomersPage";
-import SettingsPage from "./pages/SettingsPage";
-import LoginPage from "./pages/LoginPage";
-import ControlTower from "./pages/ControlTower";
-import DemoControls from "./pages/DemoControls";
-import AnalyticsPage from "./pages/Analytics";
-import LaneDossier from "./pages/LaneDossier";
-import PortDossier from "./pages/PortDossier";
-import CarrierDossier from "./pages/CarrierDossier";
-import EntityDossier from "./pages/EntityDossier";
-import WorkQueue from "./pages/WorkQueue";
-import PredictiveIntelligence from "./pages/PredictiveIntelligence";
-import StrategyIntelligence from "./pages/StrategyIntelligence";
-import PolicyStudio from "./pages/PolicyStudio";
-import ReportsPage from "./pages/Reports";
-import BillingOverview from "./pages/BillingOverview";
-import BillingInvoices from "./pages/BillingInvoices";
-import BillingInvoiceDetail from "./pages/BillingInvoiceDetail";
-import BillingCustomers from "./pages/BillingCustomers";
-import BillingSettings from "./pages/BillingSettings";
-import MigrationWorkspace from "./pages/MigrationWorkspace";
-import SubscriptionBilling from "./pages/SubscriptionBilling";
-import QuotesPage from "./pages/QuotesPage";
-import QuoteDetail from "./pages/QuoteDetail";
-import ExceptionsPage from "./pages/ExceptionsPage";
-import AccountingIntegration from "./pages/AccountingIntegration";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 import { DEMO_MODE } from "./hooks/use-demo";
+import { toast } from "./hooks/use-toast";
+
+const CommandCenter = lazy(() => import("./pages/CommandCenter"));
+const ShipmentsPage = lazy(() => import("./pages/ShipmentsPage"));
+const ShipmentDetail = lazy(() => import("./pages/ShipmentDetail"));
+const IntelligencePage = lazy(() => import("./pages/IntelligencePage"));
+const DecisionTrace = lazy(() => import("./pages/DecisionTrace"));
+const CustomersPage = lazy(() => import("./pages/CustomersPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const ControlTower = lazy(() => import("./pages/ControlTower"));
+const DemoControls = lazy(() => import("./pages/DemoControls"));
+const AnalyticsPage = lazy(() => import("./pages/Analytics"));
+const LaneDossier = lazy(() => import("./pages/LaneDossier"));
+const PortDossier = lazy(() => import("./pages/PortDossier"));
+const CarrierDossier = lazy(() => import("./pages/CarrierDossier"));
+const EntityDossier = lazy(() => import("./pages/EntityDossier"));
+const WorkQueue = lazy(() => import("./pages/WorkQueue"));
+const PredictiveIntelligence = lazy(() => import("./pages/PredictiveIntelligence"));
+const StrategyIntelligence = lazy(() => import("./pages/StrategyIntelligence"));
+const PolicyStudio = lazy(() => import("./pages/PolicyStudio"));
+const ReportsPage = lazy(() => import("./pages/Reports"));
+const BillingOverview = lazy(() => import("./pages/BillingOverview"));
+const BillingInvoices = lazy(() => import("./pages/BillingInvoices"));
+const BillingInvoiceDetail = lazy(() => import("./pages/BillingInvoiceDetail"));
+const BillingCustomers = lazy(() => import("./pages/BillingCustomers"));
+const BillingSettings = lazy(() => import("./pages/BillingSettings"));
+const MigrationWorkspace = lazy(() => import("./pages/MigrationWorkspace"));
+const SubscriptionBilling = lazy(() => import("./pages/SubscriptionBilling"));
+const QuotesPage = lazy(() => import("./pages/QuotesPage"));
+const QuoteDetail = lazy(() => import("./pages/QuoteDetail"));
+const ExceptionsPage = lazy(() => import("./pages/ExceptionsPage"));
+const AccountingIntegration = lazy(() => import("./pages/AccountingIntegration"));
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -80,6 +83,21 @@ class ErrorBoundary extends Component<
   }
 }
 
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    try {
+      const parsed = JSON.parse(error.message);
+      if (parsed?.error || parsed?.message) return parsed.error || parsed.message;
+    } catch { /* not JSON */ }
+    if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
+      return "Network error — please check your connection";
+    }
+    if (error.message.length > 120) return error.message.slice(0, 117) + "...";
+    return error.message;
+  }
+  return "An unexpected error occurred";
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -87,6 +105,16 @@ const queryClient = new QueryClient({
       retry: 1,
     },
   },
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      if (mutation.options.onError) return;
+      toast({
+        variant: "destructive",
+        title: "Action failed",
+        description: extractErrorMessage(error),
+      });
+    },
+  }),
 });
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -147,54 +175,60 @@ function AuthenticatedRouter() {
   }
   if (!user) {
     if (isClerkMode) return <ClerkLoginPage />;
-    return <LoginPage />;
+    return (
+      <Suspense fallback={<PageSkeleton />}>
+        <LoginPage />
+      </Suspense>
+    );
   }
 
   const DemoRedirect = () => { window.location.replace(import.meta.env.BASE_URL.replace(/\/$/, "") || "/"); return null; };
 
   return (
-    <Switch>
-      <Route path="/" component={CommandCenter} />
-      <Route path="/quotes/:id" component={QuoteDetail} />
-      <Route path="/quotes" component={QuotesPage} />
-      <Route path="/exceptions" component={ExceptionsPage} />
-      <Route path="/shipments" component={ShipmentsPage} />
-      <Route path="/shipments/:id/trace" component={DecisionTrace} />
-      <Route path="/shipments/:id" component={ShipmentDetail} />
-      <Route path="/control-tower" component={ControlTower} />
-      <Route path="/work-queue" component={WorkQueue} />
-      <Route path="/lanes/:origin/:destination" component={LaneDossier} />
-      <Route path="/ports/:portCode" component={PortDossier} />
-      <Route path="/carriers/:carrierId" component={CarrierDossier} />
-      <Route path="/entities/:entityId" component={EntityDossier} />
-      <Route path="/billing" component={BillingOverview} />
-      <Route path="/billing/invoices/:id" component={BillingInvoiceDetail} />
-      <Route path="/billing/invoices" component={BillingInvoices} />
-      <Route path="/billing/customers/:id" component={BillingCustomers} />
-      <Route path="/billing/customers" component={BillingCustomers} />
-      <Route path="/billing/settings" component={BillingSettings} />
-      <Route path="/onboarding/migration" component={MigrationWorkspace} />
-      <Route path="/settings/billing" component={SubscriptionBilling} />
-      <Route path="/settings/accounting" component={AccountingIntegration} />
-      <Route path="/settings" component={SettingsPage} />
-      {!DEMO_MODE && <Route path="/intelligence" component={IntelligencePage} />}
-      {!DEMO_MODE && <Route path="/customers" component={CustomersPage} />}
-      {!DEMO_MODE && <Route path="/predictive" component={PredictiveIntelligence} />}
-      {!DEMO_MODE && <Route path="/strategy" component={StrategyIntelligence} />}
-      {!DEMO_MODE && <Route path="/policy-studio" component={PolicyStudio} />}
-      {!DEMO_MODE && <Route path="/reports" component={ReportsPage} />}
-      {!DEMO_MODE && <Route path="/analytics" component={AnalyticsPage} />}
-      {!DEMO_MODE && <Route path="/demo" component={DemoControls} />}
-      {DEMO_MODE && <Route path="/intelligence" component={DemoRedirect} />}
-      {DEMO_MODE && <Route path="/customers" component={DemoRedirect} />}
-      {DEMO_MODE && <Route path="/predictive" component={DemoRedirect} />}
-      {DEMO_MODE && <Route path="/strategy" component={DemoRedirect} />}
-      {DEMO_MODE && <Route path="/policy-studio" component={DemoRedirect} />}
-      {DEMO_MODE && <Route path="/reports" component={DemoRedirect} />}
-      {DEMO_MODE && <Route path="/analytics" component={DemoRedirect} />}
-      {DEMO_MODE && <Route path="/demo" component={DemoRedirect} />}
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<PageSkeleton />}>
+      <Switch>
+        <Route path="/" component={CommandCenter} />
+        <Route path="/quotes/:id" component={QuoteDetail} />
+        <Route path="/quotes" component={QuotesPage} />
+        <Route path="/exceptions" component={ExceptionsPage} />
+        <Route path="/shipments" component={ShipmentsPage} />
+        <Route path="/shipments/:id/trace" component={DecisionTrace} />
+        <Route path="/shipments/:id" component={ShipmentDetail} />
+        <Route path="/control-tower" component={ControlTower} />
+        <Route path="/work-queue" component={WorkQueue} />
+        <Route path="/lanes/:origin/:destination" component={LaneDossier} />
+        <Route path="/ports/:portCode" component={PortDossier} />
+        <Route path="/carriers/:carrierId" component={CarrierDossier} />
+        <Route path="/entities/:entityId" component={EntityDossier} />
+        <Route path="/billing" component={BillingOverview} />
+        <Route path="/billing/invoices/:id" component={BillingInvoiceDetail} />
+        <Route path="/billing/invoices" component={BillingInvoices} />
+        <Route path="/billing/customers/:id" component={BillingCustomers} />
+        <Route path="/billing/customers" component={BillingCustomers} />
+        <Route path="/billing/settings" component={BillingSettings} />
+        <Route path="/onboarding/migration" component={MigrationWorkspace} />
+        <Route path="/settings/billing" component={SubscriptionBilling} />
+        <Route path="/settings/accounting" component={AccountingIntegration} />
+        <Route path="/settings" component={SettingsPage} />
+        {!DEMO_MODE && <Route path="/intelligence" component={IntelligencePage} />}
+        {!DEMO_MODE && <Route path="/customers" component={CustomersPage} />}
+        {!DEMO_MODE && <Route path="/predictive" component={PredictiveIntelligence} />}
+        {!DEMO_MODE && <Route path="/strategy" component={StrategyIntelligence} />}
+        {!DEMO_MODE && <Route path="/policy-studio" component={PolicyStudio} />}
+        {!DEMO_MODE && <Route path="/reports" component={ReportsPage} />}
+        {!DEMO_MODE && <Route path="/analytics" component={AnalyticsPage} />}
+        {!DEMO_MODE && <Route path="/demo" component={DemoControls} />}
+        {DEMO_MODE && <Route path="/intelligence" component={DemoRedirect} />}
+        {DEMO_MODE && <Route path="/customers" component={DemoRedirect} />}
+        {DEMO_MODE && <Route path="/predictive" component={DemoRedirect} />}
+        {DEMO_MODE && <Route path="/strategy" component={DemoRedirect} />}
+        {DEMO_MODE && <Route path="/policy-studio" component={DemoRedirect} />}
+        {DEMO_MODE && <Route path="/reports" component={DemoRedirect} />}
+        {DEMO_MODE && <Route path="/analytics" component={DemoRedirect} />}
+        {DEMO_MODE && <Route path="/demo" component={DemoRedirect} />}
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 
