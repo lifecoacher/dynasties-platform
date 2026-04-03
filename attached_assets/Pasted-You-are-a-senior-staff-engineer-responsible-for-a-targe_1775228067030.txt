@@ -1,0 +1,240 @@
+You are a senior staff engineer responsible for a targeted remediation sprint for Dynasties Operator Workbench.
+
+This is NOT a feature sprint.
+This is NOT a redesign sprint.
+This is a focused integrity and state-truth remediation sprint based on the latest hostile QA audit.
+
+Your job is to fix the highest-priority remaining failures so the product stops contradicting itself and becomes genuinely pilot-ready.
+
+CURRENT AUDIT FINDINGS TO FIX
+
+CRITICAL
+1. Subscription Seat Limit Exceeded — account shows 5/3 seats used on Starter with no enforcement, no warning, no upgrade CTA
+2. Invoice Count Mismatch — Billing shows 33 invoices, Accounting shows 93 invoices for the same tenant/dataset
+
+HIGH
+3. Control Tower recommendation Accept/Reject actions do not visibly update state or remove/update the item in queue
+4. Exceptions detail panel does not reset when switching tabs; stale selected exception remains visible from prior tab
+5. Control Tower duplicate signal evidence entries appear in details
+
+MEDIUM
+6. Work Queue task row click does not open any detail view or navigation
+7. Work Queue Analytics tab still shows only dashes with no true empty state or should be hidden if not implemented
+8. Billing dashboard financial summary labels/metrics remain ambiguous or contradictory
+9. Billing company name mismatch: “Lorian Maritime Logistics” vs “Lorian Freight Solutions”
+
+LOW
+10. Invoice detail lacks line item breakdown
+11. Settings is read-only and has no team management/profile edit
+12. Credit Limit label mismatch: “—” vs “No limit”
+
+SPRINT GOAL
+
+Fix the product so it satisfies these guarantees:
+1. Hard business rules are actually enforced
+2. Shared datasets render consistently across modules
+3. Actions visibly and immediately update state
+4. Selection state never becomes stale across filtered/tabbed views
+5. Unimplemented surfaces are hidden or replaced with honest empty states
+6. Tenant/org naming and financial labels are consistent everywhere
+
+PRIORITY ORDER
+
+You must execute in this exact order:
+
+PHASE 1 — BLOCKERS
+A. Seat limit enforcement
+B. Billing vs Accounting invoice source-of-truth reconciliation
+C. Control Tower action state sync
+
+PHASE 2 — STATE / UX INTEGRITY
+D. Exceptions tab/detail reset behavior
+E. Work Queue detail behavior
+F. Work Queue Analytics honesty
+G. Control Tower signal deduplication
+
+PHASE 3 — CONSISTENCY / CLEANUP
+H. Billing metric labeling/aggregation clarity
+I. Company name consistency
+J. Credit limit label consistency
+K. Invoice detail line items if data exists; otherwise honest empty state
+
+REQUIRED IMPLEMENTATION DETAILS
+
+1. SEAT LIMIT ENFORCEMENT (CRITICAL)
+Fix the Subscription / billing settings flow so invalid seat states cannot exist silently.
+
+Requirements:
+- detect when current active members exceed current plan seat limit
+- show a prominent warning banner on the Subscription page if over limit
+- show exact current usage vs plan limit
+- block any action that would worsen the violation
+- if plan downgrade is attempted while over limit, block before commit
+- show an upgrade CTA or remediation CTA (“Reduce team members” / “Upgrade plan”)
+- if the current demo/seed data already violates limits, surface that honestly in UI rather than silently overflowing the bar
+- prevent future silent overflow state creation
+
+Also verify:
+- progress bar does not visually overflow in a broken way
+- warning persists after refresh
+- state is derived from real membership count, not hardcoded demo strings
+
+2. BILLING / ACCOUNTING SINGLE SOURCE OF TRUTH (CRITICAL)
+Fix the invoice count mismatch between Billing and Accounting.
+
+Requirements:
+- identify the canonical invoice dataset for the tenant
+- both Billing and Accounting pages must derive counts from the same source/query scope
+- explain and eliminate the 33 vs 93 mismatch
+- if one page includes sync records rather than invoices, label it explicitly and separately
+- add a shared service/helper for invoice aggregates and counts
+- remove duplicated counting logic across modules
+
+Verify:
+- total invoice count matches across both pages
+- counts remain consistent after navigation/refresh
+- tenant scoping is correct
+- headers, subtitles, summary cards, and sync overview all agree
+
+3. CONTROL TOWER ACTION STATE SYNC (HIGH)
+Fix recommendation Accept/Reject (and related actions) in Control Tower so actions visibly and immediately update state.
+
+Requirements:
+- clicking Accept / Reject / Modify / Ignore must show loading state
+- on success, show toast or inline success feedback
+- item must either:
+  - disappear from active queue, or
+  - visibly transition to new status
+- queue counts must update immediately
+- no stale recommendation card remains actionable after decision
+- state must persist after refresh/navigation
+- use optimistic update only if safely rolled back on failure
+- ensure behavior matches Shipment Detail recommendation handling
+
+Also verify:
+- no silent failure path
+- no double-submit
+- no mismatch between Control Tower and Shipment Detail for same recommendation
+
+4. EXCEPTIONS TAB / DETAIL PANEL RESET
+Fix stale selection state in Exceptions.
+
+Requirements:
+- when switching tabs/filters (Active, Escalated, etc.), clear the previously selected exception if it is not in the new filtered set
+- either:
+  - auto-select the first item in the new tab, or
+  - clear the detail panel and show an empty-state message
+- detail panel must never show an item whose status contradicts the current tab
+- selected state must be derived from currently visible dataset
+
+5. CONTROL TOWER SIGNAL DEDUPLICATION
+Fix duplicate signal evidence entries.
+
+Requirements:
+- deduplicate identical signal evidence entries by stable key/content
+- preserve legitimately distinct signals
+- ensure the details panel never shows duplicated verbatim evidence lines for the same recommendation unless explicitly intended and labeled
+
+6. WORK QUEUE DETAIL BEHAVIOR
+Fix task row selection behavior.
+
+Requirements:
+- clicking a task row must do something meaningful:
+  - open a detail drawer/panel, or
+  - navigate to a task detail page, or
+  - deep link to the related shipment/exception with context
+- selected row with no detail behavior is not acceptable
+- include task description, linked entity, status, assignment, due date if available, and activity or reason metadata if available
+- preserve consistency with Exceptions page interaction model if appropriate
+
+7. WORK QUEUE ANALYTICS HONESTY
+Current analytics tab with dashes is misleading.
+
+Implement one of these two acceptable outcomes:
+Option A:
+- hide the Analytics tab entirely if feature is not implemented
+
+Option B:
+- keep tab visible but show an honest empty state:
+  - “Analytics will appear once completed task history is available”
+  - explain why metrics are unavailable
+  - do not show naked dashes with no context
+
+Do NOT leave a fake/empty pseudo-feature.
+
+8. BILLING METRIC CLARITY / CONSISTENCY
+Fix contradictory or ambiguous top-level Billing metrics.
+
+Requirements:
+- if “Collected This Month” is month-to-date, label it explicitly as month-to-date
+- ensure totals reconcile with open receivables and total invoiced
+- if numbers are drawn from different time scopes, make scopes obvious
+- reduce ambiguity in card subtitles
+- do not allow the cards to imply contradictory math
+
+9. COMPANY NAME CONSISTENCY
+Fix organization naming mismatch.
+
+Requirements:
+- determine canonical tenant/company display name
+- ensure Billing, Accounting, sidebar, Settings, and page subtitles use the same org name unless intentionally representing a different legal entity
+- if a legal entity name differs from brand name, label that explicitly rather than mixing names casually
+
+10. CREDIT LIMIT LABEL CONSISTENCY
+Fix “—” vs “No limit” mismatch.
+
+Requirements:
+- use one canonical display convention for unlimited credit
+- apply consistently in list view and detail view
+- reserve “—” only for unknown/unset if that distinction is actually needed
+
+11. INVOICE DETAIL LINE ITEMS
+If line item data exists:
+- render a line items table on invoice detail
+
+If line item data does not exist:
+- show an honest empty state such as:
+  “No line item breakdown available for this invoice”
+Do not imply itemization exists when it does not.
+
+OUTPUT REQUIREMENTS
+
+Return all of the following:
+
+1. exact files changed
+2. exact services/helpers added or refactored
+3. exact UI components/pages changed
+4. exact data-source reconciliation performed for Billing vs Accounting
+5. exact seat-enforcement logic added
+6. before/after behavior for:
+   - Subscription
+   - Billing
+   - Accounting
+   - Control Tower
+   - Exceptions
+   - Work Queue
+7. any remaining open issues you could not fully resolve
+8. a focused QA checklist specifically for the 12 audit findings above
+
+CONSTRAINTS
+
+- do NOT add unrelated new features
+- do NOT redesign the app broadly
+- do NOT paper over backend mismatches with fake UI text
+- do NOT leave partially functional controls exposed
+- do NOT rely on manual refresh to reflect state
+- do NOT return a plan without code changes
+
+SUCCESS CRITERIA
+
+This sprint is successful only if:
+- seat-limit violations are surfaced and enforced
+- Billing and Accounting counts reconcile from a shared truth
+- Control Tower actions visibly update and persist
+- Exceptions detail panel never shows stale item from another tab
+- Work Queue row interaction is meaningful
+- Analytics tab is either real or honestly hidden/empty
+- naming and financial labels are consistent
+- the product is materially closer to pilot-ready
+
+Now inspect the current codebase and implement this targeted remediation sprint fully in code.

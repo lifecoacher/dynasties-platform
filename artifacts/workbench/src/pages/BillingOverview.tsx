@@ -207,7 +207,7 @@ export default function BillingOverview() {
             color="blue"
           />
           <KpiCard
-            label="Collected This Month"
+            label="Collected (MTD)"
             value={formatCurrency(overview?.paidThisMonth || 0)}
             subtitle={`${paidCount} ${pluralize(paidCount, "invoice", "invoices")} paid`}
             icon={TrendingUp}

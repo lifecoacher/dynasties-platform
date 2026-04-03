@@ -782,6 +782,21 @@ function WorkflowAnalyticsPanel({ analytics }: { analytics: any }) {
     );
   }
 
+  const hasData = analytics.avgResolutionHours || analytics.completionRate || analytics.autoProcessed;
+
+  if (!hasData) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-[14px] font-semibold text-foreground font-heading">Workflow Analytics</h2>
+        <div className="text-center py-12">
+          <BarChart3 className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
+          <p className="text-[13px] text-muted-foreground/60">No analytics data available</p>
+          <p className="text-[11px] text-muted-foreground/40 mt-1">Analytics will appear once tasks are processed</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-[14px] font-semibold text-foreground font-heading">Workflow Analytics</h2>

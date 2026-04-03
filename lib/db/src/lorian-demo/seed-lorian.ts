@@ -1494,7 +1494,7 @@ export async function seedLorian() {
   await db.insert(billingAccountsTable).values({
     id: BILLING_ACCOUNT_ID,
     companyId: LORIAN_COMPANY_ID,
-    legalEntityName: "Lorian Freight Forwarding Ltd",
+    legalEntityName: "Lorian Freight Solutions",
     billingEmail: "billing@lorian.demo",
     currency: "USD",
     invoicePrefix: "LOR-INV",

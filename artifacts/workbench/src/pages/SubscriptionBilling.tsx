@@ -373,6 +373,7 @@ function PlanCard({
   isLoading,
   demoMode,
   onDemoActivate,
+  currentSeatsUsed,
 }: {
   config: PlanConfigInfo;
   isCurrentPlan: boolean;
@@ -381,11 +382,13 @@ function PlanCard({
   isLoading: boolean;
   demoMode: boolean;
   onDemoActivate: (planType: string) => void;
+  currentSeatsUsed?: number;
 }) {
   const Icon = PLAN_ICONS[config.planType] || Zap;
   const color = PLAN_COLORS[config.planType] || "#00BFA6";
   const isEnterprise = config.planType === "ENTERPRISE";
   const displayPrice = isEnterprise ? "Custom" : formatCents(config.monthlyPrice);
+  const seatBlocked = currentSeatsUsed != null && config.seatLimit > 0 && currentSeatsUsed > config.seatLimit;
 
   return (
     <motion.div
@@ -434,6 +437,12 @@ function PlanCard({
         ))}
       </ul>
 
+      {seatBlocked && !isCurrentPlan && (
+        <p className="text-[10px] text-[#E05252]/80 mb-1.5">
+          Requires {currentSeatsUsed! - config.seatLimit} fewer seat{currentSeatsUsed! - config.seatLimit > 1 ? "s" : ""}
+        </p>
+      )}
+
       {isCurrentPlan ? (
         <div className="w-full py-2 rounded-lg bg-primary/10 text-primary text-[13px] font-medium text-center">
           Active
@@ -441,7 +450,7 @@ function PlanCard({
       ) : demoMode ? (
         <button
           onClick={() => onDemoActivate(config.planType)}
-          disabled={isLoading}
+          disabled={isLoading || seatBlocked}
           className="w-full py-2 rounded-lg bg-primary text-black text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Activate<ArrowRight className="w-3.5 h-3.5" /></>}
@@ -457,14 +466,14 @@ function PlanCard({
         <div className="space-y-2">
           <button
             onClick={() => onSelect(config.planType)}
-            disabled={isLoading}
+            disabled={isLoading || seatBlocked}
             className="w-full py-2 rounded-lg bg-primary text-black text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Subscribe<ArrowRight className="w-3.5 h-3.5" /></>}
           </button>
           <button
             onClick={() => onTrial(config.planType)}
-            disabled={isLoading}
+            disabled={isLoading || seatBlocked}
             className="w-full py-1.5 rounded-lg bg-transparent border border-primary/30 text-primary text-[12px] font-medium hover:bg-primary/5 transition-colors disabled:opacity-50"
           >
             Start {config.trialDays}-day trial
@@ -616,6 +625,25 @@ export default function SubscriptionBilling() {
               <p className="text-[13px] font-medium text-red-400">Trial expired</p>
               <p className="text-[12px] text-red-400/70">Subscribe to a plan below to continue using Dynasties.</p>
             </div>
+          </motion.div>
+        )}
+
+        {sub && sub.seatsUsed > sub.seatLimit && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 rounded-xl bg-[#E05252]/10 border border-[#E05252]/20 flex items-center gap-3"
+          >
+            <AlertTriangle className="w-5 h-5 text-[#E05252]" />
+            <div className="flex-1">
+              <p className="text-[13px] font-medium text-[#E05252]">
+                Seat limit exceeded — {sub.seatsUsed} of {sub.seatLimit} seats used
+              </p>
+              <p className="text-[12px] text-[#E05252]/70">
+                Your team has more members than your current plan allows. Upgrade your plan or deactivate {sub.seatsUsed - sub.seatLimit} team member{sub.seatsUsed - sub.seatLimit > 1 ? "s" : ""} to resolve.
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-[#E05252]/60 shrink-0" />
           </motion.div>
         )}
 
@@ -796,6 +824,7 @@ export default function SubscriptionBilling() {
                       isLoading={isActionLoading}
                       demoMode={DEMO_MODE}
                       onDemoActivate={handleDemoActivate}
+                      currentSeatsUsed={sub?.seatsUsed}
                     />
                   ))}
                 </div>
