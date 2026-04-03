@@ -177,3 +177,9 @@ The system automates various freight forwarding stages, including:
 - **Rate Limiting:** `express-rate-limit`.
 - **Payments:** Stripe (`stripe`, `stripe-replit-sync`) — subscription management, checkout sessions, webhooks, customer portal, Connect (standard accounts for receiving payments/payouts).
 - **External Signal Providers (Demo):** OpenWeather (live weather), AISStream (vessel positions).
+
+## Process Crash Protection
+- **Process-level guards**: `process.on('unhandledRejection')` and `process.on('uncaughtException')` handlers in `index.ts` log errors and prevent Node process from crashing on unhandled async errors.
+- **Queue retry + DLQ**: All consumer callbacks in `extraction-consumer.ts` are wrapped by the queue library's `wrapWithRetry()` — failed jobs retry 3 times with exponential backoff, then go to dead-letter queue. Consumer callbacks should NOT add their own try/catch (it would swallow errors before retry/DLQ).
+- **Route-level error boundary**: `RouteErrorBoundary` React component in `App.tsx` wraps high-risk routes (Control Tower) to contain render errors without crashing the entire SPA. Shows "Try Again" / "Go to Dashboard" buttons instead of full-page error.
+- **Express 5 async error handling**: Express 5.2.1 natively catches rejected promises from async route handlers and forwards them to `globalErrorHandler`. No `asyncHandler` wrapper needed.
