@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -70,6 +70,8 @@ export default function ExceptionsPage() {
   const exceptions = exceptionsRes?.data || [];
   const summary = summaryRes?.data;
   const voice = deriveVoice(summary);
+
+  useEffect(() => { setSelectedExc(null); }, [statusFilter]);
 
   const critical = exceptions.filter((e: any) => e.severity === "CRITICAL");
   const high = exceptions.filter((e: any) => e.severity === "HIGH");

@@ -504,11 +504,11 @@ export default function BillingInvoiceDetail() {
           </motion.div>
         </div>
 
-        {lineItems.length > 0 && (
-          <div className="bg-card border border-card-border rounded-xl overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-card-border">
-              <h3 className="text-[14px] font-semibold text-foreground">Line Items</h3>
-            </div>
+        <div className="bg-card border border-card-border rounded-xl overflow-hidden mb-8">
+          <div className="px-6 py-4 border-b border-card-border">
+            <h3 className="text-[14px] font-semibold text-foreground">Line Items</h3>
+          </div>
+          {lineItems.length > 0 ? (
             <table className="w-full">
               <thead>
                 <tr className="border-b border-card-border">
@@ -533,8 +533,12 @@ export default function BillingInvoiceDetail() {
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
+          ) : (
+            <div className="px-6 py-8 text-center">
+              <p className="text-[13px] text-muted-foreground">No line items recorded</p>
+            </div>
+          )}
+        </div>
 
         {receivable && (
           <div className={`border rounded-xl p-6 mb-8 ${receivable.receivableTransferred ? "bg-primary/[0.04] border-primary/20" : "bg-card border-card-border"}`}>

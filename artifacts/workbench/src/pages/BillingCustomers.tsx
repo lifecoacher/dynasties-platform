@@ -134,7 +134,7 @@ function CustomersList() {
                   </div>
                   <div>
                     <p className="text-[11px] text-muted-foreground">Credit Limit</p>
-                    <p className="text-[14px] font-semibold text-foreground">{c.creditLimit ? formatCurrency(c.creditLimit) : "—"}</p>
+                    <p className="text-[14px] font-semibold text-foreground">{c.creditLimit ? formatCurrency(c.creditLimit) : "No limit"}</p>
                   </div>
                   <div>
                     <p className="text-[11px] text-muted-foreground">Terms</p>

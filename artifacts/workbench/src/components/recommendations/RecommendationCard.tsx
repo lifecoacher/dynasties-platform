@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
@@ -158,7 +158,15 @@ export function RecommendationCard({ recommendation: rec, onRespond, showShipmen
   const isPending = rec.status === "PENDING" || rec.status === "SHOWN";
   const isEnriched = rec.intelligenceEnriched === "true";
   const extCodes = rec.externalReasonCodes || [];
-  const evidence = rec.signalEvidence || [];
+  const evidence = useMemo(() => {
+    const raw = rec.signalEvidence || [];
+    const seen = new Set<string>();
+    return raw.filter((sig) => {
+      if (seen.has(sig.signalId)) return false;
+      seen.add(sig.signalId);
+      return true;
+    });
+  }, [rec.signalEvidence]);
   const responding = !!isLoading || localLock;
 
   const handleRespond = (action: "ACCEPTED" | "MODIFIED" | "REJECTED" | "IGNORED", notes?: string) => {
