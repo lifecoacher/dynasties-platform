@@ -1,0 +1,184 @@
+You are a senior staff engineer handling a production-blocking incident in Dynasties Operator Workbench.
+
+This is not a feature task.
+This is not a UI fix.
+This is a system stability incident.
+
+The Control Tower route is crashing the entire application server on navigation.
+
+Your job is to:
+1. identify the root cause
+2. isolate the failure
+3. ensure the system cannot be taken down by a single route again
+4. restore stable behavior under normal and stressed usage
+
+---
+
+## INCIDENT DESCRIPTION
+
+- Navigating to /control-tower causes full application crash
+- Entire server becomes unavailable for 90+ seconds
+- All modules go offline
+- Recovery requires manual restart
+- No graceful error handling
+- Likely unhandled exception or blocking operation
+
+---
+
+## OBJECTIVES
+
+You must implement **Fault Isolation + Runtime Stability Guarantees**:
+
+1. A single route must NEVER crash the entire app
+2. All async operations must be safely bounded
+3. All errors must be caught and surfaced without killing the process
+4. The Control Tower route must load safely even if partial data fails
+
+---
+
+## REQUIRED INVESTIGATION
+
+Identify the root cause by inspecting:
+
+- Control Tower route loader / data fetching logic
+- AI event aggregation or signal processing
+- recommendation queries
+- async loops or unbounded parallel calls
+- memory-heavy operations
+- any synchronous blocking logic
+- missing try/catch boundaries
+- promise chains without error handling
+- recursive or cascading re-fetch behavior
+
+---
+
+## LIKELY FAILURE PATTERNS TO CHECK
+
+- unhandled promise rejection
+- infinite loop or recursive state update
+- unbounded parallel API/database calls
+- large dataset loading without pagination
+- JSON serialization of massive objects
+- circular data structures
+- event listener loops
+- blocking CPU computation in request thread
+- crash triggered by malformed data
+
+---
+
+## REQUIRED FIXES
+
+### 1. HARD ERROR BOUNDARY (SERVER + CLIENT)
+
+- wrap Control Tower data loading in strict try/catch
+- return partial data if any segment fails
+- never allow thrown error to propagate to server crash
+
+---
+
+### 2. SAFE DATA LOADING
+
+- break Control Tower data into independent segments:
+  - signals
+  - recommendations
+  - shipments
+- load them separately
+- if one fails → others still render
+
+---
+
+### 3. TIMEOUT + GUARDRAILS
+
+- enforce max execution time per data fetch
+- enforce max dataset size (pagination or limits)
+- prevent runaway queries
+
+---
+
+### 4. CONCURRENCY CONTROL
+
+- limit parallel async calls
+- remove unbounded Promise.all on large datasets
+- introduce batching if necessary
+
+---
+
+### 5. FALLBACK UI STATE
+
+If Control Tower fails:
+- show partial UI
+- show error section inside module
+- DO NOT crash app shell
+
+---
+
+### 6. LOGGING + OBSERVABILITY
+
+- log exact error causing crash
+- include:
+  - route
+  - failing operation
+  - payload size
+- ensure reproducibility
+
+---
+
+### 7. SYSTEM-WIDE GUARANTEE
+
+Audit all routes and enforce:
+
+- no route can crash server
+- all async entry points are guarded
+- no unhandled promise rejections exist
+
+---
+
+## VALIDATION REQUIREMENTS
+
+You must confirm:
+
+1. Control Tower loads successfully
+2. Control Tower still loads under:
+   - rapid navigation
+   - refresh
+   - repeated access
+3. If an internal failure occurs:
+   - UI shows partial data or error message
+   - app remains fully usable
+4. Server never crashes from route-level failure
+
+---
+
+## OUTPUT
+
+Return:
+
+1. root cause of crash (exact)
+2. files modified
+3. specific fix implemented
+4. safeguards added to prevent recurrence
+5. confirmation that:
+   - Control Tower no longer crashes system
+   - route failures are isolated
+   - app remains stable under stress
+
+---
+
+## CONSTRAINTS
+
+- do NOT suppress errors silently
+- do NOT wrap everything in catch without handling
+- do NOT reduce functionality unnecessarily
+- do NOT defer fix — must be solved at root cause
+- do NOT return explanation without code changes
+
+---
+
+## SUCCESS CRITERIA
+
+This sprint is complete only if:
+
+- Control Tower cannot crash the app
+- all route-level failures are isolated
+- system remains stable under repeated usage
+- errors degrade gracefully instead of catastrophically

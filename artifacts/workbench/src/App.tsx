@@ -83,6 +83,51 @@ class ErrorBoundary extends Component<
   }
 }
 
+class RouteErrorBoundary extends Component<
+  { children: ReactNode; routeName: string },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode; routeName: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(`[RouteErrorBoundary:${this.props.routeName}]`, error, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="max-w-sm text-center">
+            <p className="text-[15px] font-medium text-foreground">This section encountered an error</p>
+            <p className="text-[13px] text-muted-foreground mt-2">
+              The {this.props.routeName} page ran into a problem. You can try again or navigate elsewhere.
+            </p>
+            <div className="flex gap-3 justify-center mt-5">
+              <button
+                onClick={() => this.setState({ hasError: false, error: null })}
+                className="px-4 py-2 rounded-lg border border-border text-[13px] font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => { window.location.href = import.meta.env.BASE_URL.replace(/\/$/, "") || "/"; }}
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     try {
@@ -194,7 +239,7 @@ function AuthenticatedRouter() {
         <Route path="/shipments" component={ShipmentsPage} />
         <Route path="/shipments/:id/trace" component={DecisionTrace} />
         <Route path="/shipments/:id" component={ShipmentDetail} />
-        <Route path="/control-tower" component={ControlTower} />
+        <Route path="/control-tower">{() => <RouteErrorBoundary routeName="Control Tower"><ControlTower /></RouteErrorBoundary>}</Route>
         <Route path="/work-queue" component={WorkQueue} />
         <Route path="/lanes/:origin/:destination" component={LaneDossier} />
         <Route path="/ports/:portCode" component={PortDossier} />

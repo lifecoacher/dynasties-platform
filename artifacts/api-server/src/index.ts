@@ -8,6 +8,14 @@ import { logExternalSignalsConfig } from "./config/external-signals.js";
 
 const port = env.PORT || Number(process.env["PORT"]) || 8080;
 
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("[PROCESS] Unhandled promise rejection caught — server will NOT crash:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("[PROCESS] Uncaught exception caught — server will NOT crash:", error);
+});
+
 async function initStripe() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
