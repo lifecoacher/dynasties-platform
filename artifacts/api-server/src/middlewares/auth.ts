@@ -86,7 +86,13 @@ export function requireMinRole(minRole: Role) {
     const requiredLevel = ROLE_HIERARCHY[minRole] || 0;
 
     if (userLevel < requiredLevel) {
-      res.status(403).json({ error: "Insufficient permissions" });
+      res.status(403).json({
+        error: "Insufficient permissions",
+        message: `This action requires the ${minRole} role or above. Your current role is ${req.user.role}. Contact your administrator to request access.`,
+        code: "INSUFFICIENT_ROLE",
+        requiredRole: minRole,
+        currentRole: req.user.role,
+      });
       return;
     }
 

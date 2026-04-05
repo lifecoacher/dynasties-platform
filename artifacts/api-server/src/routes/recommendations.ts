@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
 import {
   recommendationsTable,
@@ -15,6 +15,19 @@ import { requireMinRole } from "../middlewares/auth.js";
 import { publishDecisionJob, publishAiRuntimeJob } from "@workspace/queue";
 import { z } from "zod";
 import { handleRecommendationResponse } from "@workspace/svc-ai-runtime/task-sync";
+
+type AsyncHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
+
+function safe(label: string, handler: AsyncHandler): AsyncHandler {
+  return async (req, res, next) => {
+    try {
+      await handler(req, res, next);
+    } catch (err) {
+      console.error(`[recommendations] ${label} error:`, err);
+      next(err);
+    }
+  };
+}
 
 const router: IRouter = Router();
 
@@ -62,7 +75,7 @@ const outcomeSchema = z.object({
   outcomeEvaluation: z.enum(["POSITIVE", "NEUTRAL", "NEGATIVE"]).optional(),
 });
 
-router.get("/shipments/:id/recommendations", async (req, res) => {
+router.get("/shipments/:id/recommendations", safe("list", async (req, res) => {
   const companyId = getCompanyId(req);
   const shipmentId = String(req.params.id);
   const includeHistory = req.query.history === "true";
@@ -83,9 +96,9 @@ router.get("/shipments/:id/recommendations", async (req, res) => {
 
   const recs = await query;
   res.json({ data: recs.map(serializeRec) });
-});
+}));
 
-router.get("/shipments/:id/recommendations/history", async (req, res) => {
+router.get("/shipments/:id/recommendations/history", safe("history", async (req, res) => {
   const companyId = getCompanyId(req);
   const shipmentId = String(req.params.id);
 
@@ -101,9 +114,9 @@ router.get("/shipments/:id/recommendations/history", async (req, res) => {
     .orderBy(desc(recommendationsTable.createdAt));
 
   res.json({ data: recs.map(serializeRec) });
-});
+}));
 
-router.get("/recommendations/pending", async (req, res) => {
+router.get("/recommendations/pending", safe("pending", async (req, res) => {
   const companyId = getCompanyId(req);
 
   await expireStaleRecommendations(companyId);
@@ -121,9 +134,9 @@ router.get("/recommendations/pending", async (req, res) => {
     .limit(50);
 
   res.json({ data: recs.map(serializeRec) });
-});
+}));
 
-router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validateBody(respondSchema), async (req, res) => {
+router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validateBody(respondSchema), safe("respond", async (req, res) => {
   const companyId = getCompanyId(req);
   const recId = String(req.params.id);
   const { action, modificationNotes } = req.body;
@@ -211,9 +224,9 @@ router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validate
   }
 
   res.json({ data: { id: recId, status: newStatus, action } });
-});
+}));
 
-router.post("/recommendations/:id/outcome", requireMinRole("OPERATOR"), validateBody(outcomeSchema), async (req, res) => {
+router.post("/recommendations/:id/outcome", requireMinRole("OPERATOR"), validateBody(outcomeSchema), safe("outcome", async (req, res) => {
   const companyId = getCompanyId(req);
   const recId = String(req.params.id);
 
@@ -285,9 +298,9 @@ router.post("/recommendations/:id/outcome", requireMinRole("OPERATOR"), validate
   });
 
   res.json({ data: { id: outcomeId, status: "recorded" } });
-});
+}));
 
-router.get("/recommendations/:id/outcomes", async (req, res) => {
+router.get("/recommendations/:id/outcomes", safe("get-outcomes", async (req, res) => {
   const companyId = getCompanyId(req);
   const recId = String(req.params.id);
 
@@ -321,7 +334,7 @@ router.get("/recommendations/:id/outcomes", async (req, res) => {
   }));
 
   res.json({ data });
-});
+}));
 
 function computeImpactScore(rec: typeof recommendationsTable.$inferSelect): number {
   const marginWeight = 0.25;
@@ -348,7 +361,7 @@ function computeImpactScore(rec: typeof recommendationsTable.$inferSelect): numb
   );
 }
 
-router.get("/recommendations/prioritized", async (req, res) => {
+router.get("/recommendations/prioritized", safe("prioritized", async (req, res) => {
   const companyId = getCompanyId(req);
 
   await expireStaleRecommendations(companyId);
@@ -392,9 +405,9 @@ router.get("/recommendations/prioritized", async (req, res) => {
   if (filterUrgency) filtered = filtered.filter((r) => r.urgency === filterUrgency);
 
   res.json({ data: filtered });
-});
+}));
 
-router.get("/shipments/:id/recommendations/diff", async (req, res) => {
+router.get("/shipments/:id/recommendations/diff", safe("diff", async (req, res) => {
   const companyId = getCompanyId(req);
   const shipmentId = String(req.params.id);
 
@@ -492,9 +505,9 @@ router.get("/shipments/:id/recommendations/diff", async (req, res) => {
   }
 
   res.json({ data: { shipmentId, diffs } });
-});
+}));
 
-router.post("/shipments/:id/analyze", requireMinRole("OPERATOR"), async (req, res) => {
+router.post("/shipments/:id/analyze", requireMinRole("OPERATOR"), safe("analyze", async (req, res) => {
   const companyId = getCompanyId(req);
   const shipmentId = String(req.params.id);
 
@@ -505,7 +518,7 @@ router.post("/shipments/:id/analyze", requireMinRole("OPERATOR"), async (req, re
   });
 
   res.json({ data: { message: "Decision analysis queued", shipmentId } });
-});
+}));
 
 async function handleRecAction(
   req: any,
@@ -601,13 +614,13 @@ async function handleRecAction(
 router.post(
   "/recommendations/:id/accept",
   requireMinRole("OPERATOR"),
-  async (req, res) => handleRecAction(req, res, "ACCEPTED", "ACCEPTED"),
+  safe("accept", async (req, res) => { await handleRecAction(req, res, "ACCEPTED", "ACCEPTED"); }),
 );
 
 router.post(
   "/recommendations/:id/reject",
   requireMinRole("OPERATOR"),
-  async (req, res) => handleRecAction(req, res, "REJECTED", "REJECTED"),
+  safe("reject", async (req, res) => { await handleRecAction(req, res, "REJECTED", "REJECTED"); }),
 );
 
 const modifySchema = z.object({
@@ -618,16 +631,16 @@ router.post(
   "/recommendations/:id/modify",
   requireMinRole("OPERATOR"),
   validateBody(modifySchema),
-  async (req, res) => handleRecAction(req, res, "MODIFIED", "MODIFIED"),
+  safe("modify", async (req, res) => { await handleRecAction(req, res, "MODIFIED", "MODIFIED"); }),
 );
 
 router.post(
   "/recommendations/:id/ignore",
   requireMinRole("OPERATOR"),
-  async (req, res) => handleRecAction(req, res, "IGNORED", "IGNORED"),
+  safe("ignore", async (req, res) => { await handleRecAction(req, res, "IGNORED", "IGNORED"); }),
 );
 
-router.get("/shipments/:id/recommendations/with-tasks", async (req, res) => {
+router.get("/shipments/:id/recommendations/with-tasks", safe("with-tasks", async (req, res) => {
   const companyId = getCompanyId(req);
   const shipmentId = String(req.params.id);
 
@@ -680,6 +693,6 @@ router.get("/shipments/:id/recommendations/with-tasks", async (req, res) => {
   });
 
   res.json({ data });
-});
+}));
 
 export default router;

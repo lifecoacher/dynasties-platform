@@ -1,0 +1,251 @@
+You are a senior staff engineer responsible for the **final pilot-blocker remediation sprint** for Dynasties Operator Workbench.
+
+This is NOT a feature sprint.
+This is NOT a design sprint.
+This is a narrow, code-focused remediation sprint to move Dynasties from **demo-ready only** to **pilot-ready**.
+
+You are working directly in the existing Dynasties codebase and must implement the required fixes in code.
+
+Your job is to fix the exact issues identified in the latest pilot-readiness audit, and nothing else.
+
+---
+
+## CURRENT AUDIT STATUS
+
+The latest hostile validation found:
+
+### Control Tower Stability
+- Control Tower no longer crashes the app
+- However, the current fix is mostly containment, not root-cause remediation
+- `artifacts/api-server/src/routes/intelligence.ts` still uses bare async route handlers with no `try/catch` and no `next(error)`
+- Any failure in those awaits can still escape as `unhandledRejection`
+- Current process-level handlers keep the process alive, but this is not a valid substitute for route-level error handling
+
+### Pilot blockers still remaining
+1. **Control Tower Ingest button returns generic API error: 403 with no explanation**
+2. **Work Queue Escalation action returns generic API error: 403 with no explanation**
+3. **`intelligence.ts` and related orchestration routes still lack proper try/catch → next(error) handling**
+4. **`services/decision-engine/src/index.ts` still has TypeScript type errors around recommendation action type literals**
+5. **Nav label “Accounting” is misleading because it routes to an integration/settings page, not accounting records**
+6. **Process-level `uncaughtException` survival remains a fallback, not proof of safety**
+
+The pilot-readiness audit classified the product as:
+- **Demo-ready only**
+- **Not yet ready for a real pilot**
+
+---
+
+## SPRINT GOAL
+
+Make Dynasties honestly **pilot-ready** by fixing the remaining trust-breaking issues:
+
+1. Plan-gated actions must explain themselves clearly
+2. Route-level failures must be handled correctly at the source
+3. The recommendation pipeline must typecheck cleanly
+4. Navigation labels must match what users actually see
+5. The system must no longer rely on process-level crash masking as the primary protection layer
+
+---
+
+## EXECUTE IN THIS EXACT ORDER
+
+# PHASE 1 — FIX THE REAL ROUTE-LEVEL FAILURE PATH
+
+### A. Wrap intelligence and orchestration route handlers correctly
+Inspect all route files involved in Control Tower and related intelligence/recommendation loading, especially:
+
+- `artifacts/api-server/src/routes/intelligence.ts`
+- any orchestration/intelligence-related route files used by Control Tower
+- any related endpoints triggered by Ingest / recommendation actions / escalation paths
+
+For every async route handler:
+- wrap handler body in `try/catch`
+- call `next(error)` in `catch`
+- ensure errors flow into Express/global error middleware
+- remove any dependency on `unhandledRejection` as the expected path for route failures
+
+Do NOT just add broad silent catches.
+Do NOT swallow errors.
+Do NOT return half-broken success states.
+
+### B. Add route-level structured logging
+For these same handlers, log:
+- route name
+- request purpose
+- company/tenant scope if safe
+- failing sub-operation
+- error message
+- whether error is:
+  - plan-gating / permission
+  - validation
+  - DB/query
+  - internal runtime
+
+Keep logs structured and useful.
+
+### C. Preserve process-level handlers as last-resort only
+Do NOT remove them unless necessary, but ensure the codebase no longer depends on them for ordinary route failures.
+
+The standard must be:
+- route failures handled at route level
+- process-level handlers are emergency fallback only
+
+---
+
+# PHASE 2 — FIX PLAN-GATED ACTION FEEDBACK
+
+The audit found that visible actions fail with a generic `API error: 403`, making the platform feel broken rather than intentionally gated.
+
+Fix this for at minimum:
+- Control Tower Ingest
+- Work Queue Escalation
+- any other visible plan-gated actions surfaced in the current UI
+
+### Requirements:
+When a user hits a plan-gated action without the required plan:
+- do NOT show a generic 403 toast
+- show an actionable message such as:
+  - “This feature requires a Growth plan.”
+  - “Upgrade to unlock Ingest.”
+  - “Escalation is available on Growth and above.”
+- if possible, include the required plan tier in the message
+- if the UI has an upgrade/settings destination, link or route users appropriately
+- clearly distinguish:
+  - plan restriction
+  - permission error
+  - generic server failure
+
+### Also ensure:
+- loading states still work correctly
+- failed plan-gated action resets the button cleanly
+- no silent failures
+- no misleading “something went wrong” messaging when the real issue is plan tier
+
+---
+
+# PHASE 3 — FIX DECISION ENGINE TYPE SAFETY
+
+The audit found failed typecheck in:
+- `services/decision-engine/src/index.ts`
+
+Specifically around recommendation action type literal mismatches such as:
+- `COMPLIANCE_ESCALATION`
+- `DOCUMENT_CORRECTION`
+- `ROUTE_ADJUSTMENT`
+
+### Requirements:
+- make the decision engine compile cleanly
+- align action type literals with the actual schema/contracts used downstream
+- remove schema drift between recommendation generation and persistence layers
+- ensure the full typecheck passes with zero errors
+- do not patch with `as any` or unsafe type bypasses
+
+Also verify:
+- recommendation pipeline still works after type alignment
+- runtime behavior matches type definitions
+- no dead recommendation types remain
+
+---
+
+# PHASE 4 — FIX NAVIGATION / LABEL TRUTH
+
+The audit found the nav item:
+- **“Accounting”**
+
+actually routes to:
+- **QuickBooks / accounting integration settings**
+
+That is misleading.
+
+### Fix it:
+Choose the clearest truthful label, such as:
+- `Accounting Integration`
+or
+- `QuickBooks Sync`
+
+Apply consistently across:
+- sidebar nav
+- page title
+- breadcrumbs if any
+- related references in settings/integration UI
+
+Do NOT leave the nav implying a ledger/accounting module if it is really an integration config page.
+
+Also fix any dual-active-nav issue if present when visiting that page.
+
+---
+
+# PHASE 5 — PILOT-READINESS HARDENING CHECK
+
+After implementing the above, verify all of the following:
+
+### Control Tower
+- page loads reliably
+- repeated navigation does not destabilize app
+- refresh works
+- Ingest action shows correct gating or success behavior
+- no generic raw 403 toast
+
+### Work Queue
+- Escalation shows correct gating or success behavior
+- no generic raw 403 toast
+
+### Route handling
+- route-level failures hit Express/global error middleware
+- route errors no longer rely on `unhandledRejection`
+- failures return proper HTTP responses and user-facing messages
+
+### Type safety
+- TypeScript typecheck passes cleanly
+- no recommendation pipeline literal mismatch remains
+
+### Navigation truth
+- “Accounting” mislabel no longer exists
+- nav now accurately reflects page purpose
+
+---
+
+## OUTPUT REQUIREMENTS
+
+Return all of the following:
+
+1. exact root-cause remediation made for route handling
+2. exact files changed
+3. exact route files wrapped with `try/catch -> next(error)`
+4. exact plan-gated actions updated with user-facing messages
+5. exact decision-engine type fixes made
+6. confirmation that full typecheck passes
+7. exact nav/label changes made
+8. before vs after behavior for:
+   - Control Tower Ingest
+   - Work Queue Escalation
+   - Control Tower route failure handling
+   - Accounting nav
+9. any remaining risks that still block pilot, if any
+10. a focused QA checklist to re-run the pilot-readiness audit after this sprint
+
+---
+
+## CONSTRAINTS
+
+- do NOT add unrelated features
+- do NOT redesign the app broadly
+- do NOT rely on process-level exception handlers as the primary fix
+- do NOT suppress errors silently
+- do NOT use `as any` to bypass type errors
+- do NOT return a plan without code changes
+
+---
+
+## SUCCESS CRITERIA
+
+This sprint is complete only if:
+
+- intelligence/orchestration route failures are handled correctly at route level
+- generic 403 toasts are replaced with actionable plan-gating feedback
+- decision-engine typecheck passes cleanly
+- nav labeling matches actual page purpose
+- Control Tower remains stable
+- the product is materially ready for a real pilot, not just a guided demo
+
+Now inspect the current codebase and implement this pilot-blocker remediation sprint fully in code.

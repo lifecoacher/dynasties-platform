@@ -15,6 +15,7 @@ import {
   Send,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useToast } from "@/hooks/use-toast";
 import { useListExceptions, useAlertsSummary, useResolveException, useEscalateException } from "@/hooks/use-exceptions";
 
 const SEVERITY_META: Record<string, { dot: string; text: string; icon: typeof AlertTriangle }> = {
@@ -191,6 +192,7 @@ function ExceptionDetailPanel({ exception, onClose }: { exception: any; onClose:
   const [showEscalate, setShowEscalate] = useState(false);
   const resolveMutation = useResolveException();
   const escalateMutation = useEscalateException();
+  const { toast } = useToast();
 
   const sev = SEVERITY_META[exception.severity] || SEVERITY_META.LOW;
   const impact = deriveImpact(exception);
@@ -329,6 +331,9 @@ function ExceptionDetailPanel({ exception, onClose }: { exception: any; onClose:
                     onClick={() => {
                       escalateMutation.mutate({ id: exception.id, reason: escalateReason || undefined }, {
                         onSuccess: () => onClose(),
+                        onError: (err: any) => {
+                          toast({ variant: "destructive", title: "Escalation failed", description: err?.message || "Could not escalate exception" });
+                        },
                       });
                     }}
                     disabled={escalateMutation.isPending}

@@ -162,6 +162,12 @@ The system automates various freight forwarding stages, including:
 - **T006 Billing Aggregation Consistency**: Audited — already correct.
 - **T007 Document Validation Consistency**: Audited — already correct.
 
+## Pilot-Blocker Remediation Sprint (Complete)
+- **Route-level error handling**: All async handlers in `intelligence.ts`, `orchestration.ts`, `recommendations.ts` wrapped with `safe(label, handler)` utility — try/catch + `next(err)` + structured console logging. Express global error handler receives all failures.
+- **Plan-gated 403 UX feedback**: `requireMinRole` returns structured 403 with `message`, `code`, `requiredRole`, `currentRole`. Frontend error extraction: `use-intelligence.ts`, `use-exceptions.ts`, and `WorkQueue.tsx` all parse JSON response body for `message` or `error` fields (via `extractErrorMsg` helper in WorkQueue). ControlTower and ExceptionsPage have `onError` toast handlers. ControlTower ingest-all deduplicates error toasts (single toast per batch failure).
+- **Decision-engine type safety**: `RECOMMENDATION_TYPES` in `analyzer.ts` expanded from 9→17 to match DB schema. `analyzer.test.ts` fixtures fixed: `intelligence: null` added to `makeInputs`, confidence string→number, congestionLevel "severe"→"critical", entity status "ACTIVE"→"VERIFIED".
+- **Nav label fix**: Sidebar "Accounting" → "Accounting Integration".
+
 ## External Dependencies
 - **AI Integration:** Anthropic Claude via `@workspace/integrations-anthropic-ai`.
 - **Authentication:** Clerk (`@clerk/clerk-react`, `@clerk/express`), `jsonwebtoken`.

@@ -14,7 +14,7 @@ async function apiFetch(path: string, options?: RequestInit) {
     },
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || "Request failed");
+  if (!res.ok) throw new Error(json.message || json.error || "Request failed");
   return json;
 }
 

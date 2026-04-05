@@ -180,7 +180,7 @@ describe("Phase 4B: Semi-Autonomous Workflow Orchestration", () => {
         reasonCodes: ["SANCTIONS_MATCH"],
         recommendedAction: "Escalate immediately",
         urgency: "CRITICAL",
-        confidence: "0.95",
+        confidence: 0.95,
         status: "PENDING",
         sourceAgent: "COMPLIANCE",
       });
@@ -242,7 +242,7 @@ describe("Phase 4B: Semi-Autonomous Workflow Orchestration", () => {
         reasonCodes: ["HIGH_RISK"],
         recommendedAction: "Mitigate",
         urgency: "CRITICAL",
-        confidence: "0.9",
+        confidence: 0.9,
         status: "PENDING",
         sourceAgent: "RISK",
       });
@@ -535,7 +535,7 @@ describe("Phase 4B: Semi-Autonomous Workflow Orchestration", () => {
         reasonCodes: ["DELAY"],
         recommendedAction: "Respond",
         urgency: "CRITICAL",
-        confidence: "0.9",
+        confidence: 0.9,
         status: "PENDING",
         sourceAgent: "RISK",
       });

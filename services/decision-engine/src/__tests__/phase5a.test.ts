@@ -255,7 +255,7 @@ describe("Phase 5A: Predictive Intelligence & Pre-Shipment Risk", () => {
           sourceId: "test-source",
           portCode: "CNSHA",
           portName: "Shanghai",
-          congestionLevel: "severe",
+          congestionLevel: "critical",
           waitingVessels: 30,
           avgWaitDays: 5,
           fingerprint: `fp-test-${Date.now()}-2`,
