@@ -3,12 +3,21 @@ import { getAuthToken } from "@workspace/api-client-react";
 
 const BASE = `${import.meta.env.BASE_URL}api`;
 
+async function extractErrorMessage(res: globalThis.Response): Promise<string> {
+  try {
+    const json = await res.json();
+    return json.message || json.error || `Request failed (${res.status})`;
+  } catch {
+    return `Request failed (${res.status})`;
+  }
+}
+
 async function apiFetch<T>(path: string): Promise<T> {
   const token = getAuthToken();
   const res = await fetch(`${BASE}${path}`, {
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) throw new Error(await extractErrorMessage(res));
   const json = await res.json();
   return json.data;
 }
@@ -20,7 +29,7 @@ async function apiPost<T>(path: string, body: Record<string, unknown>): Promise<
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) throw new Error(await extractErrorMessage(res));
   const json = await res.json();
   return json.data;
 }

@@ -26,6 +26,7 @@ function makeInputs(overrides: Partial<AnalysisInputs> = {}): AnalysisInputs {
     exceptions: [],
     tradeLane: null,
     pricing: null,
+    intelligence: null,
     ...overrides,
   };
 }

@@ -48,7 +48,7 @@ describe("Phase 4A: Workflow Task & Case Management", () => {
       reasonCodes: ["SANCTIONS_MATCH"],
       recommendedAction: "Escalate to compliance team for manual review",
       urgency: "CRITICAL",
-      confidence: "0.92",
+      confidence: 0.92,
       status: "ACCEPTED",
       sourceAgent: "COMPLIANCE",
     });

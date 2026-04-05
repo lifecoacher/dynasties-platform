@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
 import {
   intelligenceSourcesTable,
@@ -18,9 +18,22 @@ import { requireMinRole } from "../middlewares/auth.js";
 import { generateId } from "@workspace/shared-utils";
 import { publishIngestionJob } from "@workspace/queue";
 
+type AsyncHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
+
+function safe(label: string, handler: AsyncHandler): AsyncHandler {
+  return async (req, res, next) => {
+    try {
+      await handler(req, res, next);
+    } catch (err) {
+      console.error(`[intelligence] ${label} error:`, err);
+      next(err);
+    }
+  };
+}
+
 const router: IRouter = Router();
 
-router.get("/intelligence/sources", async (req, res) => {
+router.get("/intelligence/sources", safe("sources", async (req, res) => {
   const companyId = getCompanyId(req);
   const sources = await db
     .select()
@@ -34,9 +47,9 @@ router.get("/intelligence/sources", async (req, res) => {
     .orderBy(desc(intelligenceSourcesTable.createdAt));
 
   res.json({ data: sources });
-});
+}));
 
-router.get("/intelligence/ports/high-risk", async (req, res) => {
+router.get("/intelligence/ports/high-risk", safe("ports/high-risk", async (req, res) => {
   const companyId = getCompanyId(req);
 
   const congestion = await db
@@ -117,9 +130,9 @@ router.get("/intelligence/ports/high-risk", async (req, res) => {
   }
 
   res.json({ data: Array.from(portRisks.values()) });
-});
+}));
 
-router.get("/intelligence/disruptions", async (req, res) => {
+router.get("/intelligence/disruptions", safe("disruptions", async (req, res) => {
   const companyId = getCompanyId(req);
 
   const disruptions = await db
@@ -138,9 +151,9 @@ router.get("/intelligence/disruptions", async (req, res) => {
     .limit(50);
 
   res.json({ data: disruptions });
-});
+}));
 
-router.get("/intelligence/weather-risks", async (req, res) => {
+router.get("/intelligence/weather-risks", safe("weather-risks", async (req, res) => {
   const companyId = getCompanyId(req);
 
   const events = await db
@@ -159,9 +172,9 @@ router.get("/intelligence/weather-risks", async (req, res) => {
     .limit(50);
 
   res.json({ data: events });
-});
+}));
 
-router.get("/intelligence/sanctions-alerts", async (req, res) => {
+router.get("/intelligence/sanctions-alerts", safe("sanctions-alerts", async (req, res) => {
   const companyId = getCompanyId(req);
 
   const sanctions = await db
@@ -195,9 +208,9 @@ router.get("/intelligence/sanctions-alerts", async (req, res) => {
     .limit(50);
 
   res.json({ data: { sanctions, deniedParties: denied } });
-});
+}));
 
-router.get("/intelligence/congestion", async (req, res) => {
+router.get("/intelligence/congestion", safe("congestion", async (req, res) => {
   const companyId = getCompanyId(req);
 
   const snapshots = await db
@@ -213,9 +226,9 @@ router.get("/intelligence/congestion", async (req, res) => {
     .limit(50);
 
   res.json({ data: snapshots });
-});
+}));
 
-router.get("/intelligence/vessels", async (req, res) => {
+router.get("/intelligence/vessels", safe("vessels", async (req, res) => {
   const companyId = getCompanyId(req);
 
   const positions = await db
@@ -231,11 +244,11 @@ router.get("/intelligence/vessels", async (req, res) => {
     .limit(50);
 
   res.json({ data: positions });
-});
+}));
 
-router.get("/intelligence/shipment/:id/summary", async (req, res) => {
+router.get("/intelligence/shipment/:id/summary", safe("shipment-summary", async (req, res) => {
   const companyId = getCompanyId(req);
-  const shipmentId = req.params.id;
+  const shipmentId = String(req.params.id);
 
   const [shipment] = await db
     .select()
@@ -320,9 +333,9 @@ router.get("/intelligence/shipment/:id/summary", async (req, res) => {
       weatherRisks: relevantWeather,
     },
   });
-});
+}));
 
-router.get("/intelligence/ingestion-runs", async (req, res) => {
+router.get("/intelligence/ingestion-runs", safe("ingestion-runs", async (req, res) => {
   const companyId = getCompanyId(req);
 
   const runs = await db
@@ -338,9 +351,9 @@ router.get("/intelligence/ingestion-runs", async (req, res) => {
     .limit(50);
 
   res.json({ data: runs });
-});
+}));
 
-router.post("/intelligence/ingest", requireMinRole("OPERATOR"), async (req, res) => {
+router.post("/intelligence/ingest", requireMinRole("OPERATOR"), safe("ingest", async (req, res) => {
   const companyId = getCompanyId(req);
   const { sourceType } = req.body;
 
@@ -390,6 +403,6 @@ router.post("/intelligence/ingest", requireMinRole("OPERATOR"), async (req, res)
   });
 
   res.json({ data: { message: "Ingestion started", sourceId: source.id, sourceType } });
-});
+}));
 
 export default router;

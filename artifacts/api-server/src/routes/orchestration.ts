@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
 import {
   recommendationsTable,
@@ -19,12 +19,25 @@ import {
 } from "@workspace/svc-workflow-orchestrator";
 import type { RecommendationInput } from "@workspace/svc-workflow-orchestrator";
 
+type AsyncHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
+
+function safe(label: string, handler: AsyncHandler): AsyncHandler {
+  return async (req, res, next) => {
+    try {
+      await handler(req, res, next);
+    } catch (err) {
+      console.error(`[orchestration] ${label} error:`, err);
+      next(err);
+    }
+  };
+}
+
 const router: IRouter = Router();
 
 router.post(
   "/orchestration/evaluate",
   requireMinRole("OPERATOR"),
-  async (req, res) => {
+  safe("evaluate", async (req, res) => {
     const companyId = getCompanyId(req);
     const { recommendationId } = req.body;
 
@@ -53,13 +66,13 @@ router.post(
     const result = evaluatePolicy(input);
 
     res.json({ data: result });
-  },
+  }),
 );
 
 router.post(
   "/orchestration/apply",
   requireMinRole("OPERATOR"),
-  async (req, res) => {
+  safe("apply", async (req, res) => {
     const companyId = getCompanyId(req);
     const userId = req.user!.userId;
     const { recommendationId } = req.body;
@@ -89,13 +102,13 @@ router.post(
     const result = await applyPolicy(input, userId);
 
     res.json({ data: result });
-  },
+  }),
 );
 
 router.post(
   "/orchestration/apply-batch",
   requireMinRole("MANAGER"),
-  async (req, res) => {
+  safe("apply-batch", async (req, res) => {
     const companyId = getCompanyId(req);
     const userId = req.user!.userId;
 
@@ -124,13 +137,13 @@ router.post(
         results,
       },
     });
-  },
+  }),
 );
 
 router.post(
   "/orchestration/escalation-check",
   requireMinRole("OPERATOR"),
-  async (req, res) => {
+  safe("escalation-check", async (req, res) => {
     const companyId = getCompanyId(req);
     const userId = req.user!.userId;
 
@@ -147,10 +160,10 @@ router.post(
         details: results,
       },
     });
-  },
+  }),
 );
 
-router.get("/orchestration/prioritized-queue", async (req, res) => {
+router.get("/orchestration/prioritized-queue", safe("prioritized-queue", async (req, res) => {
   const companyId = getCompanyId(req);
   const queue = req.query.queue as string | undefined;
   const assignedTo = req.query.assignedTo as string | undefined;
@@ -165,9 +178,9 @@ router.get("/orchestration/prioritized-queue", async (req, res) => {
   });
 
   res.json({ data: tasks });
-});
+}));
 
-router.get("/orchestration/policy-decisions", async (req, res) => {
+router.get("/orchestration/policy-decisions", safe("policy-decisions", async (req, res) => {
   const companyId = getCompanyId(req);
   const limit = Math.min(Number(req.query.limit) || 50, 100);
   const outcome = req.query.outcome as string | undefined;
@@ -185,9 +198,9 @@ router.get("/orchestration/policy-decisions", async (req, res) => {
     .limit(limit);
 
   res.json({ data: decisions });
-});
+}));
 
-router.get("/analytics/workflow", async (req, res) => {
+router.get("/analytics/workflow", safe("analytics/workflow", async (req, res) => {
   const companyId = getCompanyId(req);
 
   const [taskTotals] = await db
@@ -292,7 +305,7 @@ router.get("/analytics/workflow", async (req, res) => {
       funnel,
     },
   });
-});
+}));
 
 function mapRecToInput(rec: any, companyId: string): RecommendationInput {
   return {

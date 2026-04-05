@@ -72,7 +72,7 @@ describe("Phase 5B: Proactive Intervention & Booking-Time Decisioning", () => {
         companyId: TEST_COMPANY_ID,
         normalizedName: "test carrier 5b",
         entityType: "CARRIER",
-        status: "ACTIVE",
+        status: "VERIFIED" as const,
         name: "Test Carrier 5B",
       },
       {
@@ -80,7 +80,7 @@ describe("Phase 5B: Proactive Intervention & Booking-Time Decisioning", () => {
         companyId: TEST_COMPANY_ID,
         normalizedName: "test shipper 5b",
         entityType: "SHIPPER",
-        status: "ACTIVE",
+        status: "VERIFIED" as const,
         name: "Test Shipper 5B",
       },
     ]);
@@ -406,7 +406,7 @@ describe("Phase 5B: Proactive Intervention & Booking-Time Decisioning", () => {
         affectedShipmentIds: [TEST_SHIPMENT_ID],
         confidenceScore: 0.85,
         predictedImpactDays: 5,
-        status: "ACTIVE",
+        status: "VERIFIED" as const,
       });
     });
 

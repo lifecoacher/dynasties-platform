@@ -50,7 +50,11 @@ export default function ControlTower() {
       const res = await fetch(`${BASE}/recommendations/prioritized?sortBy=${sortBy}`, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      if (!res.ok) {
+        let msg = `Request failed (${res.status})`;
+        try { const j = await res.json(); msg = j.message || j.error || msg; } catch {}
+        throw new Error(msg);
+      }
       const json = await res.json();
       return json.data;
     },
@@ -61,11 +65,19 @@ export default function ControlTower() {
   const handleIngestAll = useCallback(async () => {
     setIngesting(true);
     const sources = ["vessel_positions", "port_congestion", "sanctions", "denied_parties", "disruptions", "weather_risk"];
+    let firstError: string | null = null;
     for (const sourceType of sources) {
-      triggerIngestion.mutate(sourceType);
+      triggerIngestion.mutate(sourceType, {
+        onError: (err: any) => {
+          if (!firstError) {
+            firstError = err?.message || "Could not start intelligence ingestion";
+            toast({ variant: "destructive", title: "Ingestion failed", description: firstError });
+          }
+        },
+      });
     }
     setTimeout(() => setIngesting(false), 4000);
-  }, [triggerIngestion]);
+  }, [triggerIngestion, toast]);
 
   const recommendations = (recsData?.data || []) as any[];
   const shipments = (shipmentsData?.data || []) as any[];

@@ -31,12 +31,21 @@ import { format } from "date-fns";
 
 const BASE = `${import.meta.env.BASE_URL}api`;
 
+async function extractErrorMsg(res: globalThis.Response): Promise<string> {
+  try {
+    const json = await res.json();
+    return json.message || json.error || `Request failed (${res.status})`;
+  } catch {
+    return `Request failed (${res.status})`;
+  }
+}
+
 async function apiFetch<T>(path: string): Promise<T> {
   const token = getAuthToken();
   const res = await fetch(`${BASE}${path}`, {
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) throw new Error(await extractErrorMsg(res));
   const json = await res.json();
   return json.data;
 }
@@ -48,7 +57,7 @@ async function apiPost<T>(path: string, body?: Record<string, any>): Promise<T> 
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body || {}),
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) throw new Error(await extractErrorMsg(res));
   const json = await res.json();
   return json.data;
 }
@@ -60,7 +69,7 @@ async function apiPatch<T>(path: string, body: Record<string, any>): Promise<T> 
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) throw new Error(await extractErrorMsg(res));
   const json = await res.json();
   return json.data;
 }
@@ -70,7 +79,7 @@ async function apiFetchRaw<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) throw new Error(await extractErrorMsg(res));
   return res.json();
 }
 
