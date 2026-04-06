@@ -162,6 +162,13 @@ The system automates various freight forwarding stages, including:
 - **T006 Billing Aggregation Consistency**: Audited — already correct.
 - **T007 Document Validation Consistency**: Audited — already correct.
 
+## Pilot Polish Sprint (Complete)
+- **Ingest idempotency**: Service layer uses SHA-256 fingerprint-based dedup (skip-on-match) for all 6 intelligence types. ControlTower now polls ingestion runs after completion and shows toast: "Intelligence already up to date" (all deduped), "N new records added, M duplicates skipped" (mixed), or generic completion.
+- **Shipment 404 handling**: `ShipmentDetail` catches both `isError` (API 404/500) and null `shipment` — renders "Shipment Not Found" with back-to-shipments link. No infinite spinner possible.
+- **Sidebar dual-active fix**: `isActive()` now uses longest-match logic — filters all matching nav hrefs by prefix, picks the longest, so `/settings/accounting` only activates "Accounting Integration" (not also "Settings").
+- **Zero-task escalation feedback**: `escalationCheckMutation` onSuccess parses `checked`/`escalated` counts and shows toast: "No tasks to check", "No escalations needed (N checked)", or "M tasks escalated out of N checked". Error case also toasts.
+- **Plan-gating test support**: `requireMinRole` reads `X-Dev-Role-Override` header in dev/demo mode. Send header with `VIEWER`/`OPERATOR`/`MANAGER` to simulate restricted role and trigger real 403 responses with descriptive messages. Production-safe (only active when `VITE_DEMO_MODE=true` or `NODE_ENV !== production`).
+
 ## Pilot-Blocker Remediation Sprint (Complete)
 - **Route-level error handling**: All async handlers in `intelligence.ts`, `orchestration.ts`, `recommendations.ts` wrapped with `safe(label, handler)` utility — try/catch + `next(err)` + structured console logging. Express global error handler receives all failures.
 - **Plan-gated 403 UX feedback**: `requireMinRole` returns structured 403 with `message`, `code`, `requiredRole`, `currentRole`. Frontend error extraction: `use-intelligence.ts`, `use-exceptions.ts`, and `WorkQueue.tsx` all parse JSON response body for `message` or `error` fields (via `extractErrorMsg` helper in WorkQueue). ControlTower and ExceptionsPage have `onError` toast handlers. ControlTower ingest-all deduplicates error toasts (single toast per batch failure).

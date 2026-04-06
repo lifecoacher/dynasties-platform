@@ -73,7 +73,10 @@ export function Sidebar() {
 
   const isActive = (href: string) => {
     if (href === "/") return location === "/";
-    return location.startsWith(href);
+    const allHrefs = NAV_ITEMS.map((i) => i.href);
+    const matchingHrefs = allHrefs.filter((h) => h !== "/" && location.startsWith(h));
+    const longestMatch = matchingHrefs.sort((a, b) => b.length - a.length)[0];
+    return href === longestMatch;
   };
 
   return (

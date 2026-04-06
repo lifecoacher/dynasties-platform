@@ -1,0 +1,225 @@
+You are a senior staff engineer executing a **targeted pilot polish sprint** for Dynasties Operator Workbench.
+
+This is NOT a broad sprint.
+This is NOT exploratory.
+This is a focused execution sprint to eliminate the last visible rough edges before expanding a live pilot.
+
+You must implement fixes for exactly the following five areas:
+
+---
+
+## SPRINT OBJECTIVES
+
+1. Ingest idempotency (no duplicate intelligence entries)
+2. 404 / invalid shipment fallback (no infinite spinners)
+3. Sidebar dual-active state fix
+4. Zero-task escalation feedback
+5. Plan-gating verification support (enable easy testing of restricted flows)
+
+Do not introduce unrelated changes.
+
+---
+
+# PHASE 1 — INGEST IDEMPOTENCY (CRITICAL UX FIX)
+
+## Problem
+Clicking "Ingest" multiple times duplicates intelligence entries (e.g., same port risk appears twice).
+
+## Requirements
+- Ingest must be **idempotent**
+- Re-running ingest should NOT create duplicate records
+
+## Implementation options (choose best based on current schema):
+- Deduplicate at DB level:
+  - use unique constraints (e.g., on sourceId + signalId or equivalent)
+  - or upsert instead of insert
+- OR deduplicate at service layer:
+  - check existing records before insert
+- OR mark ingestion runs and prevent reprocessing identical data
+
+## UI behavior:
+- If ingest is already complete:
+  - show message: “Intelligence already up to date”
+- Optional:
+  - convert button to “Re-ingest” with confirmation
+
+## Output requirement:
+- confirm deduplication strategy used
+- confirm duplicates no longer appear after repeated ingest
+
+---
+
+# PHASE 2 — SHIPMENT 404 / INVALID STATE HANDLING
+
+## Problem
+Navigating to a non-existent shipment URL results in infinite loading spinner.
+
+## Requirements
+- Detect:
+  - not found (404)
+  - invalid ID
+  - failed fetch
+
+## UI behavior:
+- Replace spinner with:
+  - “Shipment not found”
+  - optional: “Return to Shipments” button
+- Ensure:
+  - loading state clears
+  - no permanent spinner
+  - no silent failure
+
+## Implementation:
+- handle error state in:
+  - shipment fetch hook
+  - or page-level loader
+- map backend 404 → UI fallback
+
+---
+
+# PHASE 3 — SIDEBAR DUAL-ACTIVE STATE FIX
+
+## Problem
+On routes like `/settings/accounting`, both:
+- "Settings"
+- and "Accounting Integration"
+
+appear active
+
+## Requirements
+- Only ONE nav item can be active at a time
+
+## Implementation:
+- fix route matching logic in sidebar component
+- ensure:
+  - exact match or proper prefix logic
+  - parent routes do not remain active when child route is selected
+
+## Output:
+- confirm only one active item across all `/settings/*` routes
+
+---
+
+# PHASE 4 — ZERO-TASK ESCALATION FEEDBACK
+
+## Problem
+Clicking "Escalation" in Work Queue with zero tasks produces no feedback.
+
+## Requirements
+- If no eligible tasks:
+  - show toast or inline message:
+    - “No tasks available to escalate”
+
+## Implementation:
+- add guard before escalation call:
+  - if task count === 0 → show message, do not call API
+
+## Ensure:
+- consistent with existing toast system
+- no silent no-op behavior
+
+---
+
+# PHASE 5 — PLAN-GATING TEST SUPPORT (VERIFICATION ENABLEMENT)
+
+## Problem
+Plan-gated messaging cannot be verified because current user has full permissions.
+
+## Goal
+Enable easy testing of restricted scenarios WITHOUT breaking production logic.
+
+## Implementation options (choose safest):
+
+### Option A — Dev/Test Flag
+- add temporary dev flag:
+  - simulate plan restriction
+- example:
+  - header or query param triggers restricted mode
+
+### Option B — Mock role override (preferred)
+- allow local override of plan/role in dev environment only
+- e.g.:
+  - force Starter limitations
+  - simulate restricted access
+
+### Option C — Seed restricted test user
+- create test account:
+  - limited permissions
+  - lower-tier plan
+
+## Requirements:
+- must NOT affect production logic
+- must be removable/disableable
+- must allow triggering real 403 responses
+
+## Validation:
+- confirm:
+  - 403 response is returned
+  - frontend displays:
+    - meaningful plan-gating message
+    - NOT generic error
+
+---
+
+# FINAL VALIDATION CHECKLIST
+
+After all changes:
+
+## Control Tower
+- Ingest once → data appears
+- Ingest again → NO duplicates
+- optional: shows “already up to date” or confirmation
+
+## Shipment
+- valid shipment loads correctly
+- invalid shipment → shows "not found" state (no spinner)
+
+## Sidebar
+- only one item active on all routes
+
+## Work Queue
+- Escalation with zero tasks → shows clear message
+
+## Plan-gating
+- restricted action → returns 403
+- UI shows clear, human-readable plan message
+- no generic "API error: 403"
+
+---
+
+# OUTPUT REQUIREMENTS
+
+Return:
+
+1. files modified
+2. ingest deduplication strategy used
+3. how shipment 404 state is handled
+4. sidebar active-state fix approach
+5. escalation guard implementation
+6. plan-gating test method implemented
+7. confirmation of each validation checklist item
+8. any remaining edge risks
+
+---
+
+# CONSTRAINTS
+
+- do NOT redesign UI broadly
+- do NOT add unrelated features
+- do NOT suppress errors silently
+- do NOT break existing working flows
+- do NOT rely on hacks that cannot be removed
+
+---
+
+# SUCCESS CRITERIA
+
+This sprint is complete only if:
+
+- ingest is idempotent
+- invalid shipment URLs never spin indefinitely
+- sidebar shows exactly one active item
+- zero-task actions give feedback
+- plan-gated messaging is actually testable and confirmed
+
+Implement all fixes directly in the codebase.

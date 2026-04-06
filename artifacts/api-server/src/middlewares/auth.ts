@@ -82,16 +82,23 @@ export function requireMinRole(minRole: Role) {
       return;
     }
 
-    const userLevel = ROLE_HIERARCHY[req.user.role] || 0;
+    const isDev = process.env.VITE_DEMO_MODE === "true" || process.env.NODE_ENV !== "production";
+    const overrideHeader = req.headers["x-dev-role-override"] as string | undefined;
+    const overrideRole = overrideHeader as Role;
+    const canOverride = isDev && overrideRole && ROLE_HIERARCHY[overrideRole] !== undefined
+      && ROLE_HIERARCHY[overrideRole] < ROLE_HIERARCHY[req.user.role];
+    const effectiveRole: Role = canOverride ? overrideRole : req.user.role;
+
+    const userLevel = ROLE_HIERARCHY[effectiveRole] || 0;
     const requiredLevel = ROLE_HIERARCHY[minRole] || 0;
 
     if (userLevel < requiredLevel) {
       res.status(403).json({
         error: "Insufficient permissions",
-        message: `This action requires the ${minRole} role or above. Your current role is ${req.user.role}. Contact your administrator to request access.`,
+        message: `This action requires the ${minRole} role or above. Your current role is ${effectiveRole}. Contact your administrator to request access.`,
         code: "INSUFFICIENT_ROLE",
         requiredRole: minRole,
-        currentRole: req.user.role,
+        currentRole: effectiveRole,
       });
       return;
     }

@@ -27,6 +27,7 @@ import {
 import { AppLayout } from "@/components/layout/AppLayout";
 import { getAuthToken } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 const BASE = `${import.meta.env.BASE_URL}api`;
@@ -152,6 +153,7 @@ const TASK_TYPE_ICONS: Record<string, any> = {
 
 export default function WorkQueue() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeQueue, setActiveQueue] = useState<QueueFilter>("all");
   const [statusFilter, setStatusFilter] = useState<string>("active");
@@ -231,10 +233,23 @@ export default function WorkQueue() {
   });
 
   const escalationCheckMutation = useMutation({
-    mutationFn: () => apiPost("/orchestration/escalation-check"),
-    onSuccess: () => {
+    mutationFn: () => apiPost<{ checked: number; escalated: number; overdue: number }>("/orchestration/escalation-check"),
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      const result = data?.data ?? data;
+      const escalated = result?.escalated ?? 0;
+      const checked = result?.checked ?? 0;
+      if (checked === 0) {
+        toast({ title: "No tasks to check", description: "No active tasks available for escalation review." });
+      } else if (escalated === 0) {
+        toast({ title: "No escalations needed", description: `Checked ${checked} task${checked !== 1 ? "s" : ""} — none require escalation at this time.` });
+      } else {
+        toast({ title: "Escalation complete", description: `${escalated} task${escalated !== 1 ? "s" : ""} escalated out of ${checked} checked.` });
+      }
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Escalation check failed", description: err?.message || "Could not run escalation check" });
     },
   });
 
