@@ -65,10 +65,17 @@ export default function ControlTower() {
   const handleIngestAll = useCallback(async () => {
     setIngesting(true);
     const sources = ["vessel_positions", "port_congestion", "sanctions", "denied_parties", "disruptions", "weather_risk"];
+    let errorCount = 0;
     let firstError: string | null = null;
+    let completedCount = 0;
+
     for (const sourceType of sources) {
       triggerIngestion.mutate(sourceType, {
+        onSuccess: () => {
+          completedCount++;
+        },
         onError: (err: any) => {
+          errorCount++;
           if (!firstError) {
             firstError = err?.message || "Could not start intelligence ingestion";
             toast({ variant: "destructive", title: "Ingestion failed", description: firstError });
@@ -76,7 +83,35 @@ export default function ControlTower() {
         },
       });
     }
-    setTimeout(() => setIngesting(false), 4000);
+
+    setTimeout(async () => {
+      setIngesting(false);
+      if (errorCount === 0) {
+        try {
+          const token = getAuthToken();
+          const res = await fetch(`${BASE}/intelligence/ingestion-runs`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const json = await res.json();
+            const runs = (json.data || []).slice(0, 6);
+            const totalPersisted = runs.reduce((s: number, r: any) => s + (r.recordsPersisted || 0), 0);
+            const totalDeduped = runs.reduce((s: number, r: any) => s + (r.recordsDeduplicated || 0), 0);
+            if (totalPersisted === 0 && totalDeduped > 0) {
+              toast({ title: "Intelligence already up to date", description: `${totalDeduped} record${totalDeduped !== 1 ? "s" : ""} unchanged — no new data to add.` });
+            } else if (totalPersisted > 0) {
+              toast({ title: "Ingestion complete", description: `${totalPersisted} new record${totalPersisted !== 1 ? "s" : ""} added${totalDeduped > 0 ? `, ${totalDeduped} duplicate${totalDeduped !== 1 ? "s" : ""} skipped` : ""}.` });
+            } else {
+              toast({ title: "Ingestion complete", description: "Intelligence feeds processed." });
+            }
+          } else {
+            toast({ title: "Ingestion complete", description: "Intelligence feeds processed." });
+          }
+        } catch {
+          toast({ title: "Ingestion complete", description: "Intelligence feeds processed." });
+        }
+      }
+    }, 5000);
   }, [triggerIngestion, toast]);
 
   const recommendations = (recsData?.data || []) as any[];
