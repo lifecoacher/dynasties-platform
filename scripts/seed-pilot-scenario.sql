@@ -546,4 +546,58 @@ INSERT INTO task_events (id, company_id, task_id, event_type, actor_id, notes, c
   ('tevt_pilot_002', 'cmp_lorian_001', 'tsk_pilot_003', 'STATUS_CHANGED', 'usr_lor_ops', 'Status changed from OPEN to IN_PROGRESS. Contacted shipper for MSDS.', '2026-04-04 09:00:00'),
   ('tevt_pilot_003', 'cmp_lorian_001', 'tsk_pilot_003', 'ESCALATED', 'usr_lor_mgr', 'Escalated — shipper unresponsive after 48 hours. Engaging senior contact.', '2026-04-06 10:00:00');
 
+
+-- ============================================================
+-- PHASE 8: COMPLIANCE SCREENINGS + RISK SCORES
+-- ============================================================
+
+INSERT INTO compliance_screenings (id, company_id, shipment_id, status, screened_parties, match_count, matches, lists_checked, screened_at, created_at) VALUES
+  ('cs_pilot_001', 'cmp_lorian_001', 'shp_lor_001', 'CLEAR', 3, 0, '[]', '["OFAC SDN","EU Sanctions","BIS Entity List"]', '2026-03-27 10:00:00', '2026-03-27 10:00:00'),
+  ('cs_pilot_002', 'cmp_lorian_001', 'shp_lor_003', 'CLEAR', 3, 0, '[]', '["OFAC SDN","EU Sanctions","BIS Entity List"]', '2026-03-21 08:00:00', '2026-03-21 08:00:00'),
+  ('cs_pilot_003', 'cmp_lorian_001', 'shp_lor_005', 'FLAGGED', 3, 1, '[{"listName":"BIS Entity List","entityName":"Singapore Polymer Sciences Pte","matchType":"PARTIAL","confidence":0.62,"notes":"Partial name match with restricted entity — requires manual review"}]', '["OFAC SDN","EU Sanctions","BIS Entity List"]', '2026-03-09 14:00:00', '2026-03-09 14:00:00'),
+  ('cs_pilot_004', 'cmp_lorian_001', 'shp_lor_007', 'CLEAR', 3, 0, '[]', '["OFAC SDN","EU Sanctions","BIS Entity List"]', '2026-02-28 16:00:00', '2026-02-28 16:00:00');
+
+INSERT INTO risk_scores (id, company_id, shipment_id, composite_score, sub_scores, primary_risk_factors, recommended_action, scored_at, created_at) VALUES
+  ('rsk_pilot_001', 'cmp_lorian_001', 'shp_lor_001', 28,
+   '{"valueRisk": 35, "carrierRisk": 10, "countryRisk": 20, "commodityRisk": 30, "routeRisk": 25, "weatherRisk": 15}',
+   '[{"factor":"Suez Canal capacity reduction","detail":"Route passes through Suez Canal currently operating at reduced capacity"},{"factor":"High-value electronics cargo","detail":"$285K consumer electronics — moderate theft/damage risk"}]',
+   'AUTO_APPROVE', '2026-03-28 06:00:00', '2026-03-28 06:00:00'),
+  ('rsk_pilot_002', 'cmp_lorian_001', 'shp_lor_003', 82,
+   '{"valueRisk": 45, "carrierRisk": 15, "countryRisk": 20, "commodityRisk": 25, "routeRisk": 90, "weatherRisk": 85}',
+   '[{"factor":"LA port workers strike — critical congestion","detail":"Destination port USLAX experiencing active strike and critical congestion levels"},{"factor":"Typhoon Haikui — Western Pacific","detail":"Active typhoon on transit route with critical severity rating"},{"factor":"High-value auto parts","detail":"$410K cargo with JIT delivery dependency — late delivery penalties apply"}]',
+   'MANUAL_REVIEW', '2026-04-07 06:00:00', '2026-04-07 06:00:00'),
+  ('rsk_pilot_003', 'cmp_lorian_001', 'shp_lor_005', 74,
+   '{"valueRisk": 30, "carrierRisk": 20, "countryRisk": 25, "commodityRisk": 65, "routeRisk": 15, "complianceRisk": 85}',
+   '[{"factor":"Customs hold — documentation incomplete","detail":"Missing MSDS and Certificate of Origin for HS 2903.15 chemical compounds"},{"factor":"Partial compliance match","detail":"Shipper Singapore Polymer Sciences flagged for partial match on BIS Entity List"},{"factor":"Demurrage accruing","detail":"$450/day demurrage since April 2 — $2,250 accrued to date"}]',
+   'ESCALATE', '2026-04-03 10:00:00', '2026-04-03 10:00:00'),
+  ('rsk_pilot_004', 'cmp_lorian_001', 'shp_lor_007', 12,
+   '{"valueRisk": 20, "carrierRisk": 8, "countryRisk": 10, "commodityRisk": 10, "routeRisk": 8, "weatherRisk": 5}',
+   '[{"factor":"Low-risk commodity","detail":"Textile fabrics — minimal regulatory or compliance concerns"}]',
+   'AUTO_APPROVE', '2026-03-01 08:00:00', '2026-03-01 08:00:00');
+
+
+-- ============================================================
+-- PHASE 9: QUOTE LINKAGE
+-- ============================================================
+
+UPDATE quotes SET
+  converted_shipment_id = 'shp_lor_001',
+  commodity = 'Consumer Electronics (Laptops & Tablets)',
+  quoted_amount = 5850.00
+WHERE id = 'qt_01KM46RWJD7BVZWGZE2TT1VWGT' AND company_id = 'cmp_lorian_001';
+
+UPDATE shipments SET source_quote_id = 'qt_01KM46RWJD7BVZWGZE2TT1VWGT' WHERE id = 'shp_lor_001';
+
+UPDATE quotes SET
+  converted_shipment_id = 'shp_lor_003',
+  origin = 'Shanghai, China',
+  destination = 'Los Angeles, USA',
+  port_of_loading = 'CNSHA',
+  port_of_discharge = 'USLAX',
+  commodity = 'Auto Parts & Accessories',
+  quoted_amount = 8750.00
+WHERE id = 'qt_01KM473KWM3FV003SA5VRAY1CH' AND company_id = 'cmp_lorian_001';
+
+UPDATE shipments SET source_quote_id = 'qt_01KM473KWM3FV003SA5VRAY1CH' WHERE id = 'shp_lor_003';
+
 COMMIT;
