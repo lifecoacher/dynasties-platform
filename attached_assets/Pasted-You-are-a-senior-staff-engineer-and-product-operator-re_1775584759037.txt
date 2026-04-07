@@ -1,0 +1,179 @@
+You are a senior staff engineer and product operator responsible for **creating a realistic pilot dataset** for Dynasties Operator Workbench.
+
+This is NOT test data.
+This is NOT random fixtures.
+
+This is a **coherent operational scenario** that allows a real operator to experience the full workflow:
+
+shipment → recommendation → task → exception → billing
+
+---
+
+## GOAL
+
+Create a **small but believable logistics scenario** with:
+
+- multiple shipments
+- realistic statuses
+- meaningful problems
+- visible consequences
+- connected data across all modules
+
+The system must feel like a real company mid-operation, not a blank dashboard.
+
+---
+
+# PHASE 1 — SHIPMENTS (FOUNDATION)
+
+Create 3–5 shipments with varied states:
+
+### Required distribution:
+1. One “Healthy / On Track”
+2. One “At Risk” (delay or congestion)
+3. One “Exception / Problem”
+4. Optional: one “Completed” or “Delivered”
+
+### Each shipment must include:
+- origin / destination ports
+- carrier / vessel context
+- ETA / timeline
+- financial data (cost / value)
+- status fields consistent with system
+
+---
+
+# PHASE 2 — INTELLIGENCE LINKAGE
+
+Tie shipments to existing intelligence data.
+
+Examples:
+- shipment routed through Los Angeles → impacted by port strike
+- shipment through Shanghai → impacted by congestion
+- shipment exposed to weather risk (Typhoon Haikui)
+
+Ensure:
+- Control Tower signals logically relate to shipments
+
+---
+
+# PHASE 3 — RECOMMENDATIONS
+
+Generate 2–4 recommendations tied to shipments:
+
+Examples:
+- “Reroute via alternate port”
+- “Delay departure due to congestion”
+- “Expedite customs clearance”
+- “Adjust pricing due to risk”
+
+Each recommendation must:
+- reference a specific shipment
+- include urgency level
+- include reasoning tied to intelligence
+
+---
+
+# PHASE 4 — WORK QUEUE TASKS
+
+Create 2–4 tasks derived from recommendations:
+
+Examples:
+- “Review reroute option for Shipment X”
+- “Contact carrier regarding delay”
+- “Approve cost adjustment”
+
+Each task must:
+- link to a shipment
+- have status (open / overdue / etc.)
+- be visible in Work Queue
+
+---
+
+# PHASE 5 — EXCEPTIONS
+
+Create at least 1–2 exceptions:
+
+Examples:
+- “Customs hold”
+- “Port delay escalation”
+- “Documentation issue”
+
+Each exception must:
+- be tied to a shipment
+- appear in Exceptions module
+- optionally connect to a task
+
+---
+
+# PHASE 6 — BILLING / FINANCIALS
+
+Create at least 1–2 invoices:
+
+- tied to shipments
+- with realistic amounts
+- consistent with shipment data
+
+Ensure:
+- Billing dashboard reflects non-zero values
+- invoice detail pages render correctly
+
+---
+
+# PHASE 7 — DATA CONSISTENCY
+
+Ensure:
+- shipments ↔ recommendations ↔ tasks ↔ exceptions ↔ billing all connect logically
+- no orphaned records
+- no contradictions
+
+---
+
+# PHASE 8 — VALIDATION
+
+After seeding:
+
+Verify in UI:
+- shipments appear
+- recommendations visible in Control Tower or shipment view
+- tasks appear in Work Queue
+- exceptions visible and selectable
+- billing shows real numbers
+
+---
+
+# OUTPUT REQUIREMENTS
+
+Return:
+
+1. list of seeded shipments (with key attributes)
+2. list of recommendations created
+3. list of tasks created
+4. list of exceptions created
+5. list of invoices created
+6. explanation of how everything connects
+7. confirmation that all modules now show non-empty, coherent data
+
+---
+
+# CONSTRAINTS
+
+- do NOT generate random nonsense data
+- do NOT leave modules disconnected
+- do NOT create more than 5 shipments
+- prioritize clarity over volume
+
+---
+
+# SUCCESS CRITERIA
+
+This is complete only when:
+
+- an operator can log in and immediately understand:
+  - what is happening
+  - what needs attention
+  - what actions to take
+
+- every major module shows meaningful data
+- the system feels alive, not empty
+
+Build a believable operational scenario.

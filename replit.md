@@ -170,6 +170,20 @@ The system automates various freight forwarding stages, including:
 - **Data cleanup**: 162 duplicate records removed (60 vessel + 60 port + 28 disruption + 14 weather). Remaining fingerprints recomputed with stable algorithm. Final counts: 5 vessels, 6 ports, 4 sanctions, 2 denied, 4 disruptions, 2 weather = 23 total canonical records.
 - **Proof**: 3 consecutive ingests all show 0 persisted, all deduplicated. Record counts unchanged.
 
+## Pilot Scenario Dataset (Complete)
+- **Script**: `scripts/seed-pilot-scenario.sql` — idempotent, transactional, FK-safe
+- **4 shipments** with varied lifecycle stages:
+  - LOR-2026-0001: "Healthy" — Shanghai→Rotterdam via Suez, IN_TRANSIT, consumer electronics, $285K
+  - LOR-2026-0003: "At Risk" — Shanghai→LA, IN_TRANSIT, auto parts $410K, impacted by LA port strike + Typhoon Haikui + critical LA congestion
+  - LOR-2026-0005: "Exception" — Kaohsiung→Savannah, AT_PORT, chemical compounds $168K, customs hold (missing MSDS + CoO), demurrage accruing
+  - LOR-2026-0007: "Completed" — Singapore→Hamburg, DELIVERED, textiles $145K, invoice paid
+- **4 recommendations**: Suez monitoring (MEDIUM), LA reroute (CRITICAL), typhoon insurance (HIGH), customs escalation (CRITICAL)
+- **4 tasks**: Route review, insurance review, customs hold resolution (IN_PROGRESS, escalated), customer communication
+- **3 exceptions**: Customs hold (ESCALATED), missing documents (IN_PROGRESS), port strike delay (OPEN)
+- **3 invoices**: PAID ($5,850), ISSUED ($8,750), DRAFT ($9,475 with demurrage)
+- **2 receivables**: Settled (textiles), outstanding (auto parts)
+- **Intelligence linkage**: Recs cite LA Port Workers Strike, Typhoon Haikui, Suez Canal Capacity Reduction, English Channel Fog — all real intelligence records in DB
+
 ## Pilot Polish Sprint (Complete)
 - **Ingest idempotency UI feedback**: ControlTower now polls ingestion runs after completion and shows toast: "Intelligence already up to date" (all deduped), "N new records added, M duplicates skipped" (mixed), or generic completion.
 - **Shipment 404 handling**: `ShipmentDetail` catches both `isError` (API 404/500) and null `shipment` — renders "Shipment Not Found" with back-to-shipments link. No infinite spinner possible.
