@@ -354,7 +354,7 @@ router.get("/intelligence/ingestion-runs", safe("ingestion-runs", async (req, re
 }));
 
 router.post("/intelligence/ingest", requireMinRole("OPERATOR"), safe("ingest", async (req, res) => {
-  const companyId = getCompanyId(req);
+  getCompanyId(req);
   const { sourceType } = req.body;
 
   if (!sourceType) {
@@ -374,10 +374,7 @@ router.post("/intelligence/ingest", requireMinRole("OPERATOR"), safe("ingest", a
     .where(
       and(
         eq(intelligenceSourcesTable.sourceType, sourceType),
-        or(
-          eq(intelligenceSourcesTable.companyId, companyId),
-          sql`${intelligenceSourcesTable.companyId} IS NULL`,
-        ),
+        sql`${intelligenceSourcesTable.companyId} IS NULL`,
       ),
     )
     .limit(1);
@@ -386,7 +383,7 @@ router.post("/intelligence/ingest", requireMinRole("OPERATOR"), safe("ingest", a
     const sourceId = generateId();
     [source] = await db.insert(intelligenceSourcesTable).values({
       id: sourceId,
-      companyId,
+      companyId: null,
       sourceName: `${sourceType} feed`,
       sourceType: sourceType as any,
       providerName: "fixture",
@@ -398,7 +395,7 @@ router.post("/intelligence/ingest", requireMinRole("OPERATOR"), safe("ingest", a
   publishIngestionJob({
     sourceId: source.id,
     sourceType,
-    companyId,
+    companyId: null,
     trigger: "manual",
   });
 

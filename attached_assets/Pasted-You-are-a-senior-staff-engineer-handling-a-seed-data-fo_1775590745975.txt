@@ -1,0 +1,219 @@
+You are a senior staff engineer handling a **seed data forensics and live-tenant repair sprint** for Dynasties Operator Workbench.
+
+This is NOT a feature sprint.
+This is NOT a QA pass.
+This is a hard diagnostic and repair task.
+
+The latest hostile operator-flow validation found a total mismatch between what the Replit task log claimed was seeded and what the live UI actually shows.
+
+Claimed by prior seed run:
+- shipments existed (examples: LOR-2026-0003, LOR-2026-0005)
+- 7 tasks existed
+- 3 exceptions existed
+- invoices totaling about $24K existed
+- quotes were converted
+- seeded operational scenario was complete
+
+Observed in live UI:
+- Shipments: 0
+- Exceptions: 0
+- Work Queue tasks: 0
+- Billing invoices: 0
+- Quotes: only QT-0001 draft
+- Command Center: ACTIVE 0/0, COMPLIANT 0
+- Control Tower intelligence exists, but connects to zero shipments
+
+This is a **hard contradiction**.
+Your job is to determine exactly where the seed data went, repair the environment/data path, and verify that the live app shows the seeded operational scenario.
+
+---
+
+## PRIMARY GOAL
+
+Restore a real seeded pilot dataset into the **same live tenant and data path that the UI reads from**, and prove it visibly in the running app.
+
+---
+
+# PHASE 1 — DATA FORENSICS
+
+You must identify exactly why the seeded data does not appear in the live UI.
+
+Investigate all of the following:
+
+1. Which database the seed script writes to
+2. Which database the API reads from
+3. Which tenant/org/company the seed script targets
+4. Which tenant/org/company the authenticated live UI user belongs to
+5. Whether the UI/API filters records by:
+   - companyId
+   - orgId
+   - soft-delete
+   - status
+   - demo flags
+   - date windows
+6. Whether the seed script succeeded partially, failed silently, or wrote to tables not actually used by the UI
+7. Whether quotes/shipments/tasks/exceptions/invoices were inserted into the correct schema/table set
+
+You must not guess.
+You must trace the actual data path end-to-end.
+
+---
+
+# PHASE 2 — PROVE CURRENT DB REALITY
+
+Before changing anything, inspect the live database directly and report:
+
+- shipment count by tenant/company
+- task count by tenant/company
+- exception count by tenant/company
+- invoice count by tenant/company
+- quote count by tenant/company
+- recommendation count by tenant/company
+
+Also report:
+- which tenant/company the current live user (Glenn Orgin / ADMIN) is attached to
+- whether the claimed seeded records exist anywhere at all
+- if they exist, where they are stranded
+
+If the records exist under the wrong tenant, say so clearly.
+If they do not exist, say so clearly.
+
+---
+
+# PHASE 3 — REPAIR THE DATA PATH
+
+Based on findings, implement the correct fix.
+
+Possible acceptable repairs include:
+- reseed into the correct live tenant/company
+- migrate existing stranded records into the correct tenant/company
+- fix query filters that wrongly exclude valid records
+- fix seed scripts to use the same tenant/org resolution as the live UI/API
+- fix any mismatched schema/table usage
+
+Requirements:
+- do NOT duplicate data blindly
+- do NOT seed random junk
+- do NOT create records in multiple tenants just to “make something show up”
+- do NOT patch UI to ignore tenant scoping
+- preserve data integrity
+
+The final state must be:
+- the live authenticated user sees the seeded pilot scenario in the real UI
+
+---
+
+# PHASE 4 — REBUILD THE PILOT SCENARIO IN THE LIVE TENANT
+
+Once the data-path problem is fixed, ensure the live tenant has a coherent operational world visible in the UI.
+
+Minimum required visible data:
+- 2 to 4 shipments
+- 1 to 3 recommendations
+- 2 to 4 work queue tasks
+- 1 to 2 exceptions
+- 1 to 2 invoices
+- 1 to 2 quotes, with at least one meaningfully tied to a shipment if supported
+
+Requirements:
+- data must be visible in the current live UI
+- data must be connected logically:
+  intelligence → shipment risk → recommendation → task → exception → invoice
+- no orphaned objects
+- no contradictions
+
+This must not be theoretical. It must render in the running app.
+
+---
+
+# PHASE 5 — COMMAND CENTER CRASH INVESTIGATION
+
+The latest audit also reported that navigating to Command Center (/) initially threw “Something went wrong” and killed the deployment until manual restart.
+
+You must investigate and fix this.
+
+Requirements:
+- identify exact root cause
+- fix it at the source
+- ensure the Command Center route cannot crash the app
+- verify repeated navigation to / is stable
+
+Do not mask it. Fix it.
+
+---
+
+# PHASE 6 — CONTROL TOWER OPERATIONAL LINKAGE
+
+Once shipments exist, ensure Control Tower no longer feels disconnected.
+
+Requirements:
+- at least one intelligence signal must connect visibly and logically to at least one shipment
+- the operator must be able to understand:
+  “this shipment is affected by that signal”
+- remove the “intelligence wallpaper” problem
+
+If additional linkage logic or seed relationships are needed, implement them.
+
+---
+
+# PHASE 7 — LIVE UI VERIFICATION
+
+After repair, verify in the actual running app:
+
+1. Command Center shows non-zero operational state where expected
+2. Shipments page is populated
+3. At least one shipment opens successfully
+4. Work Queue has tasks
+5. Exceptions has records
+6. Billing has invoices
+7. Control Tower has intelligence linked meaningfully to shipments
+8. No route crashes
+9. No infinite spinners
+10. No silent mismatches between DB and UI
+
+Do not stop at database inserts. Confirm the UI.
+
+---
+
+## OUTPUT REQUIREMENTS
+
+Return all of the following:
+
+1. exact root cause of the seed-data mismatch
+2. whether the prior seeded records existed at all, and where
+3. which database / tenant / tables the UI actually reads from
+4. exact files changed
+5. exact repair made
+6. list of visible live-tenant records now present:
+   - shipments
+   - recommendations
+   - tasks
+   - exceptions
+   - invoices
+   - quotes
+7. exact root cause and fix for the Command Center crash
+8. confirmation that the live UI now shows the seeded operational scenario
+9. a short QA checklist for re-running the full operator-flow validation
+
+---
+
+## CONSTRAINTS
+
+- do NOT add unrelated new features
+- do NOT hide tenant bugs by weakening filters
+- do NOT fabricate success if UI still shows zero records
+- do NOT stop at “seed script ran”
+- do NOT return a theory without proving it in the live app
+
+---
+
+## SUCCESS CRITERIA
+
+This sprint is complete only if:
+- the seed-data contradiction is fully explained
+- the live authenticated UI shows the seeded scenario
+- Command Center is stable
+- Control Tower links intelligence to live shipments
+- the next hostile operator-flow validation can run against a non-empty real pilot scenario
+
+Now inspect the current codebase, database, tenant resolution, and live app behavior, then implement the repair fully in code and verify it in the running application.

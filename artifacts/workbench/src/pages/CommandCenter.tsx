@@ -97,10 +97,10 @@ export default function CommandCenter() {
   const shipments = (shipmentsRes?.data || []) as any[];
   const alertsSummary = alertsRes?.data;
 
-  const activeShipments = stats?.shipments.active ?? 0;
-  const totalShipments = stats?.shipments.total ?? 0;
-  const complianceClear = stats?.compliance.clear ?? 0;
-  const highRisk = stats?.risk.high ?? 0;
+  const activeShipments = stats?.shipments?.active ?? 0;
+  const totalShipments = stats?.shipments?.total ?? 0;
+  const complianceClear = stats?.compliance?.clear ?? 0;
+  const highRisk = stats?.risk?.high ?? 0;
 
   const status = deriveSystemStatus(stats, alertsSummary);
   const accent = statusAccent(status.level);

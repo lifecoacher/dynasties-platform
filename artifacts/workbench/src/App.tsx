@@ -232,7 +232,7 @@ function AuthenticatedRouter() {
   return (
     <Suspense fallback={<PageSkeleton />}>
       <Switch>
-        <Route path="/" component={CommandCenter} />
+        <Route path="/">{() => <RouteErrorBoundary routeName="Command Center"><CommandCenter /></RouteErrorBoundary>}</Route>
         <Route path="/quotes/:id" component={QuoteDetail} />
         <Route path="/quotes" component={QuotesPage} />
         <Route path="/exceptions" component={ExceptionsPage} />
