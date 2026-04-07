@@ -170,6 +170,12 @@ The system automates various freight forwarding stages, including:
 - **Data cleanup**: 162 duplicate records removed (60 vessel + 60 port + 28 disruption + 14 weather). Remaining fingerprints recomputed with stable algorithm. Final counts: 5 vessels, 6 ports, 4 sanctions, 2 denied, 4 disruptions, 2 weather = 23 total canonical records.
 - **Proof**: 3 consecutive ingests all show 0 persisted, all deduplicated. Record counts unchanged.
 
+## Seed Data Forensics & Tenant Fix (Complete)
+- **Root cause**: `DEMO_CLERK_EMAILS` only contained `glennorgin@gmail.com` but Glenn's active Clerk email is `glenn@dynasties.ai`. The Clerk sync demo bridge didn't trigger for his email, so he got his own empty company (`01KMTEMP2PD7XS9GJWXQM81PWF`) instead of being mapped to `cmp_lorian_001` (Lorian Freight Solutions).
+- **Intelligence data isolation bug**: Intelligence records (port congestion, disruptions, weather, sanctions, vessels) were stored with the ingesting user's `company_id` instead of `NULL`. Since intelligence data is inherently global, this meant the Lorian tenant couldn't see the data. Fixed by: (1) setting all intelligence records to `company_id = NULL`, (2) updating the ingest route to always store intelligence globally.
+- **Command Center crash**: `stats?.shipments.active` — optional chaining only checked `stats`, not `stats.shipments`. If API returned partial data, `undefined.active` crashed the page. Fixed with full optional chaining (`stats?.shipments?.active`). Added `RouteErrorBoundary` wrapper.
+- **Fixes applied**: Added `glenn@dynasties.ai` to `DEMO_CLERK_EMAILS` env var. Fixed intelligence ingest route to store data globally (null companyId). Fixed CommandCenter crash. Added RouteErrorBoundary to CommandCenter route.
+
 ## Pilot Scenario Dataset (Complete)
 - **Script**: `scripts/seed-pilot-scenario.sql` — idempotent, transactional, FK-safe
 - **4 shipments** with varied lifecycle stages:
@@ -185,7 +191,7 @@ The system automates various freight forwarding stages, including:
 - **4 compliance screenings**: 3 CLEAR, 1 FLAGGED (chemicals shipper partial BIS match)
 - **4 risk scores**: shp_lor_001=28 (low), shp_lor_003=82 (high/LA strike+typhoon), shp_lor_005=74 (high/customs+compliance), shp_lor_007=12 (low)
 - **2 quote linkages**: QT-0001→LOR-2026-0001 (CONVERTED), QT-0002→LOR-2026-0003 (CONVERTED)
-- **Intelligence linkage**: Recs cite LA Port Workers Strike, Typhoon Haikui, Suez Canal Capacity Reduction, English Channel Fog — all real intelligence records in DB
+- **Intelligence data**: Global (NULL company_id) — visible to all tenants. 6 port congestion, 4 disruptions, 2 weather, 4 sanctions, 2 denied parties, 5 vessel positions = 23 canonical records.
 - **Demo story flow**: Command Center → shows 2 high-risk, 1 critical alert, 3 pending recs → Control Tower → intelligence signals linked to shipments → Shipment detail → recommendations → Work Queue → Exceptions → Billing → Quotes
 
 ## Pilot Polish Sprint (Complete)
