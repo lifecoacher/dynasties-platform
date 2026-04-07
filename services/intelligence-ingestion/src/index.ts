@@ -198,7 +198,7 @@ async function persistVesselPositions(
   let deduplicated = 0;
 
   for (const r of records) {
-    const fp = computeFingerprint(r.vesselName, r.imo, r.mmsi, r.positionTimestamp);
+    const fp = computeFingerprint(r.vesselName, r.imo, r.mmsi);
     const existing = await db
       .select({ id: vesselPositionsTable.id })
       .from(vesselPositionsTable)
@@ -206,6 +206,18 @@ async function persistVesselPositions(
       .limit(1);
 
     if (existing.length > 0) {
+      await db.update(vesselPositionsTable)
+        .set({
+          latitude: r.latitude,
+          longitude: r.longitude,
+          heading: r.heading ?? null,
+          speed: r.speed ?? null,
+          status: r.status,
+          destination: r.destination ?? null,
+          eta: r.eta ? new Date(r.eta) : null,
+          positionTimestamp: new Date(r.positionTimestamp),
+        })
+        .where(eq(vesselPositionsTable.id, existing[0].id));
       deduplicated++;
       continue;
     }
@@ -242,7 +254,7 @@ async function persistPortCongestion(
   let deduplicated = 0;
 
   for (const r of records) {
-    const fp = computeFingerprint(r.portCode, r.snapshotTimestamp);
+    const fp = computeFingerprint(r.portCode, r.portName);
     const existing = await db
       .select({ id: portCongestionSnapshotsTable.id })
       .from(portCongestionSnapshotsTable)
@@ -250,6 +262,17 @@ async function persistPortCongestion(
       .limit(1);
 
     if (existing.length > 0) {
+      await db.update(portCongestionSnapshotsTable)
+        .set({
+          congestionLevel: r.congestionLevel,
+          waitingVessels: r.waitingVessels ?? null,
+          avgWaitDays: r.avgWaitDays ?? null,
+          avgBerthDays: r.avgBerthDays ?? null,
+          capacityUtilization: r.capacityUtilization ?? null,
+          trendDirection: r.trendDirection ?? null,
+          snapshotTimestamp: new Date(r.snapshotTimestamp),
+        })
+        .where(eq(portCongestionSnapshotsTable.id, existing[0].id));
       deduplicated++;
       continue;
     }
@@ -371,7 +394,7 @@ async function persistDisruptions(
   let deduplicated = 0;
 
   for (const r of records) {
-    const fp = computeFingerprint(r.eventType, r.title, r.startDate);
+    const fp = computeFingerprint(r.eventType, r.title);
     const existing = await db
       .select({ id: disruptionEventsTable.id })
       .from(disruptionEventsTable)
@@ -379,6 +402,20 @@ async function persistDisruptions(
       .limit(1);
 
     if (existing.length > 0) {
+      await db.update(disruptionEventsTable)
+        .set({
+          description: r.description ?? null,
+          severity: r.severity,
+          status: r.status,
+          affectedRegion: r.affectedRegion ?? null,
+          affectedPorts: r.affectedPorts ?? null,
+          affectedLanes: r.affectedLanes ?? null,
+          estimatedImpactDays: r.estimatedImpactDays ?? null,
+          confidence: r.confidence ?? null,
+          startDate: new Date(r.startDate),
+          expectedEndDate: r.expectedEndDate ? new Date(r.expectedEndDate) : null,
+        })
+        .where(eq(disruptionEventsTable.id, existing[0].id));
       deduplicated++;
       continue;
     }
@@ -416,7 +453,7 @@ async function persistWeatherRisk(
   let deduplicated = 0;
 
   for (const r of records) {
-    const fp = computeFingerprint(r.eventType, r.title, r.forecastDate);
+    const fp = computeFingerprint(r.eventType, r.title);
     const existing = await db
       .select({ id: weatherRiskEventsTable.id })
       .from(weatherRiskEventsTable)
@@ -424,6 +461,23 @@ async function persistWeatherRisk(
       .limit(1);
 
     if (existing.length > 0) {
+      await db.update(weatherRiskEventsTable)
+        .set({
+          description: r.description ?? null,
+          severity: r.severity,
+          status: r.status,
+          affectedRegion: r.affectedRegion ?? null,
+          affectedPorts: r.affectedPorts ?? null,
+          latitude: r.latitude ?? null,
+          longitude: r.longitude ?? null,
+          radiusKm: r.radiusKm ?? null,
+          windSpeedKnots: r.windSpeedKnots ?? null,
+          confidence: r.confidence ?? null,
+          forecastDate: new Date(r.forecastDate),
+          expectedStartDate: r.expectedStartDate ? new Date(r.expectedStartDate) : null,
+          expectedEndDate: r.expectedEndDate ? new Date(r.expectedEndDate) : null,
+        })
+        .where(eq(weatherRiskEventsTable.id, existing[0].id));
       deduplicated++;
       continue;
     }

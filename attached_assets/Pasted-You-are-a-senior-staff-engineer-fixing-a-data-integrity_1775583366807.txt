@@ -1,0 +1,174 @@
+You are a senior staff engineer fixing a **data integrity failure** in Dynasties Operator Workbench.
+
+This is NOT a polish task.
+This is NOT a UI task.
+
+This is a **hard correctness fix** for ingest idempotency and visible duplicate data.
+
+The current system:
+- claims SHA-256 deduplication
+- still creates duplicate intelligence entries on first ingest
+- only prevents duplicates on subsequent runs in same session
+- displays duplicates directly in the UI (Control Tower)
+
+This is a **failure of idempotency design**, not just implementation.
+
+---
+
+## GOAL
+
+Make ingest **truly idempotent against existing persisted data**, not just within a single run.
+
+After this fix:
+- running ingest any number of times produces identical data state
+- no duplicate intelligence entries appear in UI
+- existing duplicates are cleaned
+
+---
+
+# PHASE 1 — IDENTIFY THE BREAK
+
+You must trace:
+
+1. What fields are used to generate the SHA-256 fingerprint
+2. What table/collection is checked for existing records
+3. What table/collection is actually rendered in Control Tower
+4. Whether normalization differences exist (timestamps, casing, formatting)
+
+Find exactly why:
+- existing records are NOT matching the dedup check
+
+Common failure patterns to check:
+- timestamps included in hash
+- non-deterministic fields in hash
+- different schemas between ingest and read layer
+- multiple tables (raw vs processed vs aggregated)
+- hashing before normalization
+
+---
+
+# PHASE 2 — FIX DEDUPLICATION (REAL FIX)
+
+Implement one of these correctly (not partially):
+
+## Option A (preferred):
+- define a **stable natural key** per intelligence type
+- enforce uniqueness at DB level (unique index)
+
+Example:
+- port + event_type + normalized description
+- or source_id + external_event_id
+
+## Option B:
+- fix fingerprinting so it uses ONLY stable identifying fields
+- normalize input before hashing:
+  - trim strings
+  - lowercase
+  - remove volatile fields
+- ensure dedup check queries SAME dataset used by UI
+
+## Requirements:
+- dedup must work across sessions, restarts, and environments
+- dedup must match exactly what UI renders
+- no “best effort” logic
+
+---
+
+# PHASE 3 — CLEAN EXISTING DATA
+
+You must remove current duplicates.
+
+## Requirements:
+- identify duplicates by the same logic used for dedup
+- keep one canonical record
+- remove all duplicates safely
+
+## Output:
+- number of duplicates removed
+- confirmation Control Tower no longer shows duplicates
+
+---
+
+# PHASE 4 — INGEST FEEDBACK (REQUIRED)
+
+Currently:
+- ingest shows loading
+- then silently resets
+
+Fix this.
+
+## Requirements:
+After ingest completes, show ONE toast:
+
+Cases:
+1. All duplicates:
+   “Intelligence already up to date”
+2. Mixed:
+   “X new records added, Y duplicates skipped”
+3. All new:
+   “X intelligence records added”
+
+## Ensure:
+- toast always appears
+- no silent success
+- no multiple duplicate toasts
+
+---
+
+# PHASE 5 — VALIDATION
+
+You must prove:
+
+1. Run ingest once → data appears
+2. Run ingest again → NO new records
+3. Run ingest again → still NO new records
+4. UI shows NO duplicates anywhere
+5. Toast messages match actual results
+
+---
+
+# PHASE 6 — OPTIONAL HARDENING (IF EASY)
+
+If feasible:
+- disable ingest button briefly after success
+- or add “Re-ingest” confirmation
+
+Do NOT overbuild this.
+
+---
+
+# OUTPUT REQUIREMENTS
+
+Return:
+
+1. root cause of dedup failure
+2. fields now used for dedup
+3. normalization rules applied
+4. whether DB constraint or service-layer dedup used
+5. how duplicates were cleaned
+6. before vs after behavior
+7. confirmation UI shows no duplicates
+8. confirmation ingest is fully idempotent
+
+---
+
+# CONSTRAINTS
+
+- do NOT patch symptoms
+- do NOT rely on session memory
+- do NOT use weak “contains” matching
+- do NOT leave multiple data paths inconsistent
+- do NOT ignore existing duplicates
+
+---
+
+# SUCCESS CRITERIA
+
+This is done ONLY when:
+
+- duplicates never appear again
+- ingest is mathematically idempotent
+- UI reflects clean data
+- operator cannot break it by clicking ingest repeatedly
+
+Fix this properly.
