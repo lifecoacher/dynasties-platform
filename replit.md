@@ -162,8 +162,16 @@ The system automates various freight forwarding stages, including:
 - **T006 Billing Aggregation Consistency**: Audited — already correct.
 - **T007 Document Validation Consistency**: Audited — already correct.
 
+## Ingest Idempotency Hard Fix (Complete)
+- **Root cause**: Fixture adapters used `new Date().toISOString()` for timestamps (positionTimestamp, snapshotTimestamp, forecastDate, startDate) which were included in fingerprint hash. Every ingest got unique timestamps → unique fingerprints → duplicates.
+- **Fix**: Removed volatile timestamps from fingerprint computation. Fingerprint fields now use only stable natural keys: vessel_positions=(vesselName, imo, mmsi), port_congestion=(portCode, portName), sanctions=(listName, entityName, entityType), denied_parties=(listName, partyName, partyType), disruptions=(eventType, title), weather_risk=(eventType, title).
+- **Upsert on match**: When a fingerprint match is found, data fields are updated in-place (refreshing timestamps, severity, etc.) instead of skipping. This means re-ingest refreshes data without creating duplicates.
+- **DB constraints**: Unique index on `fingerprint` column on all 6 intelligence tables (vessel_positions, port_congestion_snapshots, sanctions_entities, denied_parties, disruption_events, weather_risk_events) as defense-in-depth.
+- **Data cleanup**: 162 duplicate records removed (60 vessel + 60 port + 28 disruption + 14 weather). Remaining fingerprints recomputed with stable algorithm. Final counts: 5 vessels, 6 ports, 4 sanctions, 2 denied, 4 disruptions, 2 weather = 23 total canonical records.
+- **Proof**: 3 consecutive ingests all show 0 persisted, all deduplicated. Record counts unchanged.
+
 ## Pilot Polish Sprint (Complete)
-- **Ingest idempotency**: Service layer uses SHA-256 fingerprint-based dedup (skip-on-match) for all 6 intelligence types. ControlTower now polls ingestion runs after completion and shows toast: "Intelligence already up to date" (all deduped), "N new records added, M duplicates skipped" (mixed), or generic completion.
+- **Ingest idempotency UI feedback**: ControlTower now polls ingestion runs after completion and shows toast: "Intelligence already up to date" (all deduped), "N new records added, M duplicates skipped" (mixed), or generic completion.
 - **Shipment 404 handling**: `ShipmentDetail` catches both `isError` (API 404/500) and null `shipment` — renders "Shipment Not Found" with back-to-shipments link. No infinite spinner possible.
 - **Sidebar dual-active fix**: `isActive()` now uses longest-match logic — filters all matching nav hrefs by prefix, picks the longest, so `/settings/accounting` only activates "Accounting Integration" (not also "Settings").
 - **Zero-task escalation feedback**: `escalationCheckMutation` onSuccess parses `checked`/`escalated` counts and shows toast: "No tasks to check", "No escalations needed (N checked)", or "M tasks escalated out of N checked". Error case also toasts.
