@@ -1,0 +1,245 @@
+You are a senior staff engineer and product operator responsible for creating a **realistic pilot scenario** inside Dynasties Operator Workbench.
+
+This is NOT random fixture generation.
+This is NOT generic test data.
+This is a **coherent operational world** that must make Dynasties feel like a real logistics operating system under pressure.
+
+Your job is to seed and wire together data so that a real operator can follow a believable flow:
+
+intelligence → shipment risk → recommendation → task → exception → invoice
+
+The system must feel alive, interconnected, and consequential.
+
+---
+
+## PRIMARY GOAL
+
+Create a small but believable dataset that allows a pilot operator to immediately understand:
+
+- what is happening
+- what is at risk
+- what action is needed
+- what downstream effect that action has
+
+The seeded data must support a clean walkthrough across the main product surfaces.
+
+---
+
+## REQUIRED SCENARIO DESIGN
+
+Create **3 to 5 shipments total** with varied operational states.
+
+### Required shipment mix
+1. One shipment that is healthy / on track
+2. One shipment that is at risk due to existing intelligence
+3. One shipment with an active operational problem / exception
+4. Optional: one completed or delivered shipment for contrast
+5. Optional: one shipment that is pending review or awaiting operator action
+
+### Every shipment must include believable logistics context
+At minimum:
+- shipment reference / ID
+- customer / company name
+- origin and destination
+- carrier or vessel context
+- ETA / milestone dates
+- shipment value or commercial value
+- status consistent with current system states
+
+Do NOT generate nonsense.
+Use plausible trade/logistics data.
+
+---
+
+## REQUIRED INTELLIGENCE LINKAGE
+
+Tie at least 2 shipments directly to the existing intelligence data already visible in Control Tower.
+
+Examples:
+- a shipment routed through Los Angeles impacted by port workers strike
+- a shipment affected by Shanghai port congestion
+- a shipment exposed to Typhoon Haikui / weather risk
+- a shipment affected by Suez / Red Sea disruption
+
+The relationship must be obvious enough that an operator can understand:
+“This shipment is at risk because of that intelligence signal.”
+
+---
+
+## REQUIRED RECOMMENDATIONS
+
+Create **2 to 4 recommendations** tied to specific shipments.
+
+Examples:
+- reroute shipment through alternate port
+- delay departure pending congestion relief
+- escalate customs/document issue
+- review carrier substitution
+- adjust pricing or margin due to disruption risk
+
+Each recommendation must:
+- belong to a shipment
+- have urgency / priority
+- have a clear reason tied to intelligence or exception state
+- feel actionable, not decorative
+
+Recommendations must render cleanly in the existing recommendation surfaces.
+
+---
+
+## REQUIRED TASKS
+
+Create **2 to 4 work queue tasks** derived from recommendations and/or exceptions.
+
+Examples:
+- review reroute option
+- contact carrier about congestion delay
+- resolve customs hold
+- approve commercial invoice correction
+- review pricing impact due to disruption
+
+Each task must:
+- link to a shipment
+- link to a recommendation and/or exception where appropriate
+- have meaningful status (open, overdue, etc.)
+- be visible in Work Queue
+- make sense as a next operator action
+
+At least one task should feel urgent.
+
+---
+
+## REQUIRED EXCEPTIONS
+
+Create **1 to 2 exceptions**.
+
+Examples:
+- customs hold
+- documentation mismatch
+- missed milestone / delayed departure
+- port disruption escalation
+
+Each exception must:
+- tie to a shipment
+- appear in Exceptions
+- be understandable from the shipment context
+- ideally connect to a task or recommendation
+
+At least one exception should create actual operational pressure.
+
+---
+
+## REQUIRED BILLING / FINANCIAL OBJECTS
+
+Create **at least 1 to 2 invoices** linked to shipments.
+
+Requirements:
+- invoice(s) must render in Billing
+- values should be plausible
+- amounts should relate to shipment/commercial context
+- if useful, one invoice can be open/outstanding and one paid
+
+Optional but valuable:
+- show how operational issues affect billing timing, margin, or follow-up
+
+---
+
+## REQUIRED QUOTE / SHIPMENT LIFECYCLE SUPPORT
+
+If the system already supports quote objects, ensure at least one quote is connected meaningfully to the seeded world.
+
+Preferred:
+- one quote converted or relatable to one shipment
+- avoid leaving QT-0001 as a dead orphan if possible
+
+---
+
+## REQUIRED CONSISTENCY RULES
+
+All seeded objects must connect logically.
+
+You must ensure:
+- no orphaned recommendations
+- no orphaned tasks
+- no orphaned exceptions
+- no invoice tied to nonexistent shipment
+- no contradiction like “delivered” shipment with unresolved critical operational exception unless intentionally explained
+
+The goal is a believable operating environment, not maximum record count.
+
+---
+
+## REQUIRED DEMO STORY SUPPORT
+
+The seeded world must support this operator story:
+
+1. Operator opens Command Center
+2. Sees there is something that needs attention
+3. Goes to Control Tower
+4. Sees intelligence linked to a shipment problem
+5. Opens the shipment
+6. Sees a recommendation
+7. Takes or reviews an action
+8. Sees linked task / exception context
+9. Visits Work Queue / Exceptions
+10. Sees Billing tied to the operational world
+
+Make the data support this story naturally.
+
+---
+
+## VALIDATION REQUIREMENTS
+
+After seeding, verify in the running app that:
+
+- Control Tower shows meaningful intelligence context
+- Shipments page is no longer empty
+- At least one shipment can be opened successfully
+- Recommendation surfaces are populated if expected
+- Work Queue has meaningful tasks
+- Exceptions has at least one visible record
+- Billing has at least one real invoice
+- No duplicated intelligence entries reappear
+- Navigation across these objects feels coherent
+
+Do not just seed the database. Confirm the UI reflects it.
+
+---
+
+## OUTPUT REQUIREMENTS
+
+Return all of the following:
+
+1. exact files changed
+2. seeding approach used
+3. list of seeded shipments with short descriptions
+4. list of recommendations created
+5. list of tasks created
+6. list of exceptions created
+7. list of invoices created
+8. explanation of how the scenario supports the demo story
+9. confirmation that the main modules now show non-empty, coherent data
+10. any limitations still remaining
+
+---
+
+## CONSTRAINTS
+
+- do NOT generate random junk data
+- do NOT create more than 5 shipments
+- do NOT introduce unrelated features
+- do NOT leave the system looking crowded or noisy
+- prioritize clarity, pressure, and realism over quantity
+
+---
+
+## SUCCESS CRITERIA
+
+This is complete only if a real operator could log in and immediately understand:
+
+- what is happening
+- what is risky
+- what needs action
+- what business consequence exists
+
+Build a believable operational scenario directly in the current codebase and verify it in the live app.
