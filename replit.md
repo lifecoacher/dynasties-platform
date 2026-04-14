@@ -79,7 +79,7 @@ The system automates various freight forwarding stages, including:
 
 ## Production Hardening (Sprint 1 + Sprint 2 + Sprint 3)
 - **Multi-tenant isolation**: All tenant-owned queries (SELECT, UPDATE) include `companyId` filter in WHERE clause across exception-engine, decision-engine, exception-management, doc-engine, billing, and reconciliation services.
-- **Stripe webhook security**: Signature verification via `stripe.webhooks.constructEvent()` with in-memory event dedup (10k cache). Requires `STRIPE_WEBHOOK_SECRET` env var in production.
+- **Stripe webhook security**: Signature verification via `stripe.webhooks.constructEvent()` with DB-backed idempotency (`stripe_webhook_events` table, replaces in-memory Set). Events tracked as PROCESSING→PROCESSED/FAILED with retry support for FAILED events. Requires `STRIPE_WEBHOOK_SECRET` env var in production. Stripe credentials prefer `STRIPE_SECRET_KEY`/`STRIPE_PUBLISHABLE_KEY` env vars with Replit connector fallback.
 - **Billing enforcement**: Fails-closed (503 on DB error, 403 on missing company). DEMO bypass removed. Blocks writes for inactive/expired tenants. Clear error codes (`BILLING_INACTIVE`, `SHIPMENT_LIMIT_EXCEEDED`, `BILLING_CHECK_ERROR`) with actionable messages.
 - **Billing consolidation**: Old billing service (`services/billing`) now uses sequential invoice numbering (prefix-based from billing account) instead of random numbers, consistent with new billing system.
 - **Reconciliation approval workflow**: Resolution columns (`resolutionStatus`, `resolutionNote`, `resolvedBy`, `resolvedAt`) on `reconciliation_results`. PATCH endpoint at `/reconciliation/:reconId/resolve`.
@@ -207,6 +207,21 @@ The system automates various freight forwarding stages, including:
 - **Plan-gated 403 UX feedback**: `requireMinRole` returns structured 403 with `message`, `code`, `requiredRole`, `currentRole`. Frontend error extraction: `use-intelligence.ts`, `use-exceptions.ts`, and `WorkQueue.tsx` all parse JSON response body for `message` or `error` fields (via `extractErrorMsg` helper in WorkQueue). ControlTower and ExceptionsPage have `onError` toast handlers. ControlTower ingest-all deduplicates error toasts (single toast per batch failure).
 - **Decision-engine type safety**: `RECOMMENDATION_TYPES` in `analyzer.ts` expanded from 9→17 to match DB schema. `analyzer.test.ts` fixtures fixed: `intelligence: null` added to `makeInputs`, confidence string→number, congestionLevel "severe"→"critical", entity status "ACTIVE"→"VERIFIED".
 - **Nav label fix**: Sidebar "Accounting" → "Accounting Integration".
+
+## Production Hardening Sprint 4 — CTO Review Remediation (Complete)
+- **Helmet middleware**: Security headers (HSTS in production, CSP disabled for inline scripts, cross-origin embedder disabled for preview iframe).
+- **Structured logging**: Request logger emits structured JSON with correlation IDs (`x-request-id` header propagation) on all requests/errors.
+- **JWT hardening**: JWT_SECRET hard-fails in production without a default fallback.
+- **Dev role override gating**: Requires both `FEATURE_DEV_ROLE_OVERRIDE=true` AND `LOCAL_DEV_ONLY=true` AND non-production environment.
+- **DB-backed webhook idempotency**: `stripe_webhook_events` table replaces in-memory Set. Events tracked as PROCESSING→PROCESSED/FAILED with automatic retry of FAILED events on redelivery.
+- **Accounting transactions**: All DB state changes in sync-service.ts wrapped in `db.transaction()` — mapping writes + audit events are atomic on both success and failure paths.
+- **Health check hardening**: 3 endpoints — `/api/healthz` (full: DB latency, queue stats, memory, uptime), `/api/healthz/ready` (DB connectivity), `/api/healthz/live` (process alive). Queue health reports active consumers vs expected.
+- **Prometheus metrics**: `/api/metrics` endpoint with HTTP request counters (method/route/status), duration percentiles (p50/p95/p99), webhook processed/failed, queue job outcomes, invoice counts, memory stats. Request duration recording middleware in app.ts. `recordWebhook()` wired into webhookHandlers.ts.
+- **CI/CD pipeline**: `.github/workflows/ci.yml` — install → typecheck → test (with Postgres service) → build. Quality gates enforced (no continue-on-error).
+- **Migration runner**: `scripts/run-migrations.sh` — validates DATABASE_URL, runs Drizzle migrations, optional Stripe schema migrations.
+- **Clerk webhook support**: `/api/auth/clerk-webhook` route with svix HMAC signature verification. Handles user.created (creates company+user in transaction), user.updated (syncs email/name), user.deleted (deactivates). CLERK_WEBHOOK_SECRET required in production.
+- **Real QuickBooks adapter**: `RealQuickBooksAdapter` with OAuth 2.0 token refresh, all QBO REST API calls. Adapter factory selects demo vs real based on `VITE_DEMO_MODE`/`QB_MODE`. OAuth routes: GET `/api/accounting/oauth/quickbooks/auth-url` (generates Intuit auth URL), GET `/api/accounting/oauth/quickbooks/callback` (token exchange, unauthenticated for OAuth redirect).
+- **Env schema hardening**: Stripe, QuickBooks, Clerk, and feature flag env vars added to Zod schema in `lib/config/src/env.ts`.
 
 ## External Dependencies
 - **AI Integration:** Anthropic Claude via `@workspace/integrations-anthropic-ai`.

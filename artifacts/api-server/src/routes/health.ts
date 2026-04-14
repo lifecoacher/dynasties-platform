@@ -6,7 +6,7 @@ import { getQueueStats } from "@workspace/queue";
 const router: IRouter = Router();
 
 router.get("/healthz", async (_req, res) => {
-  const checks: Record<string, { status: string; latencyMs?: number; error?: string }> = {};
+  const checks: Record<string, { status: string; latencyMs?: number; error?: string; details?: Record<string, unknown> }> = {};
   let healthy = true;
 
   const dbStart = Date.now();
@@ -23,32 +23,37 @@ router.get("/healthz", async (_req, res) => {
   }
 
   const queueStats = getQueueStats();
-  const expectedConsumers = 12;
-  const activeConsumers = Object.entries(queueStats)
-    .filter(([k, v]) => k.endsWith("Listeners") && v === 1)
-    .length;
-  const queueHealthy = activeConsumers >= expectedConsumers;
-  if (!queueHealthy) healthy = false;
-  checks.queue = {
-    status: queueHealthy ? "ok" : "degraded",
-    latencyMs: 0,
-  };
+  const backend = queueStats.backend;
 
-  checks.uptime = {
-    status: "ok",
-    latencyMs: Math.floor(process.uptime() * 1000),
-  };
-
-  checks.memory = {
-    status: "ok",
-    latencyMs: 0,
-  };
+  if (backend === "sqs") {
+    checks.queue = { status: "ok", details: { backend: "sqs" } };
+  } else {
+    const expectedConsumers = 12;
+    const activeConsumers = Object.entries(queueStats)
+      .filter(([k, v]) => k.endsWith("Listeners") && v === 1)
+      .length;
+    const queueHealthy = activeConsumers >= expectedConsumers;
+    if (!queueHealthy) healthy = false;
+    checks.queue = {
+      status: queueHealthy ? "ok" : "degraded",
+      details: {
+        backend: "event-emitter",
+        activeConsumers,
+        expectedConsumers,
+      },
+    };
+  }
 
   const mem = process.memoryUsage();
   const memoryMb = {
     rss: Math.round(mem.rss / 1024 / 1024),
     heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
     heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
+  };
+
+  checks.uptime = {
+    status: "ok",
+    latencyMs: Math.floor(process.uptime() * 1000),
   };
 
   res.status(healthy ? 200 : 503).json({
@@ -58,7 +63,6 @@ router.get("/healthz", async (_req, res) => {
     environment: process.env["NODE_ENV"] || "development",
     checks,
     memory: memoryMb,
-    queue: queueStats,
   });
 });
 
@@ -69,6 +73,10 @@ router.get("/healthz/ready", async (_req, res) => {
   } catch {
     res.status(503).json({ status: "not_ready" });
   }
+});
+
+router.get("/healthz/live", (_req, res) => {
+  res.json({ status: "alive" });
 });
 
 export default router;
