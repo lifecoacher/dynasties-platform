@@ -203,7 +203,7 @@ function ClerkLoginPage() {
 }
 
 function AuthenticatedRouter() {
-  const { user, isLoading, isClerkMode } = useAuth();
+  const { user, isLoading, isClerkMode, syncError } = useAuth();
 
   if (isLoading) {
     return (
@@ -214,6 +214,26 @@ function AuthenticatedRouter() {
             <div className="absolute -bottom-1.5 left-0 w-[1.3em] h-[2.5px] rounded-full bg-primary" />
           </div>
           <p className="text-[14px] text-muted-foreground mt-1 animate-pulse">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  if (syncError && isClerkMode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="max-w-sm text-center p-8">
+          <div className="relative inline-block mb-4">
+            <span className="font-heading text-[24px] font-medium text-foreground" style={{ letterSpacing: '0.22em' }}>DYNASTIES</span>
+            <div className="absolute -bottom-1.5 left-0 w-[1.3em] h-[2.5px] rounded-full bg-primary" />
+          </div>
+          <p className="text-[15px] font-medium text-foreground mt-4">Account sync failed</p>
+          <p className="text-[13px] text-muted-foreground mt-2">{syncError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );

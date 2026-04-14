@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, type DbTransaction } from "@workspace/db";
 import { usersTable, companiesTable, eventsTable } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import bcrypt from "bcryptjs";
 import { signToken } from "../middlewares/auth.js";
@@ -87,6 +87,16 @@ router.post("/auth/clerk-sync", async (req, res) => {
         .limit(1);
 
       if (lorianAdmin) {
+        await db
+          .update(usersTable)
+          .set({ clerkId: null })
+          .where(
+            and(
+              eq(usersTable.clerkId, clerkUserId),
+              sql`${usersTable.id} != ${LORIAN_ADMIN_USER_ID}`,
+            ),
+          );
+
         await db
           .update(usersTable)
           .set({

@@ -15,6 +15,7 @@ interface AuthContextValue {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  syncError: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isClerkMode: boolean;
@@ -55,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const logoutRef = useRef<() => void>(() => {});
   const clerkEnabled = useClerkEnabled();
   const clerkSyncedRef = useRef(false);
@@ -128,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.removeItem(MANUAL_LOGOUT_KEY);
           } catch (err) {
             console.error("[auth] Clerk sync error:", err);
-            clerkSyncedRef.current = false;
+            setSyncError("Unable to connect your account. Please try again later.");
           } finally {
             setIsLoading(false);
           }
@@ -199,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, isClerkMode: clerkEnabled }}>
+    <AuthContext.Provider value={{ user, token, isLoading, syncError, login, logout, isClerkMode: clerkEnabled }}>
       {children}
     </AuthContext.Provider>
   );

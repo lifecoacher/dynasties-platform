@@ -1,0 +1,148 @@
+You are a senior full-stack engineer debugging a **login / auth redirect loop** in Dynasties Operator Workbench.
+
+This is a production-blocking bug.
+Do NOT speculate vaguely.
+Find the exact cause and fix it in code.
+
+## BUG
+When logging in through Clerk with:
+- glenn@dynasties.ai
+
+the app gets stuck refreshing / reloading at the logo stage and never enters the workbench.
+
+This started after recent changes around:
+- demo bridge / clerk sync
+- DEMO_CLERK_EMAILS mapping
+- tenant/company assignment
+- RouteErrorBoundary and auth/session flow
+
+## PRIMARY GOAL
+Fix the login loop so Glenn can successfully authenticate and land inside the correct demo tenant:
+- user: usr_lor_admin
+- company: cmp_lorian_001
+- org: Lorian Freight Solutions
+
+The app must stop looping at the logo/loading screen.
+
+---
+
+## WHAT TO INVESTIGATE
+
+### 1. Clerk auth lifecycle
+Inspect:
+- ClerkProvider setup
+- auth guards
+- session initialization
+- useAuth / useUser hooks
+- any loading gates around Clerk ready state
+- any redirect-on-missing-user logic
+- any effect that retries or reloads the page repeatedly
+
+Determine whether the app is stuck because:
+- Clerk never resolves
+- currentUser loads but app-side sync fails
+- sync succeeds but routing redirects back to login/loading
+- a company/user mismatch causes repeated retries
+- token/session state is being invalidated
+- there is a frontend infinite reload/useEffect loop
+
+### 2. Demo bridge / clerk-sync flow
+Inspect all code paths related to:
+- /api/auth/clerk-sync
+- DEMO_CLERK_EMAILS
+- mapping glenn@dynasties.ai to usr_lor_admin / cmp_lorian_001
+- creating fallback orgs/users
+- sync retries
+- what happens when sync partially succeeds or returns an unexpected shape
+
+Verify:
+- glenn@dynasties.ai is actually recognized
+- the sync endpoint returns a stable success response
+- the frontend consumes that response correctly
+- no “create new empty org” fallback is re-triggering
+- no repeated sync call causes the app shell to reset
+
+### 3. Routing / loading-shell loop
+Inspect:
+- logo/loading stage component
+- any splash screen or auth-loading component
+- redirects from login → app
+- redirects from app → login
+- refresh logic
+- window.location reload usage
+- navigation guards
+- route protection wrappers
+
+Find any code that can cause:
+- repeated page refresh
+- repeated router replace/push
+- repeated auth sync retries
+- repeated invalidation of query/session cache
+
+### 4. Backend/API behavior during login
+Verify in the running environment:
+- what /api/auth/clerk-sync returns for glenn@dynasties.ai
+- whether it throws or hangs
+- whether it returns different payloads across repeated calls
+- whether any middleware rejects the request after initial success
+
+Check logs for:
+- repeated clerk-sync hits
+- repeated company creation
+- repeated user creation/upsert
+- auth middleware errors
+- CORS/session/token issues
+- 401/403 loops
+
+---
+
+## REQUIRED FIX
+
+You must:
+1. identify the exact root cause of the refresh loop
+2. fix it at the source
+3. ensure login with glenn@dynasties.ai lands in cmp_lorian_001
+4. ensure no infinite reload/redirect/retry remains
+5. ensure the seeded Lorian pilot data is visible after login
+
+Do NOT patch this by weakening auth broadly.
+Do NOT hardcode a fake bypass unless absolutely necessary in dev, and if you do, isolate it to dev/demo only and explain it clearly.
+Do NOT return a theory without proving it works.
+
+---
+
+## VALIDATION REQUIREMENTS
+
+After the fix, verify all of the following:
+
+1. Log in as glenn@dynasties.ai
+2. App passes the logo/loading stage
+3. User lands inside the workbench
+4. User is mapped to:
+   - usr_lor_admin
+   - cmp_lorian_001
+5. Lorian pilot data is visible:
+   - shipments
+   - recommendations
+   - tasks
+   - exceptions
+   - invoices
+   - quotes
+   - intelligence
+6. Refreshing the browser does NOT reintroduce the loop
+7. Logging out and logging back in still works
+8. No repeated clerk-sync storm appears in logs
+
+---
+
+## OUTPUT REQUIREMENTS
+
+Return:
+1. exact root cause
+2. exact files changed
+3. exact fix implemented
+4. whether the bug was frontend, backend, or both
+5. any auth/session risks still remaining
+6. confirmation that glenn@dynasties.ai now logs in successfully and sees the seeded Lorian data
+
+This is a hard blocker. Fix it fully in code and verify it in the running app.
