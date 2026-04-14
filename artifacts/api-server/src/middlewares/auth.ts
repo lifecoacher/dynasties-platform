@@ -21,7 +21,12 @@ declare global {
 
 function getJwtSecret(): string {
   const secret = process.env["JWT_SECRET"];
-  if (!secret) throw new Error("JWT_SECRET environment variable is required");
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET is required in production — refusing to start without it");
+    }
+    throw new Error("JWT_SECRET environment variable is required");
+  }
   return secret;
 }
 
@@ -75,6 +80,18 @@ export function requireRole(...allowedRoles: Role[]) {
   };
 }
 
+function isDevRoleOverrideEnabled(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+
+  const featureFlag = process.env.FEATURE_DEV_ROLE_OVERRIDE;
+  if (featureFlag !== "true") return false;
+
+  const localOnly = process.env.LOCAL_DEV_ONLY;
+  if (localOnly !== "true") return false;
+
+  return true;
+}
+
 export function requireMinRole(minRole: Role) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
@@ -82,12 +99,18 @@ export function requireMinRole(minRole: Role) {
       return;
     }
 
-    const isDev = process.env.VITE_DEMO_MODE === "true" || process.env.NODE_ENV !== "production";
+    let effectiveRole: Role = req.user.role;
+
     const overrideHeader = req.headers["x-dev-role-override"] as string | undefined;
-    const overrideRole = overrideHeader as Role;
-    const canOverride = isDev && overrideRole && ROLE_HIERARCHY[overrideRole] !== undefined
-      && ROLE_HIERARCHY[overrideRole] < ROLE_HIERARCHY[req.user.role];
-    const effectiveRole: Role = canOverride ? overrideRole : req.user.role;
+    if (overrideHeader) {
+      if (isDevRoleOverrideEnabled()) {
+        const overrideRole = overrideHeader as Role;
+        if (ROLE_HIERARCHY[overrideRole] !== undefined
+          && ROLE_HIERARCHY[overrideRole] < ROLE_HIERARCHY[req.user.role]) {
+          effectiveRole = overrideRole;
+        }
+      }
+    }
 
     const userLevel = ROLE_HIERARCHY[effectiveRole] || 0;
     const requiredLevel = ROLE_HIERARCHY[minRole] || 0;

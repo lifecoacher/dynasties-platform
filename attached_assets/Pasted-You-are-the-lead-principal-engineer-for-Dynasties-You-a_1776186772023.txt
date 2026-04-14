@@ -1,0 +1,345 @@
+You are the lead principal engineer for Dynasties. You are implementing a full production-hardening sprint in the existing codebase to move the platform from a conditional pilot pass to the strongest possible post-remediation architecture review.
+
+This is NOT a brainstorming task.
+This is NOT a design memo task.
+This is a code implementation task.
+
+Context:
+An external CTO review on branch rc/pilot-ready-20260414 / commit 30c2bf2 scored the system 5.5/10 and identified specific weaknesses that must be remediated. The strongest parts of the system are already in place: multi-tenant isolation via PostgreSQL RLS + AsyncLocalStorage, billing enforcement, reconciliation engine, and strong integration-style tests. The remaining deficits are queue durability, Stripe live-mode readiness, DB-backed webhook idempotency, dev role override risk, missing Helmet, missing structured logging/correlation IDs/metrics, non-transactional accounting sync, QuickBooks demo-only implementation, and missing deployment pipeline / migration automation / production auth webhook flow.
+
+Your goal:
+Implement the fixes needed to materially improve the platform across:
+- pilot safety
+- AWS readiness
+- observability
+- payments correctness
+- background job durability
+- QuickBooks realism
+- deployment hygiene
+
+Do not return a plan without code changes.
+
+==================================================
+PHASE 1 — PILOT-BLOCKING FIXES (MUST COMPLETE)
+==================================================
+
+1. Stripe credential decoupling from Replit
+Current problem:
+- stripeClient.ts fetches credentials via Replit Connectors API only
+- this breaks outside Replit and blocks AWS
+Required fix:
+- refactor stripeClient.ts so it first checks:
+  - STRIPE_SECRET_KEY
+  - STRIPE_PUBLISHABLE_KEY if needed
+  - STRIPE_WEBHOOK_SECRET where relevant
+- only fall back to Replit connector credential retrieval if direct env vars are absent and Replit connector env is actually present
+- make the fallback explicit and safe
+- add clear structured logging of which credential source is being used
+- do not log secrets
+Validation:
+- test mode still works in current environment
+- non-Replit env path is now viable
+
+2. DB-backed Stripe webhook idempotency
+Current problem:
+- webhook dedup uses in-memory Set
+- restarts cause duplicate processing risk
+Required fix:
+- add a dedicated table for processed Stripe webhook events
+  suggested fields:
+  - id
+  - stripeEventId (unique)
+  - type
+  - receivedAt
+  - processedAt
+  - status
+  - metadata/error
+- before processing a webhook, atomically insert or no-op on stripeEventId
+- if event already exists and is processed, skip safely
+- if event exists but failed, define safe retry behavior
+- preserve correct signature verification flow
+- do not rely on process memory for payment correctness
+
+3. Remove or hard-gate dev role override
+Current problem:
+- x-dev-role-override header can escalate role when NODE_ENV !== production
+Required fix:
+- remove it entirely from non-local paths, OR
+- gate it behind FEATURE_DEV_ROLE_OVERRIDE=true and LOCAL_DEV_ONLY=true
+- ensure it is impossible for this path to be active unless both:
+  - explicit feature flag is true
+  - environment is a recognized local/dev environment
+- default must be disabled
+- add tests for this
+- if disabled and header is sent, ignore it and log at debug level only
+
+4. Add Helmet middleware
+Current problem:
+- no security headers
+Required fix:
+- install/configure helmet in API server
+- add sane defaults for:
+  - X-Frame-Options
+  - X-Content-Type-Options
+  - Referrer-Policy
+  - HSTS where appropriate outside local dev
+- configure CSP thoughtfully if needed, but do not break the app
+- verify Stripe/webhook/body parsing flows are unaffected
+
+5. Wrap accounting sync in DB transactions
+Current problem:
+- syncCustomer() and syncInvoice() perform multi-step operations without transaction safety
+Required fix:
+- wrap all multi-step accounting sync paths in db.transaction()
+- ensure lookup/update/mapping insert/connection update/event emit persistence are consistent
+- if external QB API succeeds but internal DB write fails, persist a recoverable error state instead of partial silent corruption
+- document chosen compensation strategy where true rollback over external side effects is impossible
+- add tests for partial failure handling
+
+==================================================
+PHASE 2 — AWS-READINESS FIXES (MUST COMPLETE)
+==================================================
+
+6. Replace EventEmitter-only queue with durable queue abstraction backed by SQS
+Current problem:
+- EventEmitter queue has zero durability
+- Terraform already provisions 11 SQS queues + DLQs but app never consumes them
+Required fix:
+- introduce queue interface that supports:
+  - local in-memory implementation for local/dev
+  - SQS implementation for staging/prod
+- wire the app to use SQS when AWS/SQS env config is present
+- implement:
+  - enqueue
+  - receive/poll
+  - process
+  - delete on success
+  - visibility timeout handling
+  - DLQ behavior
+  - idempotency hooks where needed
+- create dedicated consumer runner(s) for queue processing
+- do not leave API server dependent on EventEmitter for production queue behavior
+- preserve architecture compatibility with existing domain events/jobs
+Validation:
+- local/dev still works
+- production path no longer loses jobs on restart by design
+
+7. Structured logging with Pino + correlation IDs
+Current problem:
+- request logging uses console.log
+- Pino exists but unused
+- no request tracing
+Required fix:
+- replace request logger and error logger usage with Pino
+- generate/request-propagate a request ID / correlation ID
+- include:
+  - method
+  - route
+  - status
+  - duration
+  - companyId if available
+  - userId if available
+  - requestId
+- ensure error logs are structured JSON and consistent
+- remove stray console.log/console.error from core request path where practical
+- do not break local readability
+
+8. Health check hardening
+Current problem:
+- /api/healthz likely does not reflect DB/connectivity truth
+Required fix:
+- make /api/healthz verify:
+  - app process alive
+  - DB reachable
+  - queue backend reachable/healthy if in SQS mode
+- return non-200 if critical dependencies are down
+- keep a lightweight liveness path if needed
+- structure response clearly for ALB/ECS use
+
+9. CI/CD pipeline
+Current problem:
+- no GitHub Actions or deploy automation
+Required fix:
+- create GitHub Actions workflow(s) for:
+  - install
+  - lint/typecheck
+  - test
+  - build
+  - container build and push to ECR
+  - optional deploy trigger for ECS
+- include migration execution strategy
+- include environment separation (preview/staging/prod as far as practical)
+- do not fake deploy steps; if secrets are needed, document them clearly in workflow comments and README/runbook
+
+10. Migration runner / deploy integration
+Current problem:
+- no automated way to run Drizzle migrations on deploy
+Required fix:
+- add a migration execution script/entrypoint suitable for CI/CD or ECS task-run
+- ensure migrations can run before app rollout
+- document expected deployment order
+
+11. Remove insecure default JWT secret from docker-compose / runtime defaults
+Current problem:
+- default JWT secret can leak into non-dev
+Required fix:
+- eliminate insecure default fallback for JWT_SECRET and similar secrets
+- require explicit env provisioning outside local demo mode
+- fail closed when secrets missing in non-dev
+
+12. Clerk webhook support
+Current problem:
+- user provisioning is lazy on API request only
+Required fix:
+- add Clerk webhook endpoint(s) for:
+  - user.created
+  - user.updated
+  - user.deleted
+- verify signature if Clerk supports signed webhooks in current setup
+- ensure tenant/user records stay aligned when users change or are removed
+- do not break existing demo bridge, but gate demo bridge behind explicit DEMO_MODE
+
+==================================================
+PHASE 3 — QUICKBOOKS REAL INTEGRATION (REQUIRED IF YOU WANT THIS REVIEW TO MOVE TOWARD 10/10)
+==================================================
+
+13. Replace demo-only QuickBooks adapter with real adapter support
+Current problem:
+- getQuickBooksAdapter() always returns DemoQuickBooksAdapter
+- no OAuth, no token storage, no token refresh, no API calls
+Required fix:
+- preserve DemoQuickBooksAdapter for local/demo mode only
+- add a real QuickBooks adapter implementation
+- implement OAuth 2.0 flow:
+  - auth URL generation
+  - callback handling
+  - token acquisition
+  - secure token storage
+  - refresh token usage
+- map real QuickBooks API operations into the adapter interface for:
+  - customer create/sync
+  - invoice create/sync
+  - payment refresh/sync if applicable
+- handle QB API failures, expired tokens, and reconnect requirements
+- persist sync state cleanly
+- make adapter selection environment/config based, not hardcoded
+- do not represent the integration as fully real if some endpoints remain partial; clearly mark remaining gaps in code comments and docs if any remain
+
+14. Transaction-safe accounting sync with real adapter path
+- ensure the real QB path and demo path both honor transaction boundaries and consistent sync event recording
+- add tests for:
+  - success path
+  - token refresh path
+  - API failure path
+  - duplicate sync prevention
+
+==================================================
+PHASE 4 — OBSERVABILITY / METRICS / RATE LIMIT HARDENING
+==================================================
+
+15. Metrics endpoint
+- add /metrics using Prometheus-compatible instrumentation
+- at minimum track:
+  - request counts by route/status
+  - request duration
+  - Stripe webhook processing count/failure
+  - queue processed/failed/retried
+  - invoice creation count
+  - reconciliation variance counters
+- ensure endpoint can be disabled/protected as appropriate outside local
+
+16. Tenant-scoped rate limiting
+- current rate limiting is IP-based only
+- add optional tenant/company-aware rate limiting where relevant for write-heavy automation paths
+- preserve auth/login limiter
+
+17. Review and harden env handling
+- ensure STRIPE_WEBHOOK_SECRET absence cannot silently degrade production verification
+- fail loudly in non-dev if required payment env vars are missing
+- document required envs clearly
+
+==================================================
+PHASE 5 — TESTS (MUST EXPAND)
+==================================================
+
+18. Add/expand tests covering the new work
+Required:
+- Stripe credential source selection
+- webhook event idempotency persistence
+- dev role override disabled by default
+- helmet headers present
+- accounting sync transaction behavior
+- SQS queue enqueue/dequeue/consumer behavior (or adapter-level tests)
+- healthz DB failure behavior
+- Clerk webhook provisioning flows
+- QuickBooks real-adapter selection and OAuth/token lifecycle logic at the service boundary
+- CI sanity where possible
+
+Use real integration tests where practical and avoid shallow mocks for critical money/auth paths.
+
+==================================================
+PHASE 6 — DOCUMENTATION / REVIEW PACKAGE UPDATES
+==================================================
+
+19. Update repo docs to match reality
+Update any relevant:
+- REVIEW_PACKAGE.md
+- SYSTEM_MAP.md
+- RUNBOOK.md
+- OPEN_QUESTIONS_FOR_CTO_REVIEW.md
+
+Reflect:
+- queue mode(s)
+- Stripe credential strategy
+- real vs demo QuickBooks paths
+- deployment workflow
+- remaining known risks
+
+==================================================
+IMPLEMENTATION RULES
+==================================================
+
+- Do NOT return a plan without code changes
+- Do NOT use `as any` or unsafe bypasses to fake completion
+- Do NOT leave the queue production path unwired
+- Do NOT leave QuickBooks as demo-only if claiming review-grade fixes
+- Do NOT weaken tenant isolation
+- Do NOT silently swallow errors
+- Prefer environment-gated dual-mode support where demo/local behavior must coexist with real production behavior
+- Be honest about anything that remains incomplete
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+When complete, return:
+
+1. exact files changed
+2. migrations added
+3. queue architecture changes made
+4. Stripe fixes implemented
+5. QuickBooks fixes implemented
+6. observability/security fixes implemented
+7. CI/CD files added
+8. tests added/updated
+9. remaining known gaps, if any
+10. exact checklist of what to re-run in the next external review
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+This sprint is successful only if:
+- Stripe no longer depends on Replit-only credential fetch
+- Stripe webhook dedup is DB-backed
+- dev role override is impossible outside explicit local dev mode
+- helmet is active
+- accounting sync is transaction-safe
+- production queue path is durable and wired to SQS
+- request logging is structured with correlation IDs
+- health checks verify DB (and queue where applicable)
+- CI/CD and migration runner exist
+- QuickBooks is no longer demo-only by default
+- docs and tests reflect the new reality
+
+Implement the remediation fully in code.
