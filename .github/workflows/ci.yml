@@ -104,11 +104,6 @@ jobs:
         run: bash scripts/run-migrations.sh
       - name: Run unit tests
         run: pnpm test
-      - name: Run E2E tests (if server available)
-        run: pnpm test -- --reporter=verbose
-        env:
-          E2E: "true"
-        continue-on-error: true
 
   build:
     needs: [typecheck, test, secret-scan]

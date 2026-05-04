@@ -176,7 +176,7 @@ router.post("/customers/import", requireMinRole("OPERATOR"), async (req, res) =>
       await db.insert(entitiesTable).values(insertValues);
       results.imported = insertValues.length;
     } catch (err) {
-      console.error("[customer-import] batch insert error:", err);
+      req.log?.error({ err }, "Customer import batch insert error");
       results.failed += insertValues.length;
       results.imported = 0;
       results.errors.push({ row: 0, error: "Database insert failed" });

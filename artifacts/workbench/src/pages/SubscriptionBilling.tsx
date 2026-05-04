@@ -37,8 +37,9 @@ import {
   type PlanConfigInfo,
   type ConnectStatusInfo,
 } from "@/hooks/use-stripe-billing";
-import { DEMO_MODE } from "@/hooks/use-demo";
+import { useIsDemo } from "@/hooks/use-demo";
 import { useAuth } from "@/hooks/use-auth";
+import { formatRelativeTime } from "@/lib/format-time";
 
 const PLAN_ICONS: Record<string, any> = {
   STARTER: Zap,
@@ -267,11 +268,14 @@ function ConnectSection({
               <span className="text-[11px] text-muted-foreground">Account ID: </span>
               <span className="text-[11px] font-mono text-foreground">{connectData.stripeConnectAccountId}</span>
             </div>
-            {connectData.connectLastSyncAt && (
-              <span className="text-[10px] text-muted-foreground">
-                Last synced {new Date(connectData.connectLastSyncAt).toLocaleString()}
-              </span>
-            )}
+            <span
+              className="text-[10px] text-muted-foreground"
+              title={connectData.connectLastSyncAt ? new Date(connectData.connectLastSyncAt).toLocaleString() : undefined}
+            >
+              {connectData.connectLastSyncAt
+                ? `Last synced ${formatRelativeTime(connectData.connectLastSyncAt)}`
+                : "Not yet synced"}
+            </span>
           </div>
         )}
 
@@ -496,6 +500,7 @@ export default function SubscriptionBilling() {
   const { createAccount, isLoading: createAccountLoading } = useConnectCreateAccount();
   const { startOnboarding, isLoading: onboardingLoading } = useConnectOnboarding();
   const { user } = useAuth();
+  const isDemo = useIsDemo();
   const [checkoutStatus, setCheckoutStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -744,7 +749,7 @@ export default function SubscriptionBilling() {
               </div>
             )}
 
-            {sub?.stripeCustomerId && !DEMO_MODE && (
+            {sub?.stripeCustomerId && !isDemo && (
               <motion.div
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -780,7 +785,7 @@ export default function SubscriptionBilling() {
               connectError={connectError}
             />
 
-            {DEMO_MODE && sub?.billingStatus === "INACTIVE" && (
+            {isDemo && sub?.billingStatus === "INACTIVE" && (
               <motion.div
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -822,7 +827,7 @@ export default function SubscriptionBilling() {
                       onSelect={handleSelectPlan}
                       onTrial={handleTrial}
                       isLoading={isActionLoading}
-                      demoMode={DEMO_MODE}
+                      demoMode={isDemo}
                       onDemoActivate={handleDemoActivate}
                       currentSeatsUsed={sub?.seatsUsed}
                     />

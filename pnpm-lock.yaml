@@ -823,6 +823,9 @@ importers:
       '@aws-sdk/client-sqs':
         specifier: ^3.1008.0
         version: 3.1008.0
+      '@workspace/config':
+        specifier: workspace:*
+        version: link:../config
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

@@ -5,6 +5,7 @@ import router from "./routes";
 import authRouter from "./routes/auth.js";
 import clerkAuthRouter from "./routes/clerk-auth.js";
 import adminRouter from "./routes/admin.js";
+import adminSystemHealthRouter from "./routes/admin-system-health.js";
 import healthRouter from "./routes/health.js";
 import demoRouter from "./routes/demo.js";
 import clerkWebhookRouter from "./routes/clerk-webhook.js";
@@ -24,8 +25,11 @@ const ALLOWED_ORIGINS = process.env.CORS_ALLOWED_ORIGINS
   ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((o) => o.trim())
   : [];
 
-if (process.env.REPLIT_DEV_DOMAIN) {
-  ALLOWED_ORIGINS.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+if (process.env.PUBLIC_BASE_URL) {
+  const publicOrigin = new URL(process.env.PUBLIC_BASE_URL).origin;
+  if (!ALLOWED_ORIGINS.includes(publicOrigin)) {
+    ALLOWED_ORIGINS.push(publicOrigin);
+  }
 }
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -118,6 +122,7 @@ app.use("/api/auth/register", loginLimiter);
 app.use("/api", authRouter);
 app.use("/api", clerkAuthRouter);
 app.use("/api", adminRouter);
+app.use("/api", adminSystemHealthRouter);
 
 const isDemoMode = process.env.VITE_DEMO_MODE === "true";
 if (isDemoMode || !isProduction) {

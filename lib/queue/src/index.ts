@@ -1,5 +1,8 @@
 import { EventEmitter } from "node:events";
 import crypto from "node:crypto";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("queue");
 
 export interface DeadLetterEntry {
   queueName: string;
@@ -157,12 +160,29 @@ let sqsClient: import("@aws-sdk/client-sqs").SQSClient | null = null;
 let sqsLoaded = false;
 let useSqs = false;
 
+function isProdOrStaging(): boolean {
+  const env = process.env.NODE_ENV;
+  return env === "production" || env === "staging";
+}
+
 async function getSqs(): Promise<import("@aws-sdk/client-sqs").SQSClient | null> {
   if (sqsLoaded) return sqsClient;
   sqsLoaded = true;
 
-  if (process.env.QUEUE_BACKEND === "local" || !process.env.SQS_ENDPOINT) {
-    console.log("[queue] using in-memory EventEmitter backend");
+  const backend = process.env.QUEUE_BACKEND;
+  if (backend === "local") {
+    if (isProdOrStaging()) {
+      throw new Error("FATAL: QUEUE_BACKEND=local is not allowed in production/staging. Set QUEUE_BACKEND=sqs.");
+    }
+    logger.info("Using in-memory EventEmitter backend");
+    return null;
+  }
+
+  if (backend !== "sqs" && !process.env.SQS_ENDPOINT) {
+    if (isProdOrStaging()) {
+      throw new Error("FATAL: QUEUE_BACKEND must be 'sqs' in production/staging. In-memory EventEmitter is not safe for multi-instance deployments.");
+    }
+    logger.info("QUEUE_BACKEND not set to 'sqs' and no SQS_ENDPOINT — using in-memory EventEmitter backend");
     return null;
   }
 
@@ -173,18 +193,23 @@ async function getSqs(): Promise<import("@aws-sdk/client-sqs").SQSClient | null>
       ...(process.env.SQS_ENDPOINT ? { endpoint: process.env.SQS_ENDPOINT } : {}),
     });
     useSqs = true;
-    console.log("[queue] using SQS backend");
+    logger.info("Using SQS backend");
     return sqsClient;
-  } catch {
-    console.warn("[queue] @aws-sdk/client-sqs not available, falling back to EventEmitter");
+  } catch (err) {
+    if (isProdOrStaging()) {
+      throw new Error(`FATAL: Failed to initialize SQS client in production/staging: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    logger.warn("@aws-sdk/client-sqs not available, falling back to EventEmitter");
     return null;
   }
 }
 
 function resolveQueueUrl(queueName: string): string {
-  const endpoint = process.env.SQS_ENDPOINT || "https://sqs.us-east-1.amazonaws.com";
+  const region = process.env.AWS_REGION || "us-east-1";
+  const endpoint = process.env.SQS_ENDPOINT || `https://sqs.${region}.amazonaws.com`;
   const accountId = process.env.AWS_ACCOUNT_ID || "000000000000";
-  return `${endpoint}/${accountId}/dynasties-${queueName}`;
+  const envSuffix = process.env.SQS_QUEUE_ENV_SUFFIX || "";
+  return `${endpoint}/${accountId}/dynasties-${queueName}${envSuffix}.fifo`;
 }
 
 function generateIdempotencyToken(job: Record<string, unknown>): string {
@@ -254,11 +279,11 @@ async function sqsStartPolling(queueName: string): Promise<void> {
             }),
           );
         } catch (err) {
-          console.error(`[queue:sqs] ${queueName} message processing failed:`, err);
+          logger.error({ err, queueName }, "SQS message processing failed");
         }
       }
     } catch (err) {
-      console.error(`[queue:sqs] ${queueName} polling error:`, err);
+      logger.error({ err, queueName }, "SQS polling error");
     }
   };
 
@@ -312,18 +337,11 @@ function wrapWithRetry<T>(
       } catch (err) {
         if (retryCount < MAX_RETRIES) {
           const delay = RETRY_DELAYS[retryCount] || 15000;
-          console.error(
-            `[queue] ${queueName} job failed (attempt ${retryCount + 1}/${MAX_RETRIES}), retrying in ${delay}ms:`,
-            err,
-          );
+          logger.error({ err, queueName, attempt: retryCount + 1, maxRetries: MAX_RETRIES, retryDelayMs: delay }, "Job failed, retrying");
           setTimeout(() => attempt(retryCount + 1), delay);
         } else {
           const errObj = err instanceof Error ? err : new Error(String(err));
-          console.error(
-            `[queue:dlq] ${queueName} job exhausted retries, sending to DLQ:`,
-            errObj.message,
-            JSON.stringify(job),
-          );
+          logger.error({ err: errObj.message, queueName, job }, "Job exhausted retries, sending to DLQ");
           if (dlqPersistFn) {
             dlqPersistFn({
               queueName,
@@ -332,7 +350,7 @@ function wrapWithRetry<T>(
               errorStack: errObj.stack,
               attemptCount: MAX_RETRIES,
             }).catch((dlqErr) => {
-              console.error(`[queue:dlq] failed to persist DLQ entry:`, dlqErr);
+              logger.error({ err: dlqErr, queueName }, "Failed to persist DLQ entry");
             });
           }
         }
@@ -432,8 +450,15 @@ async function publish(queueName: string, job: Record<string, unknown>): Promise
       await sqsPublish(queueName, job);
       return;
     } catch (err) {
-      console.error(`[queue] SQS publish failed for ${queueName}, falling back to local:`, err);
+      if (isProdOrStaging()) {
+        logger.error({ err, queueName }, "SQS publish failed in production — refusing to fall back to local EventEmitter");
+        throw err;
+      }
+      logger.error({ err, queueName }, "SQS publish failed, falling back to local");
     }
+  }
+  if (isProdOrStaging()) {
+    throw new Error(`FATAL: Cannot publish to queue '${queueName}' without SQS in production/staging.`);
   }
   setImmediate(() => {
     emitter.emit(queueName, job);

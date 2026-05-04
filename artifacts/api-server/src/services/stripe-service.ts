@@ -3,6 +3,9 @@ import { companiesTable } from "@workspace/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient.js";
 import { getPlanConfig, getPlanLimits, PLAN_CONFIGS, type PlanType } from "../config/plans.js";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("billing-audit");
 
 export { PLAN_CONFIGS, getPlanConfig, getPlanLimits };
 
@@ -165,7 +168,7 @@ export class StripeService {
       .set(updateFields)
       .where(eq(companiesTable.id, companyId));
 
-    console.log(`[billing-audit] Company ${companyId}: status=${billingStatus}, plan=${planType}, sub=${subscriptionId}`);
+    logger.info({ companyId, billingStatus, planType, subscriptionId }, "Subscription synced");
   }
 
   async markDeploymentFeePaid(companyId: string) {
@@ -177,7 +180,7 @@ export class StripeService {
       })
       .where(eq(companiesTable.id, companyId));
 
-    console.log(`[billing-audit] Company ${companyId}: deployment fee marked PAID`);
+    logger.info({ companyId }, "Deployment fee marked PAID");
   }
 
   async startTrial(companyId: string, planType: PlanType) {
@@ -201,7 +204,7 @@ export class StripeService {
       })
       .where(eq(companiesTable.id, companyId));
 
-    console.log(`[billing-audit] Company ${companyId}: trial started, plan=${planType}, expires=${trialEnd.toISOString()}`);
+    logger.info({ companyId, planType, trialEndsAt: trialEnd.toISOString() }, "Trial started");
     return { trialEndsAt: trialEnd, planType };
   }
 }

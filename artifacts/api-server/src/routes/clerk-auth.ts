@@ -5,6 +5,10 @@ import { eq, and, sql } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import bcrypt from "bcryptjs";
 import { signToken } from "../middlewares/auth.js";
+import { isDemoCompany } from "../lib/demo-companies.js";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("clerk-sync");
 
 const LORIAN_COMPANY_ID = "cmp_lorian_001";
 const LORIAN_ADMIN_USER_ID = "usr_lor_admin";
@@ -38,7 +42,7 @@ function getClerkVerifier() {
         last_name: user.lastName ?? undefined,
       };
     } catch (err) {
-      console.error("[clerk-sync] token verification failed:", err);
+      logger.error({ err }, "Token verification failed");
       return null;
     }
   };
@@ -87,6 +91,11 @@ router.post("/auth/clerk-sync", async (req, res) => {
         .limit(1);
 
       if (lorianAdmin) {
+        const [lorianCompany] = await db
+          .select({ name: companiesTable.name })
+          .from(companiesTable)
+          .where(eq(companiesTable.id, LORIAN_COMPANY_ID))
+          .limit(1);
         await db
           .update(usersTable)
           .set({ clerkId: null })
@@ -106,7 +115,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
           })
           .where(eq(usersTable.id, lorianAdmin.id));
 
-        console.log(`[clerk-sync] demo bridge: mapped Clerk user ${clerkUserId} (${normalizedEmail}) → Lorian admin ${lorianAdmin.id}`);
+        logger.info({ clerkUserId, email: normalizedEmail, userId: lorianAdmin.id }, "Demo bridge: mapped Clerk user to Lorian admin");
 
         const token = signToken({
           userId: lorianAdmin.id,
@@ -124,7 +133,8 @@ router.post("/auth/clerk-sync", async (req, res) => {
               name: displayName || lorianAdmin.name,
               role: lorianAdmin.role,
               companyId: LORIAN_COMPANY_ID,
-              companyName: "Lorian Freight Solutions",
+              companyName: lorianCompany?.name ?? "Lorian Freight Solutions",
+              isDemo: isDemoCompany(LORIAN_COMPANY_ID),
             },
             isNewUser: false,
             isDemoUser: true,
@@ -133,7 +143,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
         return;
       }
 
-      console.warn("[clerk-sync] demo bridge: Lorian seed data not found — falling through to standard flow");
+      logger.warn("Demo bridge: Lorian seed data not found — falling through to standard flow");
     }
 
     const [existingByClerk] = await db
@@ -176,6 +186,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
             role: existingByClerk.role,
             companyId: existingByClerk.companyId,
             companyName: clerkCompany?.name || null,
+            isDemo: isDemoCompany(existingByClerk.companyId),
           },
           isNewUser: false,
         },
@@ -223,6 +234,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
             role: existingByEmail.role,
             companyId: existingByEmail.companyId,
             companyName: emailCompany?.name || null,
+            isDemo: isDemoCompany(existingByEmail.companyId),
           },
           isNewUser: false,
         },
@@ -283,13 +295,13 @@ router.post("/auth/clerk-sync", async (req, res) => {
     res.status(201).json({
       data: {
         token,
-        user: { id: userId, email: normalizedEmail, name: displayName, role: "ADMIN", companyId, companyName: orgName },
+        user: { id: userId, email: normalizedEmail, name: displayName, role: "ADMIN", companyId, companyName: orgName, isDemo: isDemoCompany(companyId) },
         company: { id: companyId, name: orgName, slug },
         isNewUser: true,
       },
     });
   } catch (err) {
-    console.error("[clerk-sync] error:", err);
+    logger.error({ err }, "Clerk sync error");
     res.status(500).json({ error: "Clerk sync failed" });
   }
 });

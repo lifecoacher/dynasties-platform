@@ -42,6 +42,50 @@ variable "anthropic_api_key" {
   sensitive = true
 }
 
+variable "stripe_secret_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "stripe_publishable_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "stripe_webhook_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "clerk_webhook_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "qb_client_id" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "qb_client_secret" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "app_db_password" {
+  type        = string
+  sensitive   = true
+  description = "Password for the least-privilege app_user Postgres role used by the API at runtime"
+}
+
+variable "alert_email" {
+  type        = string
+  description = "Email address for production alert notifications (DLQ, 5xx, RDS). Must be confirmed via email after first apply."
+  default     = ""
+}
+
 variable "domain_name" {
   type        = string
   description = "Primary domain name for the application (e.g. app.dynasties.io)"
@@ -237,15 +281,18 @@ resource "aws_s3_bucket_versioning" "raw" {
 
 resource "aws_sqs_queue" "queues" {
   for_each = toset([
-    "extraction", "shipment-pipeline", "compliance", "risk",
-    "insurance", "pricing", "docgen", "billing",
-    "exception", "trade-lane", "claims"
+    "extraction-jobs", "shipment-pipeline-jobs", "compliance-jobs", "risk-jobs",
+    "insurance-jobs", "pricing-jobs", "docgen-jobs", "billing-jobs",
+    "exception-jobs", "trade-lane-jobs", "claims-jobs", "decision-jobs",
+    "ingestion-jobs", "reanalysis-jobs", "intelligence-linking-jobs", "ai-runtime-jobs"
   ])
 
-  name                       = "dynasties-${each.key}-${var.environment}"
-  visibility_timeout_seconds = 300
-  message_retention_seconds  = 1209600
-  receive_wait_time_seconds  = 20
+  name                        = "dynasties-${each.key}-${var.environment}.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = false
+  visibility_timeout_seconds  = 300
+  message_retention_seconds   = 1209600
+  receive_wait_time_seconds   = 20
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.dlq[each.key].arn
@@ -255,12 +302,14 @@ resource "aws_sqs_queue" "queues" {
 
 resource "aws_sqs_queue" "dlq" {
   for_each = toset([
-    "extraction", "shipment-pipeline", "compliance", "risk",
-    "insurance", "pricing", "docgen", "billing",
-    "exception", "trade-lane", "claims"
+    "extraction-jobs", "shipment-pipeline-jobs", "compliance-jobs", "risk-jobs",
+    "insurance-jobs", "pricing-jobs", "docgen-jobs", "billing-jobs",
+    "exception-jobs", "trade-lane-jobs", "claims-jobs", "decision-jobs",
+    "ingestion-jobs", "reanalysis-jobs", "intelligence-linking-jobs", "ai-runtime-jobs"
   ])
 
-  name                      = "dynasties-${each.key}-dlq-${var.environment}"
+  name                      = "dynasties-${each.key}-dlq-${var.environment}.fifo"
+  fifo_queue                = true
   message_retention_seconds = 1209600
 }
 
@@ -321,11 +370,20 @@ resource "aws_iam_role_policy" "ecs_exec_ssm" {
         "ssm:GetParameters",
         "ssm:GetParameter",
       ]
-      Resource = [
-        aws_ssm_parameter.database_url.arn,
-        aws_ssm_parameter.jwt_secret.arn,
-        aws_ssm_parameter.anthropic_key.arn,
-      ]
+      Resource = concat(
+        [
+          aws_ssm_parameter.database_url.arn,
+          aws_ssm_parameter.app_database_url.arn,
+          aws_ssm_parameter.jwt_secret.arn,
+          aws_ssm_parameter.anthropic_key.arn,
+          aws_ssm_parameter.stripe_secret_key.arn,
+          aws_ssm_parameter.stripe_publishable_key.arn,
+          aws_ssm_parameter.stripe_webhook_secret.arn,
+          aws_ssm_parameter.clerk_webhook_secret.arn,
+        ],
+        var.qb_client_id != "" ? [aws_ssm_parameter.qb_client_id[0].arn] : [],
+        var.qb_client_secret != "" ? [aws_ssm_parameter.qb_client_secret[0].arn] : [],
+      )
     }]
   })
 }
@@ -362,7 +420,7 @@ resource "aws_iam_role_policy" "ecs_task_s3_sqs" {
       },
       {
         Effect   = "Allow"
-        Action   = ["sqs:SendMessage", "sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
+        Action   = ["sqs:SendMessage", "sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes", "sqs:ChangeMessageVisibility"]
         Resource = [for q in aws_sqs_queue.queues : q.arn]
       },
     ]
@@ -394,15 +452,31 @@ resource "aws_ecs_task_definition" "api" {
       { name = "AWS_REGION", value = var.aws_region },
       { name = "S3_BUCKET_RAW_DOCUMENTS", value = aws_s3_bucket.raw_documents.id },
       { name = "S3_BUCKET_GENERATED_DOCUMENTS", value = aws_s3_bucket.generated_documents.id },
-      { name = "CORS_ALLOWED_ORIGINS", value = "https://${aws_cloudfront_distribution.main.domain_name}" },
+      { name = "STORAGE_BACKEND", value = "s3" },
+      { name = "QUEUE_BACKEND", value = "sqs" },
+      { name = "TRUST_PROXY", value = "2" },
+      { name = "LOG_LEVEL", value = "info" },
+      { name = "AWS_ACCOUNT_ID", value = data.aws_caller_identity.current.account_id },
+      { name = "SQS_QUEUE_ENV_SUFFIX", value = "-${var.environment}" },
+      { name = "PUBLIC_BASE_URL", value = var.domain_name != "" ? "https://${var.domain_name}" : "https://${aws_cloudfront_distribution.main.domain_name}" },
+      { name = "CORS_ALLOWED_ORIGINS", value = var.domain_name != "" ? "https://${var.domain_name},https://${aws_cloudfront_distribution.main.domain_name}" : "https://${aws_cloudfront_distribution.main.domain_name}" },
+      { name = "QB_MODE", value = "live" },
     ]
 
     secrets = [
       { name = "DATABASE_URL", valueFrom = aws_ssm_parameter.database_url.arn },
+      { name = "APP_DATABASE_URL", valueFrom = aws_ssm_parameter.app_database_url.arn },
       { name = "JWT_SECRET", valueFrom = aws_ssm_parameter.jwt_secret.arn },
       { name = "ANTHROPIC_API_KEY", valueFrom = aws_ssm_parameter.anthropic_key.arn },
       { name = "AI_INTEGRATIONS_ANTHROPIC_API_KEY", valueFrom = aws_ssm_parameter.anthropic_key.arn },
-    ]
+      { name = "STRIPE_SECRET_KEY", valueFrom = aws_ssm_parameter.stripe_secret_key.arn },
+      { name = "STRIPE_PUBLISHABLE_KEY", valueFrom = aws_ssm_parameter.stripe_publishable_key.arn },
+      { name = "STRIPE_WEBHOOK_SECRET", valueFrom = aws_ssm_parameter.stripe_webhook_secret.arn },
+      { name = "CLERK_WEBHOOK_SECRET", valueFrom = aws_ssm_parameter.clerk_webhook_secret.arn },
+    ] + (var.qb_client_id != "" && var.qb_client_secret != "" ? [
+      { name = "QB_CLIENT_ID", valueFrom = aws_ssm_parameter.qb_client_id[0].arn },
+      { name = "QB_CLIENT_SECRET", valueFrom = aws_ssm_parameter.qb_client_secret[0].arn },
+    ] : [])
 
     logConfiguration = {
       logDriver = "awslogs"
@@ -431,6 +505,90 @@ resource "aws_ssm_parameter" "anthropic_key" {
   name  = "/dynasties/${var.environment}/anthropic-api-key"
   type  = "SecureString"
   value = var.anthropic_api_key
+}
+
+resource "aws_ssm_parameter" "stripe_secret_key" {
+  name  = "/dynasties/${var.environment}/stripe-secret-key"
+  type  = "SecureString"
+  value = var.stripe_secret_key
+}
+
+resource "aws_ssm_parameter" "stripe_publishable_key" {
+  name  = "/dynasties/${var.environment}/stripe-publishable-key"
+  type  = "SecureString"
+  value = var.stripe_publishable_key
+}
+
+resource "aws_ssm_parameter" "stripe_webhook_secret" {
+  name  = "/dynasties/${var.environment}/stripe-webhook-secret"
+  type  = "SecureString"
+  value = var.stripe_webhook_secret
+}
+
+resource "aws_ssm_parameter" "clerk_webhook_secret" {
+  name  = "/dynasties/${var.environment}/clerk-webhook-secret"
+  type  = "SecureString"
+  value = var.clerk_webhook_secret
+}
+
+resource "aws_ssm_parameter" "app_database_url" {
+  name  = "/dynasties/${var.environment}/app-database-url"
+  type  = "SecureString"
+  value = "postgres://app_user:${var.app_db_password}@${aws_db_instance.main.endpoint}/dynasties"
+}
+
+resource "aws_ssm_parameter" "qb_client_id" {
+  count = var.qb_client_id != "" ? 1 : 0
+  name  = "/dynasties/${var.environment}/qb-client-id"
+  type  = "SecureString"
+  value = var.qb_client_id
+}
+
+resource "aws_ssm_parameter" "qb_client_secret" {
+  count = var.qb_client_secret != "" ? 1 : 0
+  name  = "/dynasties/${var.environment}/qb-client-secret"
+  type  = "SecureString"
+  value = var.qb_client_secret
+}
+
+resource "aws_cloudwatch_log_group" "migrate" {
+  name              = "/ecs/dynasties-migrate-${var.environment}"
+  retention_in_days = 14
+}
+
+resource "aws_ecs_task_definition" "migrate" {
+  family                   = "dynasties-migrate-${var.environment}"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([{
+    name      = "migrate"
+    image     = "${aws_ecr_repository.api.repository_url}:latest"
+    essential = true
+    command   = ["node", "dist/scripts/run-migrations.js"]
+
+    environment = [
+      { name = "NODE_ENV", value = "production" },
+      { name = "AWS_REGION", value = var.aws_region },
+    ]
+
+    secrets = [
+      { name = "DATABASE_URL", valueFrom = aws_ssm_parameter.database_url.arn },
+    ]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.migrate.name
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "migrate"
+      }
+    }
+  }])
 }
 
 resource "aws_lb" "main" {
@@ -546,6 +704,10 @@ resource "aws_ecs_service" "api" {
     container_name   = "api"
     container_port   = 8080
   }
+
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
+  health_check_grace_period_seconds  = 120
 
   deployment_circuit_breaker {
     enable   = true
@@ -688,6 +850,19 @@ resource "aws_s3_bucket_policy" "frontend" {
   })
 }
 
+resource "aws_sns_topic" "alerts" {
+  name = "dynasties-alerts-${var.environment}"
+
+  tags = { Environment = var.environment }
+}
+
+resource "aws_sns_topic_subscription" "alert_email" {
+  count     = var.alert_email != "" ? 1 : 0
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
+}
+
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   alarm_name          = "dynasties-api-5xx-${var.environment}"
   comparison_operator = "GreaterThanThreshold"
@@ -698,6 +873,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   statistic           = "Sum"
   threshold           = 10
   alarm_description   = "API 5xx errors exceed threshold"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
 
   dimensions = {
     TargetGroup  = aws_lb_target_group.api.arn_suffix
@@ -715,6 +892,8 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   statistic           = "Average"
   threshold           = 80
   alarm_description   = "RDS CPU utilization exceeds 80%"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.main.id
@@ -733,6 +912,8 @@ resource "aws_cloudwatch_metric_alarm" "dlq_depth" {
   statistic           = "Sum"
   threshold           = 0
   alarm_description   = "Dead letter queue ${each.key} has messages"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
 
   dimensions = {
     QueueName = each.value.name
@@ -753,4 +934,8 @@ output "ecr_api_url" {
 
 output "ecr_frontend_url" {
   value = aws_ecr_repository.frontend.repository_url
+}
+
+output "sns_alerts_topic_arn" {
+  value = aws_sns_topic.alerts.arn
 }

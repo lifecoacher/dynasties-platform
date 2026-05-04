@@ -9,6 +9,7 @@ interface User {
   role: string;
   companyId: string;
   companyName?: string;
+  isDemo?: boolean;
 }
 
 interface AuthContextValue {
@@ -41,6 +42,7 @@ async function validateToken(savedToken: string): Promise<User | null> {
     return {
       ...data,
       companyName: data.companyName || data.company?.name || undefined,
+      isDemo: typeof data.isDemo === "boolean" ? data.isDemo : undefined,
     } as User;
   } catch {
     return null;
@@ -121,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const userData = {
               ...data.user,
               companyName: data.user.companyName || data.user.company?.name || undefined,
+              isDemo: typeof data.user.isDemo === "boolean" ? data.user.isDemo : undefined,
             };
             setToken(data.token);
             setUser(userData);
@@ -191,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userData = {
       ...data.user,
       companyName: data.user.companyName || data.user.company?.name || data.company?.name || undefined,
+      isDemo: typeof data.user.isDemo === "boolean" ? data.user.isDemo : undefined,
     };
     setToken(data.token);
     setUser(userData);

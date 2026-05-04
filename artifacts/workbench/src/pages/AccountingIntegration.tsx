@@ -25,6 +25,7 @@ import {
   useDisconnectAccounting,
   useAccountingMappings,
 } from "@/hooks/use-accounting";
+import { formatRelativeTime } from "@/lib/format-time";
 
 function SyncStatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string }> = {
@@ -132,7 +133,12 @@ export default function AccountingIntegration() {
               </div>
               <div>
                 <p className="text-muted-foreground mb-0.5">Last Sync</p>
-                <p className="text-foreground">{connection.lastSyncAt ? new Date(connection.lastSyncAt).toLocaleString() : "Never"}</p>
+                <p
+                  className="text-foreground"
+                  title={connection.lastSyncAt ? new Date(connection.lastSyncAt).toLocaleString() : undefined}
+                >
+                  {connection.lastSyncAt ? formatRelativeTime(connection.lastSyncAt) : "Not yet synced"}
+                </p>
               </div>
               <div>
                 <p className="text-muted-foreground mb-0.5">Last Status</p>

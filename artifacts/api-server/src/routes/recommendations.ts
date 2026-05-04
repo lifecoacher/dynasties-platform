@@ -15,6 +15,9 @@ import { requireMinRole } from "../middlewares/auth.js";
 import { publishDecisionJob, publishAiRuntimeJob } from "@workspace/queue";
 import { z } from "zod";
 import { handleRecommendationResponse } from "@workspace/svc-ai-runtime/task-sync";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("recommendations");
 
 type AsyncHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
@@ -23,7 +26,7 @@ function safe(label: string, handler: AsyncHandler): AsyncHandler {
     try {
       await handler(req, res, next);
     } catch (err) {
-      console.error(`[recommendations] ${label} error:`, err);
+      logger.error({ err, label }, "Route error");
       next(err);
     }
   };
@@ -206,7 +209,7 @@ router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validate
   try {
     await handleRecommendationResponse(recId, action as "ACCEPTED" | "MODIFIED" | "REJECTED", companyId, rec.shipmentId);
   } catch (err) {
-    console.error(`[recommendations] task sync error for rec=${recId}:`, err);
+    logger.error({ err, recId }, "Task sync error");
   }
 
   if (action === "ACCEPTED" || action === "REJECTED") {
@@ -219,7 +222,7 @@ router.post("/recommendations/:id/respond", requireMinRole("OPERATOR"), validate
         triggerSourceEntityType: "recommendation",
       });
     } catch (err) {
-      console.error(`[recommendations] reanalysis trigger error for rec=${recId}:`, err);
+      logger.error({ err, recId }, "Reanalysis trigger error");
     }
   }
 
@@ -593,7 +596,7 @@ async function handleRecAction(
   try {
     await handleRecommendationResponse(recId, action, companyId, rec.shipmentId);
   } catch (err) {
-    console.error(`[recommendations] task sync error for rec=${recId}:`, err);
+    logger.error({ err, recId }, "Task sync error");
   }
 
   try {
@@ -605,7 +608,7 @@ async function handleRecAction(
       triggerSourceEntityType: "recommendation",
     });
   } catch (err) {
-    console.error(`[recommendations] reanalysis trigger error for rec=${recId}:`, err);
+    logger.error({ err, recId }, "Reanalysis trigger error");
   }
 
   res.json({ data: { id: recId, status: statusToSet, action } });

@@ -1,0 +1,145 @@
+You are the lead production engineer for Dynasties Platform.
+
+We are at final pre-pilot stage. The system is PILOT READY, but there are remaining trust, visibility, and operator-verification gaps that must be fixed in one pass.
+
+Do not expand scope.
+Do not refactor unrelated systems.
+Do not return a plan — implement changes.
+
+---
+
+## SECTION 1 — Tenant Name Consistency (Critical Trust Fix)
+
+Problem:
+Different org names appear across modules:
+- "Lorian Freight Solutions" (correct)
+- "Lorian Maritime Logistics"
+- "Lorian Logistics"
+
+Required:
+- Use ONE canonical organization name across the entire app.
+- Source of truth: Settings / Organization name.
+- Replace all other variants across:
+  - Billing
+  - Accounting / QuickBooks
+  - Headers, subtitles, labels
+
+Validation:
+- Every visible instance matches exactly
+- No alternate naming anywhere
+
+---
+
+## SECTION 2 — Stripe & QuickBooks Sync Freshness
+
+Problem:
+UI shows stale timestamps (e.g., last synced weeks ago), creating distrust.
+
+Required:
+- Replace stale/static timestamps with:
+  - Real last-event timestamp if available
+  - Otherwise show: "Not yet synced"
+- Ensure Stripe Connect state refresh works correctly
+- Ensure QuickBooks sync state reflects actual data, not placeholder
+
+Validation:
+- No outdated timestamps visible
+- Refresh reflects latest state
+- No misleading “last synced” values
+
+---
+
+## SECTION 3 — DEMO MODE vs PILOT MODE
+
+Problem:
+Global "DEMO MODE" banner appears even for real pilot users.
+
+Required:
+- Distinguish between:
+  - Demo tenants (seeded data) → show DEMO MODE
+  - Pilot tenants (real usage) → show PILOT MODE or remove banner entirely
+- Do NOT show DEMO MODE to real pilot users
+
+Validation:
+- Correct banner per tenant type
+- No demo labeling in real pilot experience
+
+---
+
+## SECTION 4 — Event Log Integrity (Audit Trail Fix)
+
+Problem:
+Event count decreases after resolution, implying deletion.
+
+Required:
+- Do NOT delete events
+- Convert to status-based tracking:
+  - RESOLVED
+  - COMPLETED
+  - RESPONDED
+- Preserve full historical log
+- Ensure counts reflect total events, not only active ones
+
+Validation:
+- Event count never decreases
+- Status changes instead of removal
+- Full audit history preserved
+
+---
+
+## SECTION 5 — System Health / Admin Visibility (Critical)
+
+Problem:
+Queue backend, storage backend, DLQ, and webhook health are invisible to operators.
+
+Required:
+Create a new ADMIN-only page:
+
+Route: /system-health
+
+Expose:
+
+- Queue backend (must show: SQS)
+- Storage backend (must show: S3)
+- Stripe webhook last event timestamp
+- QuickBooks last sync timestamp
+- DLQ depth per queue
+- API health (reuse /healthz)
+
+Rules:
+- Read-only
+- No secrets exposed
+- Clear status indicators:
+  - GREEN = healthy
+  - RED = misconfigured or failing
+
+Validation:
+- Page loads correctly
+- Data reflects real system state
+- Misconfigurations clearly visible
+
+---
+
+## OUTPUT REQUIRED
+
+Return:
+
+1. Files changed
+2. Components/routes added
+3. Logic for canonical org name enforcement
+4. Timestamp handling logic
+5. Event log behavior changes
+6. System health data sources
+7. Validation steps performed
+8. Commit hash
+
+---
+
+## SUCCESS CRITERIA
+
+- Single consistent org name everywhere
+- No stale or misleading timestamps
+- No demo labeling for pilot users
+- Event logs never shrink, only change state
+- System health page exposes real infra status (queue, storage, DLQ, webhooks)
+- No unrelated changes

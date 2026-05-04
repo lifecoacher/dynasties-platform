@@ -2,6 +2,9 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("migration");
 import {
   createMigrationJob,
   runClassification,
@@ -40,7 +43,7 @@ router.post("/migration/upload", requireMinRole("OPERATOR"), upload.array("files
     const result = await createMigrationJob(companyId, fileInputs);
     res.json({ data: result });
   } catch (err: any) {
-    console.error("[migration] Upload failed:", err);
+    logger.error({ err }, "Upload failed");
     res.status(400).json({ error: err.message });
   }
 });
@@ -53,7 +56,7 @@ router.post("/migration/:jobId/classify", requireMinRole("OPERATOR"), async (req
     const results = await runClassification(jobId, companyId);
     res.json({ data: results });
   } catch (err: any) {
-    console.error("[migration] Classification failed:", err);
+    logger.error({ err }, "Classification failed");
     res.status(500).json({ error: err.message });
   }
 });
@@ -66,7 +69,7 @@ router.post("/migration/:jobId/map", requireMinRole("OPERATOR"), async (req, res
     const results = await runMapping(jobId, companyId);
     res.json({ data: results });
   } catch (err: any) {
-    console.error("[migration] Mapping failed:", err);
+    logger.error({ err }, "Mapping failed");
     res.status(500).json({ error: err.message });
   }
 });
@@ -80,7 +83,7 @@ router.post("/migration/:jobId/resolve", requireMinRole("OPERATOR"), async (req,
     const results = await applyCorrections(jobId, companyId, corrections);
     res.json({ data: results });
   } catch (err: any) {
-    console.error("[migration] Corrections failed:", err);
+    logger.error({ err }, "Corrections failed");
     res.status(500).json({ error: err.message });
   }
 });
@@ -93,7 +96,7 @@ router.post("/migration/:jobId/validate", requireMinRole("OPERATOR"), async (req
     const result = await runValidation(jobId, companyId);
     res.json({ data: result });
   } catch (err: any) {
-    console.error("[migration] Validation failed:", err);
+    logger.error({ err }, "Validation failed");
     res.status(500).json({ error: err.message });
   }
 });
@@ -117,24 +120,14 @@ router.post("/migration/:jobId/import", requireMinRole("ADMIN"), async (req, res
     const results = await runImport(jobId, companyId, fullData);
 
     if (results.errors && results.errors.length > 0) {
-      console.warn(`[migration] Import completed with ${results.errors.length} errors for company=${companyId} job=${jobId}`, {
-        customersCreated: results.customersCreated,
-        shipmentsCreated: results.shipmentsCreated,
-        invoicesCreated: results.invoicesCreated,
-        errorCount: results.errors.length,
-        firstErrors: results.errors.slice(0, 5),
-      });
+      logger.warn({ companyId, jobId, customersCreated: results.customersCreated, shipmentsCreated: results.shipmentsCreated, invoicesCreated: results.invoicesCreated, errorCount: results.errors.length }, "Import completed with errors");
     } else {
-      console.log(`[migration] Import completed successfully for company=${companyId} job=${jobId}`, {
-        customersCreated: results.customersCreated,
-        shipmentsCreated: results.shipmentsCreated,
-        invoicesCreated: results.invoicesCreated,
-      });
+      logger.info({ companyId, jobId, customersCreated: results.customersCreated, shipmentsCreated: results.shipmentsCreated, invoicesCreated: results.invoicesCreated }, "Import completed successfully");
     }
 
     res.json({ data: results });
   } catch (err: any) {
-    console.error(`[migration] Import FAILED for company=${companyId} job=${jobId}:`, err.message, err.stack?.split("\n").slice(0, 3).join(" "));
+    logger.error({ err: err.message, companyId, jobId }, "Import FAILED");
     res.status(500).json({
       error: "Import failed",
       message: err.message || "An unexpected error occurred during data import. Please try again.",

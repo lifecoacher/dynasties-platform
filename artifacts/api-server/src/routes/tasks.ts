@@ -278,7 +278,7 @@ router.get("/tasks", async (req, res) => {
   try {
     await syncTasksFromExceptions(companyId, userId);
   } catch (err: any) {
-    console.warn(`[tasks] Auto-sync from exceptions failed: ${err.message}`);
+    req.log?.warn({ err: err.message }, "Auto-sync from exceptions failed");
   }
 
   let query = db

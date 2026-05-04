@@ -1,0 +1,137 @@
+You are the lead AWS production engineer for Dynasties Platform.
+
+We are at the final pre-pilot stage. The system is classified as REAL-USER PILOT READY, but three blocking items must be fixed before launch.
+
+Do not expand scope. Do not refactor unrelated code. Implement only the following three fixes with production-grade correctness.
+
+---
+
+## FIX 1 — Real DB Role Separation (NOT theoretical)
+
+Problem:
+API currently runs using DATABASE_URL (migration-level privileges). APP_DATABASE_URL is supported in code but not provisioned in infra.
+
+Required:
+
+1. Create a proper least-privilege Postgres role:
+   - name: app_user
+   - permissions:
+     - SELECT, INSERT, UPDATE, DELETE on application tables
+     - NO schema migration privileges
+     - NO role management privileges
+
+2. Ensure role creation is idempotent:
+   - Use SQL like:
+     DO $$ BEGIN
+       CREATE ROLE app_user LOGIN PASSWORD '...';
+     EXCEPTION WHEN duplicate_object THEN NULL;
+     END $$;
+
+3. Grant privileges safely:
+   - GRANT usage on schema
+   - GRANT DML on tables
+   - ALTER DEFAULT PRIVILEGES for future tables
+
+4. Create APP_DATABASE_URL:
+   - Add new SSM parameter
+   - Format: postgres://app_user:password@host/db
+
+5. Terraform:
+   - Inject APP_DATABASE_URL into ECS API task ONLY
+   - Keep DATABASE_URL for migration task ONLY
+
+6. Runtime behavior:
+   - API must prefer APP_DATABASE_URL
+   - Migration runner must use DATABASE_URL
+
+Validation:
+- API container uses app_user
+- Migration task uses admin/migration user
+- App runs correctly with reduced privileges
+- No silent GRANT failures
+
+---
+
+## FIX 2 — Kill Silent Fallbacks (Production must fail loudly)
+
+Problem:
+Queue falls back to in-memory EventEmitter. This is unacceptable in AWS.
+
+Required:
+
+1. In env validation (Zod):
+   - If NODE_ENV === "production" or "staging":
+       QUEUE_BACKEND must equal "sqs"
+       STORAGE_BACKEND must equal "s3" (if defined)
+
+2. If not:
+   - Throw at boot
+   - Do NOT warn
+   - Do NOT fallback
+
+3. Allow fallback ONLY when:
+   - NODE_ENV === "development" or "demo"
+
+4. Update queue initialization:
+   - Remove or guard EventEmitter fallback behind dev-only condition
+
+Validation:
+- Production boot fails if misconfigured
+- Dev mode still works locally
+- No silent degradation path exists
+
+---
+
+## FIX 3 — DLQ Alerts Must Reach Humans
+
+Problem:
+DLQ alarms exist but do not notify anyone.
+
+Required:
+
+1. Create SNS topic:
+   - dynasties-prod-alerts
+
+2. Add Terraform variables:
+   - alert_email
+
+3. Subscribe email to SNS:
+   - aws_sns_topic_subscription
+
+4. Wire ALL DLQ CloudWatch alarms:
+   - alarm_actions = [sns_topic_arn]
+
+5. Update RUNBOOK:
+   - how to confirm email subscription
+   - how to test alarm (send message to DLQ)
+   - expected behavior
+
+6. Optional (if trivial):
+   - allow webhook/PagerDuty endpoint via variable
+
+Validation:
+- Every DLQ alarm triggers SNS
+- Email subscription documented
+- Alarm test path works
+
+---
+
+## OUTPUT REQUIRED
+
+Return:
+
+1. Files changed
+2. Terraform changes
+3. SQL role creation strategy
+4. Env validation updates
+5. Queue fallback removal logic
+6. SNS + alarm wiring
+7. Validation steps executed
+8. Final commit hash
+
+Success criteria:
+
+- API runs with app_user, not migration user
+- Production cannot run with in-memory queue
+- DLQ alarms notify humans
+- No unrelated changes

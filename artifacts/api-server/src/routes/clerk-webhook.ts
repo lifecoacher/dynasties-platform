@@ -4,6 +4,10 @@ import { usersTable, companiesTable, eventsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import crypto from "node:crypto";
+import bcrypt from "bcryptjs";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("clerk-webhook");
 
 const router: IRouter = Router();
 
@@ -43,7 +47,7 @@ router.post("/auth/clerk-webhook", async (req, res) => {
   const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
 
   if (!webhookSecret && process.env.NODE_ENV === "production") {
-    console.error("[clerk-webhook] CLERK_WEBHOOK_SECRET not set in production");
+    logger.error("CLERK_WEBHOOK_SECRET not set in production");
     res.status(500).json({ error: "Webhook not configured" });
     return;
   }
@@ -53,7 +57,7 @@ router.post("/auth/clerk-webhook", async (req, res) => {
   if (webhookSecret) {
     const valid = verifyClerkWebhookSignature(rawBody, req.headers, webhookSecret);
     if (!valid) {
-      console.warn("[clerk-webhook] Invalid signature");
+      logger.warn("Invalid signature");
       res.status(401).json({ error: "Invalid webhook signature" });
       return;
     }
@@ -62,13 +66,13 @@ router.post("/auth/clerk-webhook", async (req, res) => {
   const event = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
   const { type, data } = event;
 
-  console.log(`[clerk-webhook] Received event: ${type}`);
+  logger.info({ eventType: type }, "Received event");
 
   try {
     switch (type) {
       case "user.created": {
         if (isDemoMode) {
-          console.log("[clerk-webhook] Demo mode — skipping user.created (handled by demo bridge)");
+          logger.info("Demo mode — skipping user.created (handled by demo bridge)");
           break;
         }
 
@@ -90,9 +94,13 @@ router.post("/auth/clerk-webhook", async (req, res) => {
         const userId = generateId("usr");
 
         await db.transaction(async (tx) => {
+          const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Date.now()}`;
+          const placeholderHash = await bcrypt.hash(generateId(), 10);
+
           await tx.insert(companiesTable).values({
             id: companyId,
             name: `${name}'s Organization`,
+            slug,
             industry: "FREIGHT_FORWARDING",
             billingStatus: "TRIAL",
             planType: "STARTER",
@@ -103,6 +111,7 @@ router.post("/auth/clerk-webhook", async (req, res) => {
             companyId,
             email,
             name,
+            passwordHash: placeholderHash,
             clerkId,
             role: "ADMIN",
             isActive: true,
@@ -119,7 +128,7 @@ router.post("/auth/clerk-webhook", async (req, res) => {
           });
         });
 
-        console.log(`[clerk-webhook] Created user ${userId} + company ${companyId} for ${email}`);
+        logger.info({ userId, companyId, email }, "Created user + company");
         break;
       }
 
@@ -145,7 +154,7 @@ router.post("/auth/clerk-webhook", async (req, res) => {
             .update(usersTable)
             .set(updates)
             .where(eq(usersTable.id, user.id));
-          console.log(`[clerk-webhook] Updated user ${user.id}: ${Object.keys(updates).join(", ")}`);
+          logger.info({ userId: user.id, fields: Object.keys(updates) }, "Updated user");
         }
         break;
       }
@@ -166,17 +175,17 @@ router.post("/auth/clerk-webhook", async (req, res) => {
           .set({ isActive: false, clerkId: null })
           .where(eq(usersTable.id, user.id));
 
-        console.log(`[clerk-webhook] Deactivated user ${user.id} (clerk_id: ${clerkId})`);
+        logger.info({ userId: user.id, clerkId }, "Deactivated user");
         break;
       }
 
       default:
-        console.log(`[clerk-webhook] Unhandled event type: ${type}`);
+        logger.info({ eventType: type }, "Unhandled event type");
     }
 
     res.status(200).json({ received: true });
   } catch (err: any) {
-    console.error(`[clerk-webhook] Error processing ${type}:`, err.message);
+    logger.error({ err: err.message, eventType: type }, "Error processing event");
     res.status(500).json({ error: "Webhook processing failed" });
   }
 });

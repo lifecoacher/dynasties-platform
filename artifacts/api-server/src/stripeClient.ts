@@ -1,4 +1,7 @@
 import Stripe from 'stripe';
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("stripe");
 
 interface StripeCredentials {
   publishableKey: string;
@@ -57,14 +60,14 @@ async function getCredentials(): Promise<StripeCredentials> {
 
   if (envKey && envPubKey) {
     credentialSource = 'environment-variables';
-    console.log(`[stripe] credentials loaded from environment variables`);
+    logger.info("Credentials loaded from environment variables");
     cachedCredentials = { secretKey: envKey, publishableKey: envPubKey };
     return cachedCredentials;
   }
 
   if (envKey) {
     credentialSource = 'environment-variables-partial';
-    console.log(`[stripe] secret key from env var, publishable key will use fallback`);
+    logger.info("Secret key from env var, publishable key will use fallback");
     const replitCreds = await getCredentialsFromReplit().catch(() => null);
     cachedCredentials = {
       secretKey: envKey,
@@ -76,7 +79,7 @@ async function getCredentials(): Promise<StripeCredentials> {
   const replitCreds = await getCredentialsFromReplit();
   if (replitCreds) {
     credentialSource = 'replit-connector';
-    console.log(`[stripe] credentials loaded from Replit connector`);
+    logger.info("Credentials loaded from Replit connector");
     cachedCredentials = replitCreds;
     return cachedCredentials;
   }

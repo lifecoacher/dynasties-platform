@@ -6,6 +6,9 @@ import { companiesTable, stripeWebhookEventsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { recordWebhook } from "./routes/metrics.js";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("webhook");
 
 async function findCompanyByStripeCustomer(customerId: string): Promise<string | null> {
   const [company] = await db.select({ id: companiesTable.id })
@@ -87,13 +90,13 @@ export class WebhookHandlers {
       if (process.env.NODE_ENV === "production") {
         throw new Error("STRIPE_WEBHOOK_SECRET is required in production");
       }
-      console.warn('[webhook] STRIPE_WEBHOOK_SECRET not set — signature verification skipped (development only)');
+      logger.warn("STRIPE_WEBHOOK_SECRET not set — signature verification skipped (development only)");
       event = JSON.parse(payload.toString()) as Stripe.Event;
     }
 
     const { shouldProcess, eventRecordId } = await checkAndRecordEvent(event.id, event.type);
     if (!shouldProcess) {
-      console.log(`[webhook] Duplicate event ${event.id} (${event.type}), skipping`);
+      logger.info({ eventId: event.id, eventType: event.type }, "Duplicate event, skipping");
       return;
     }
 
@@ -104,7 +107,7 @@ export class WebhookHandlers {
       await markEventProcessed(eventRecordId);
       recordWebhook(true);
     } catch (err: any) {
-      console.error('[webhook] Processing error:', err.message);
+      logger.error({ err: err.message }, "Processing error");
       await markEventFailed(eventRecordId, err.message).catch(() => {});
       recordWebhook(false);
     }
@@ -116,7 +119,7 @@ export class WebhookHandlers {
 
     if (!data) return;
 
-    console.log(`[webhook] Processing event: ${type} (${event.id})`);
+    logger.info({ eventType: type, eventId: event.id }, "Processing event");
 
     switch (type) {
       case 'checkout.session.completed': {
@@ -125,7 +128,7 @@ export class WebhookHandlers {
 
         if (isDeploymentFee && companyId) {
           await stripeService.markDeploymentFeePaid(companyId);
-          console.log(`[webhook] Deployment fee paid for company ${companyId}`);
+          logger.info({ companyId }, "Deployment fee paid");
           break;
         }
 
@@ -146,7 +149,7 @@ export class WebhookHandlers {
             sub.current_period_end ? new Date(sub.current_period_end * 1000) : undefined,
             sub.trial_end ? new Date(sub.trial_end * 1000) : null,
           );
-          console.log(`[webhook] checkout.session.completed: company=${companyId}, sub=${subscriptionId}, status=${sub.status}`);
+          logger.info({ companyId, subscriptionId, status: sub.status }, "checkout.session.completed synced");
         }
         break;
       }
@@ -175,7 +178,7 @@ export class WebhookHandlers {
           sub.current_period_end ? new Date(sub.current_period_end * 1000) : undefined,
           sub.trial_end ? new Date(sub.trial_end * 1000) : null,
         );
-        console.log(`[webhook] invoice.paid: company=${companyId}, sub=${subscriptionId}`);
+        logger.info({ companyId, subscriptionId }, "invoice.paid synced");
         break;
       }
 
@@ -195,7 +198,7 @@ export class WebhookHandlers {
           null,
           null,
         );
-        console.log(`[webhook] invoice.payment_failed: company=${companyId}, sub=${subscriptionId}, status=PAST_DUE`);
+        logger.info({ companyId, subscriptionId, status: "PAST_DUE" }, "invoice.payment_failed synced");
         break;
       }
 
@@ -218,7 +221,7 @@ export class WebhookHandlers {
           data.current_period_end ? new Date(data.current_period_end * 1000) : undefined,
           data.trial_end ? new Date(data.trial_end * 1000) : null,
         );
-        console.log(`[webhook] ${type}: company=${companyId}, sub=${data.id}, status=${data.status}`);
+        logger.info({ companyId, subscriptionId: data.id, status: data.status }, `${type} synced`);
         break;
       }
 

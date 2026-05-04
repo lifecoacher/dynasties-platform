@@ -20,8 +20,11 @@ import {
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { requireAuth, requireRole, refreshRole } from "../middlewares/auth.js";
 import { getCompanyId } from "../middlewares/tenant.js";
+import { createLogger } from "@workspace/config";
 import * as fs from "node:fs";
 import * as path from "node:path";
+
+const logger = createLogger("demo");
 
 const router: IRouter = Router();
 
@@ -70,7 +73,7 @@ router.post("/demo/ingest", ...demoGuard, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("[demo-ingest] error:", err);
+    logger.error({ err }, "Demo ingest error");
     res.status(500).json({ error: "Demo ingestion failed" });
   }
 });
@@ -181,7 +184,7 @@ router.post("/demo/reset", ...demoGuard, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("[demo-reset] error:", err);
+    logger.error({ err }, "Demo reset error");
     res.status(500).json({ error: "Demo reset failed" });
   }
 });
@@ -342,7 +345,7 @@ router.get("/demo/shipment-intelligence", ...demoGuard, async (req, res) => {
 
     res.json({ data: { shipments: enriched, summary } });
   } catch (err) {
-    console.error("[demo-intelligence] error:", err);
+    logger.error({ err }, "Demo intelligence error");
     res.status(500).json({ error: "Failed to load intelligence data" });
   }
 });

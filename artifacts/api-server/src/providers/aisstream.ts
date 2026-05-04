@@ -12,15 +12,12 @@ export interface VesselPosition {
   timestamp: string;
 }
 
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("aisstream");
+
 function logProviderCall(outcome: "success" | "error" | "disabled" | "fallback", latencyMs: number, detail?: string): void {
-  console.log(JSON.stringify({
-    provider: "aisstream",
-    outcome,
-    latencyMs: Math.round(latencyMs),
-    fallback: outcome === "fallback" || outcome === "disabled",
-    detail: detail || undefined,
-    timestamp: new Date().toISOString(),
-  }));
+  logger.info({ provider: "aisstream", outcome, latencyMs: Math.round(latencyMs), fallback: outcome === "fallback" || outcome === "disabled", detail: detail || undefined }, `Provider call: ${outcome}`);
 }
 
 export async function fetchVesselPositions(_mmsis: string[]): Promise<VesselPosition[] | null> {

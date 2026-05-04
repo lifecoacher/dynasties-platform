@@ -22,11 +22,12 @@ import {
   Calculator,
   AlertTriangle,
   BookOpen,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useListShipments } from "@workspace/api-client-react";
 import { useAlertsSummary } from "@/hooks/use-exceptions";
-import { DEMO_MODE } from "@/hooks/use-demo";
+import { useIsDemo } from "@/hooks/use-demo";
 
 const DEMO_HIDDEN = new Set([
   "/customers",
@@ -59,17 +60,21 @@ const ALL_NAV_ITEMS = [
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
-const NAV_ITEMS = DEMO_MODE
-  ? ALL_NAV_ITEMS.filter((item) => !DEMO_HIDDEN.has(item.href))
-  : ALL_NAV_ITEMS;
-
 export function Sidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const isDemo = useIsDemo();
   const { data: shipmentsRes } = useListShipments();
   const { data: alertsRes } = useAlertsSummary();
   const recentShipments = (shipmentsRes?.data || []).slice(0, 4);
   const alertCount = alertsRes?.data?.needsAttention ?? 0;
+
+  const baseNav = isDemo
+    ? ALL_NAV_ITEMS.filter((item) => !DEMO_HIDDEN.has(item.href))
+    : ALL_NAV_ITEMS;
+  const NAV_ITEMS = user?.role === "ADMIN"
+    ? [...baseNav, { href: "/system-health", icon: Activity, label: "System Health" }]
+    : baseNav;
 
   const isActive = (href: string) => {
     if (href === "/") return location === "/";
@@ -126,7 +131,7 @@ export function Sidebar() {
           );
         })}
 
-        {!DEMO_MODE && (
+        {!isDemo && (
           <Link href="/demo">
             <div className="flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium text-sidebar-foreground/50 hover:text-foreground hover:bg-black/[0.02] cursor-pointer mt-2">
               <Zap className="w-4 h-4 shrink-0" />

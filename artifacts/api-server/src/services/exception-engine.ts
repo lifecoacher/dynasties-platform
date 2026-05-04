@@ -549,6 +549,14 @@ export async function getAlertsSummary(companyId: string) {
       ),
     );
 
+  const [allTimeRow] = await db
+    .select({
+      total: sql<number>`count(*)`,
+      resolved: sql<number>`count(*) filter (where ${exceptionsTable.status} = 'RESOLVED')`,
+    })
+    .from(exceptionsTable)
+    .where(eq(exceptionsTable.companyId, companyId));
+
   const bySeverity = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
   const byType: Record<string, number> = {};
   const byStatus = { OPEN: 0, IN_PROGRESS: 0, ESCALATED: 0 };
@@ -565,6 +573,8 @@ export async function getAlertsSummary(companyId: string) {
 
   return {
     total: openExceptions.length,
+    totalAllTime: Number(allTimeRow?.total ?? 0),
+    totalResolved: Number(allTimeRow?.resolved ?? 0),
     bySeverity,
     byType,
     byStatus,

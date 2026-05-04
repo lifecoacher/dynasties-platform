@@ -104,7 +104,7 @@ async function checkBillingStatus(req: Request, res: Response, next: NextFunctio
 
     next();
   } catch (err) {
-    console.error("[billing-enforcement] DB lookup failed, failing closed:", err);
+    req.log?.error({ err }, "Billing enforcement DB lookup failed, failing closed");
     res.status(503).json({
       error: "Billing verification unavailable",
       code: "BILLING_CHECK_ERROR",

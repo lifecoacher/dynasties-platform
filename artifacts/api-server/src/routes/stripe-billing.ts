@@ -8,6 +8,9 @@ import { stripeService } from "../services/stripe-service.js";
 import { PLAN_CONFIGS, getPlanConfig, getPlanLimits, PLAN_ORDER, type PlanType } from "../config/plans.js";
 import { getStripePublishableKey } from "../stripeClient.js";
 import { checkSeatLimit, getActualShipmentCount } from "../middlewares/billing-enforcement.js";
+import { getPublicBaseUrl, createLogger } from "@workspace/config";
+
+const logger = createLogger("stripe-billing");
 
 const router = Router();
 
@@ -86,7 +89,7 @@ router.get("/stripe/plans", async (_req, res) => {
 
     res.json({ data: plans });
   } catch (error: any) {
-    console.error("Error fetching plans:", error);
+    logger.error({ err: error }, "Error fetching plans");
     res.json({ data: [] });
   }
 });
@@ -146,7 +149,7 @@ router.get("/stripe/subscription", async (req, res) => {
   else if (shipmentUsagePercent >= 80) shipmentWarning = "HIGH_USAGE";
 
   if (company.shipmentsUsedThisCycle !== actualShipmentCount) {
-    console.error(`[billing] USAGE DRIFT DETECTED company=${companyId}: counter=${company.shipmentsUsedThisCycle} actual=${actualShipmentCount}`);
+    logger.error({ companyId, counter: company.shipmentsUsedThisCycle, actual: actualShipmentCount }, "USAGE DRIFT DETECTED");
   }
 
   const isTrialExpired = company.billingStatus === "TRIAL"
@@ -220,7 +223,7 @@ router.post("/stripe/checkout", requireMinRole("ADMIN"), async (req, res) => {
     company.name
   );
 
-  const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+  const baseUrl = getPublicBaseUrl();
   const session = await stripeService.createCheckoutSession({
     customerId,
     subscriptionPriceId: stripePriceId,
@@ -263,7 +266,7 @@ router.post("/stripe/deployment-fee-checkout", requireMinRole("ADMIN"), async (r
     return;
   }
 
-  const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+  const baseUrl = getPublicBaseUrl();
   const session = await stripeService.createDeploymentFeeCheckout({
     customerId: company.stripeCustomerId,
     deploymentFeePriceId: deploymentPriceId,
@@ -285,7 +288,7 @@ router.post("/stripe/portal", requireMinRole("ADMIN"), async (req, res) => {
     return;
   }
 
-  const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+  const baseUrl = getPublicBaseUrl();
   const session = await stripeService.createPortalSession(
     company.stripeCustomerId,
     `${baseUrl}/settings/billing`
@@ -320,11 +323,11 @@ router.post("/stripe/activate-demo", requireMinRole("ADMIN"), async (req, res) =
   const config = getPlanConfig(planType);
 
   const seatInfo = await checkSeatLimit(companyId);
-  if (seatInfo.seatsUsed > config.seatLimit) {
+  if (seatInfo.used > config.seatLimit) {
     res.status(400).json({
-      error: `Cannot switch to ${planType}: you have ${seatInfo.seatsUsed} active seats but this plan allows ${config.seatLimit}. Remove ${seatInfo.seatsUsed - config.seatLimit} seat(s) first.`,
+      error: `Cannot switch to ${planType}: you have ${seatInfo.used} active seats but this plan allows ${config.seatLimit}. Remove ${seatInfo.used - config.seatLimit} seat(s) first.`,
       code: "SEAT_LIMIT_EXCEEDED",
-      seatsUsed: seatInfo.seatsUsed,
+      seatsUsed: seatInfo.used,
       newLimit: config.seatLimit,
     });
     return;

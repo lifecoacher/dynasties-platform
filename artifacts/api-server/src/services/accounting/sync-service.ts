@@ -4,6 +4,7 @@ import {
   accountingConnectionsTable,
   accountingSyncMappingsTable,
   customerBillingProfilesTable,
+  companiesTable,
   invoicesTable,
   receivablesTable,
   eventsTable,
@@ -70,12 +71,22 @@ export async function connectQuickBooks(companyId: string, userId: string) {
     throw new Error("QuickBooks connection test failed");
   }
 
+  // Single source of truth for tenant naming: prefer the canonical company
+  // name over any provider-returned label so demo connections cannot drift
+  // into showing stale or fixture-polluted names in the UI.
+  const [companyRow] = await db
+    .select({ name: companiesTable.name })
+    .from(companiesTable)
+    .where(eq(companiesTable.id, companyId))
+    .limit(1);
+  const resolvedCompanyName = companyRow?.name ?? testResult.companyName;
+
   const [updated] = await db
     .update(accountingConnectionsTable)
     .set({
       connectionStatus: "CONNECTED",
       realmId: testResult.realmId,
-      companyName: testResult.companyName,
+      companyName: resolvedCompanyName,
       lastSyncError: null,
     })
     .where(eq(accountingConnectionsTable.id, connection.id))
@@ -87,7 +98,7 @@ export async function connectQuickBooks(companyId: string, userId: string) {
     entityType: "ACCOUNTING_CONNECTION",
     entityId: connection.id,
     userId,
-    metadata: { provider: "QUICKBOOKS", realmId: testResult.realmId, companyName: testResult.companyName },
+    metadata: { provider: "QUICKBOOKS", realmId: testResult.realmId, companyName: resolvedCompanyName },
   });
 
   return updated;

@@ -2,6 +2,9 @@ import { Router, type IRouter } from "express";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
 import { runAIAnalysis } from "@workspace/svc-decision-engine";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("ai-analysis");
 
 const router: IRouter = Router();
 
@@ -46,7 +49,7 @@ router.post(
         },
       });
     } catch (err: any) {
-      console.error(`[ai-analysis] error for shipment=${shipmentId}:`, err);
+      logger.error({ err, shipmentId }, "AI analysis error");
       res.status(err.message?.includes("not found") ? 404 : 500).json({
         error: err.message || "AI analysis failed",
       });

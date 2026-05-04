@@ -107,7 +107,7 @@ export class DemoQuickBooksAdapter implements QuickBooksAdapter {
   private payments: Map<string, QBPayment[]> = new Map();
 
   async testConnection() {
-    return { success: true, companyName: "Lorian Freight Solutions (DEMO - Not Connected to QuickBooks)", realmId: "demo-realm-lorian-001" };
+    return { success: true, companyName: "QuickBooks Sandbox (Demo)", realmId: "demo-realm" };
   }
 
   async createCustomer(data: {
