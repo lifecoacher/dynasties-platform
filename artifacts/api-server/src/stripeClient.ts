@@ -1,18 +1,24 @@
 import Stripe from 'stripe';
 
-let connectionSettings: any;
+interface StripeCredentials {
+  publishableKey: string;
+  secretKey: string;
+}
 
-async function getCredentials() {
+let cachedCredentials: StripeCredentials | null = null;
+let credentialSource: string = 'unknown';
+
+async function getCredentialsFromReplit(): Promise<StripeCredentials | null> {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+  if (!hostname) return null;
+
   const xReplitToken = process.env.REPL_IDENTITY
     ? 'repl ' + process.env.REPL_IDENTITY
     : process.env.WEB_REPL_RENEWAL
       ? 'depl ' + process.env.WEB_REPL_RENEWAL
       : null;
 
-  if (!xReplitToken) {
-    throw new Error('X-Replit-Token not found for repl/depl');
-  }
+  if (!xReplitToken) return null;
 
   const connectorName = 'stripe';
   const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
@@ -31,16 +37,58 @@ async function getCredentials() {
   });
 
   const data: any = await response.json();
-  connectionSettings = data.items?.[0];
+  const connectionSettings = data.items?.[0];
 
-  if (!connectionSettings || (!connectionSettings.settings.publishable || !connectionSettings.settings.secret)) {
-    throw new Error(`Stripe ${targetEnvironment} connection not found`);
+  if (!connectionSettings?.settings?.publishable || !connectionSettings?.settings?.secret) {
+    return null;
   }
 
   return {
     publishableKey: connectionSettings.settings.publishable,
     secretKey: connectionSettings.settings.secret,
   };
+}
+
+async function getCredentials(): Promise<StripeCredentials> {
+  if (cachedCredentials) return cachedCredentials;
+
+  const envKey = process.env.STRIPE_SECRET_KEY;
+  const envPubKey = process.env.STRIPE_PUBLISHABLE_KEY;
+
+  if (envKey && envPubKey) {
+    credentialSource = 'environment-variables';
+    console.log(`[stripe] credentials loaded from environment variables`);
+    cachedCredentials = { secretKey: envKey, publishableKey: envPubKey };
+    return cachedCredentials;
+  }
+
+  if (envKey) {
+    credentialSource = 'environment-variables-partial';
+    console.log(`[stripe] secret key from env var, publishable key will use fallback`);
+    const replitCreds = await getCredentialsFromReplit().catch(() => null);
+    cachedCredentials = {
+      secretKey: envKey,
+      publishableKey: replitCreds?.publishableKey || '',
+    };
+    return cachedCredentials;
+  }
+
+  const replitCreds = await getCredentialsFromReplit();
+  if (replitCreds) {
+    credentialSource = 'replit-connector';
+    console.log(`[stripe] credentials loaded from Replit connector`);
+    cachedCredentials = replitCreds;
+    return cachedCredentials;
+  }
+
+  throw new Error(
+    'Stripe credentials not found. Provide STRIPE_SECRET_KEY + STRIPE_PUBLISHABLE_KEY env vars, ' +
+    'or configure the Replit Stripe connector.'
+  );
+}
+
+export function getCredentialSource(): string {
+  return credentialSource;
 }
 
 export async function getUncachableStripeClient() {

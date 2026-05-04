@@ -1,5 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { db } from "@workspace/db";
+import { accountingConnectionsTable } from "@workspace/db/schema";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
 import { validateBody } from "../middlewares/validate.js";
@@ -13,6 +16,7 @@ import {
   getSyncMappings,
   getInvoiceSyncStatus,
   simulateDemoPayment,
+  getOrCreateConnection,
 } from "../services/accounting/sync-service.js";
 
 const router = Router();
@@ -124,4 +128,88 @@ if (DEMO_MODE) {
   });
 }
 
+router.get("/accounting/oauth/quickbooks/auth-url", requireMinRole("ADMIN"), async (req, res) => {
+  const clientId = process.env.QB_CLIENT_ID;
+  if (!clientId) {
+    res.status(400).json({ error: "QuickBooks OAuth not configured (QB_CLIENT_ID missing)" });
+    return;
+  }
+
+  const redirectUri = `${req.protocol}://${req.get("host")}/api/accounting/oauth/quickbooks/callback`;
+  const companyId = getCompanyId(req);
+
+  const authUrl = new URL("https://appcenter.intuit.com/connect/oauth2");
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("scope", "com.intuit.quickbooks.accounting");
+  authUrl.searchParams.set("redirect_uri", redirectUri);
+  authUrl.searchParams.set("state", companyId);
+
+  res.json({ data: { authUrl: authUrl.toString() } });
+});
+
+export const qbOAuthCallbackHandler: import("express").RequestHandler = async (req, res) => {
+  const code = req.query.code as string;
+  const realmId = req.query.realmId as string;
+  const companyId = req.query.state as string;
+
+  if (!code || !realmId || !companyId) {
+    res.status(400).json({ error: "Missing OAuth callback parameters" });
+    return;
+  }
+
+  const clientId = process.env.QB_CLIENT_ID;
+  const clientSecret = process.env.QB_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    res.status(500).json({ error: "QuickBooks OAuth not configured" });
+    return;
+  }
+
+  try {
+    const redirectUri = `${req.protocol}://${req.get("host")}/api/accounting/oauth/quickbooks/callback`;
+
+    const tokenResp = await fetch("https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64"),
+      },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+      }),
+    });
+
+    if (!tokenResp.ok) {
+      const body = await tokenResp.text();
+      throw new Error(`Token exchange failed (${tokenResp.status}): ${body}`);
+    }
+
+    const tokens = await tokenResp.json() as any;
+    const expiresAt = new Date(Date.now() + (tokens.expires_in - 60) * 1000);
+
+    const connection = await getOrCreateConnection(companyId);
+
+    await db
+      .update(accountingConnectionsTable)
+      .set({
+        connectionStatus: "CONNECTED",
+        realmId,
+        tokenEncrypted: tokens.access_token,
+        refreshTokenEncrypted: tokens.refresh_token,
+        tokenExpiresAt: expiresAt,
+        lastSyncError: null,
+      })
+      .where(eq(accountingConnectionsTable.id, connection.id));
+
+    res.json({ data: { success: true, realmId, companyId } });
+  } catch (err: any) {
+    console.error("[accounting] OAuth callback error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export default router;
+

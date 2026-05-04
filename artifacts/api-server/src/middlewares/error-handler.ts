@@ -21,14 +21,16 @@ export function globalErrorHandler(
   const statusCode = (err as any).statusCode || 500;
 
   const logPayload = {
-    level: statusCode >= 500 ? "ERROR" : "WARN",
+    level: statusCode >= 500 ? "error" : "warn",
+    msg: `${req.method} ${req.originalUrl} error`,
     method: req.method,
     url: req.originalUrl,
     statusCode,
-    message: err.message,
-    stack: err.stack?.split("\n").slice(0, 5).join(" "),
+    error: err.message,
+    stack: statusCode >= 500 ? err.stack?.split("\n").slice(0, 5).join(" ") : undefined,
     userId: req.user?.userId || "anonymous",
     companyId: req.user?.companyId || "-",
+    requestId: req.requestId || "-",
     timestamp: new Date().toISOString(),
   };
 

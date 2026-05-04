@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, "rc/*"]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10"
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            artifacts/*/node_modules
+            lib/*/node_modules
+            services/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+  typecheck:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            artifacts/*/node_modules
+            lib/*/node_modules
+            services/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm --filter @workspace/api-server run typecheck
+
+  test:
+    needs: install
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: dynasties_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://testuser:testpass@localhost:5432/dynasties_test
+      JWT_SECRET: test-secret-minimum-32-characters-for-ci
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            artifacts/*/node_modules
+            lib/*/node_modules
+            services/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Run migrations
+        run: pnpm --filter @workspace/db run migrate
+      - name: Run tests
+        run: pnpm test --if-present
+
+  build:
+    needs: [typecheck, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            artifacts/*/node_modules
+            lib/*/node_modules
+            services/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm --filter @workspace/api-server run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-server-build
+          path: artifacts/api-server/dist/
+
+  # Container build — requires ECR credentials
+  # Uncomment and configure when deploying to AWS
+  # docker:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/rc/')
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+  #         aws-region: us-east-1
+  #     - uses: aws-actions/amazon-ecr-login@v2
+  #       id: ecr
+  #     - name: Build and push
+  #       env:
+  #         ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+  #         IMAGE_TAG: ${{ github.sha }}
+  #       run: |
+  #         docker build -t $ECR_REGISTRY/dynasties-api:$IMAGE_TAG .
+  #         docker push $ECR_REGISTRY/dynasties-api:$IMAGE_TAG
+  #     - name: Deploy to ECS
+  #       # Requires: AWS_DEPLOY_ROLE_ARN, ECS cluster/service names
+  #       # Run migration task before updating service
+  #       run: |
+  #         echo "Deploy step — configure ECS service update here"
+  #         echo "1. Run migration ECS task: aws ecs run-task --task-definition dynasties-migrate"
+  #         echo "2. Update service: aws ecs update-service --cluster dynasties --service api --force-new-deployment"

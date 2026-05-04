@@ -22,6 +22,15 @@ const envSchema = z.object({
   CORS_ALLOWED_ORIGINS: z.string().optional(),
   STORAGE_BACKEND: z.enum(["local", "s3"]).optional(),
   QUEUE_BACKEND: z.enum(["local", "sqs"]).optional(),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  QB_CLIENT_ID: z.string().optional(),
+  QB_CLIENT_SECRET: z.string().optional(),
+  QB_MODE: z.enum(["demo", "live"]).optional(),
+  CLERK_WEBHOOK_SECRET: z.string().optional(),
+  FEATURE_DEV_ROLE_OVERRIDE: z.enum(["true", "false"]).optional(),
+  LOCAL_DEV_ONLY: z.enum(["true", "false"]).optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
