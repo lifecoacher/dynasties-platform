@@ -5,6 +5,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import bcrypt from "bcryptjs";
 import { signToken } from "../middlewares/auth.js";
+import { isDemoCompany } from "../lib/demo-companies.js";
 import { createLogger } from "@workspace/config";
 
 const logger = createLogger("clerk-sync");
@@ -90,6 +91,11 @@ router.post("/auth/clerk-sync", async (req, res) => {
         .limit(1);
 
       if (lorianAdmin) {
+        const [lorianCompany] = await db
+          .select({ name: companiesTable.name })
+          .from(companiesTable)
+          .where(eq(companiesTable.id, LORIAN_COMPANY_ID))
+          .limit(1);
         await db
           .update(usersTable)
           .set({ clerkId: null })
@@ -127,7 +133,8 @@ router.post("/auth/clerk-sync", async (req, res) => {
               name: displayName || lorianAdmin.name,
               role: lorianAdmin.role,
               companyId: LORIAN_COMPANY_ID,
-              companyName: "Lorian Freight Solutions",
+              companyName: lorianCompany?.name ?? "Lorian Freight Solutions",
+              isDemo: isDemoCompany(LORIAN_COMPANY_ID),
             },
             isNewUser: false,
             isDemoUser: true,
@@ -179,6 +186,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
             role: existingByClerk.role,
             companyId: existingByClerk.companyId,
             companyName: clerkCompany?.name || null,
+            isDemo: isDemoCompany(existingByClerk.companyId),
           },
           isNewUser: false,
         },
@@ -226,6 +234,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
             role: existingByEmail.role,
             companyId: existingByEmail.companyId,
             companyName: emailCompany?.name || null,
+            isDemo: isDemoCompany(existingByEmail.companyId),
           },
           isNewUser: false,
         },
@@ -286,7 +295,7 @@ router.post("/auth/clerk-sync", async (req, res) => {
     res.status(201).json({
       data: {
         token,
-        user: { id: userId, email: normalizedEmail, name: displayName, role: "ADMIN", companyId, companyName: orgName },
+        user: { id: userId, email: normalizedEmail, name: displayName, role: "ADMIN", companyId, companyName: orgName, isDemo: isDemoCompany(companyId) },
         company: { id: companyId, name: orgName, slug },
         isNewUser: true,
       },

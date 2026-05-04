@@ -5,6 +5,7 @@ import router from "./routes";
 import authRouter from "./routes/auth.js";
 import clerkAuthRouter from "./routes/clerk-auth.js";
 import adminRouter from "./routes/admin.js";
+import adminSystemHealthRouter from "./routes/admin-system-health.js";
 import healthRouter from "./routes/health.js";
 import demoRouter from "./routes/demo.js";
 import clerkWebhookRouter from "./routes/clerk-webhook.js";
@@ -121,6 +122,7 @@ app.use("/api/auth/register", loginLimiter);
 app.use("/api", authRouter);
 app.use("/api", clerkAuthRouter);
 app.use("/api", adminRouter);
+app.use("/api", adminSystemHealthRouter);
 
 const isDemoMode = process.env.VITE_DEMO_MODE === "true";
 if (isDemoMode || !isProduction) {

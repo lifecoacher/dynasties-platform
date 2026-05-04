@@ -7,7 +7,7 @@ import { Component, type ErrorInfo, type ReactNode, Suspense, lazy } from "react
 import { PageSkeleton } from "@/components/ui/skeleton";
 import NotFound from "@/pages/not-found";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
-import { DEMO_MODE } from "./hooks/use-demo";
+import { useIsDemo } from "./hooks/use-demo";
 import { toast } from "./hooks/use-toast";
 
 const CommandCenter = lazy(() => import("./pages/CommandCenter"));
@@ -41,6 +41,7 @@ const QuotesPage = lazy(() => import("./pages/QuotesPage"));
 const QuoteDetail = lazy(() => import("./pages/QuoteDetail"));
 const ExceptionsPage = lazy(() => import("./pages/ExceptionsPage"));
 const AccountingIntegration = lazy(() => import("./pages/AccountingIntegration"));
+const SystemHealthPage = lazy(() => import("./pages/SystemHealthPage"));
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -204,6 +205,7 @@ function ClerkLoginPage() {
 
 function AuthenticatedRouter() {
   const { user, isLoading, isClerkMode, syncError } = useAuth();
+  const isDemo = useIsDemo();
 
   if (isLoading) {
     return (
@@ -275,22 +277,31 @@ function AuthenticatedRouter() {
         <Route path="/settings/billing" component={SubscriptionBilling} />
         <Route path="/settings/accounting" component={AccountingIntegration} />
         <Route path="/settings" component={SettingsPage} />
-        {!DEMO_MODE && <Route path="/intelligence" component={IntelligencePage} />}
-        {!DEMO_MODE && <Route path="/customers" component={CustomersPage} />}
-        {!DEMO_MODE && <Route path="/predictive" component={PredictiveIntelligence} />}
-        {!DEMO_MODE && <Route path="/strategy" component={StrategyIntelligence} />}
-        {!DEMO_MODE && <Route path="/policy-studio" component={PolicyStudio} />}
-        {!DEMO_MODE && <Route path="/reports" component={ReportsPage} />}
-        {!DEMO_MODE && <Route path="/analytics" component={AnalyticsPage} />}
-        {!DEMO_MODE && <Route path="/demo" component={DemoControls} />}
-        {DEMO_MODE && <Route path="/intelligence" component={DemoRedirect} />}
-        {DEMO_MODE && <Route path="/customers" component={DemoRedirect} />}
-        {DEMO_MODE && <Route path="/predictive" component={DemoRedirect} />}
-        {DEMO_MODE && <Route path="/strategy" component={DemoRedirect} />}
-        {DEMO_MODE && <Route path="/policy-studio" component={DemoRedirect} />}
-        {DEMO_MODE && <Route path="/reports" component={DemoRedirect} />}
-        {DEMO_MODE && <Route path="/analytics" component={DemoRedirect} />}
-        {DEMO_MODE && <Route path="/demo" component={DemoRedirect} />}
+        <Route path="/system-health">
+          {() =>
+            user.role === "ADMIN" ? (
+              <RouteErrorBoundary routeName="System Health"><SystemHealthPage /></RouteErrorBoundary>
+            ) : (
+              <NotFound />
+            )
+          }
+        </Route>
+        {!isDemo && <Route path="/intelligence" component={IntelligencePage} />}
+        {!isDemo && <Route path="/customers" component={CustomersPage} />}
+        {!isDemo && <Route path="/predictive" component={PredictiveIntelligence} />}
+        {!isDemo && <Route path="/strategy" component={StrategyIntelligence} />}
+        {!isDemo && <Route path="/policy-studio" component={PolicyStudio} />}
+        {!isDemo && <Route path="/reports" component={ReportsPage} />}
+        {!isDemo && <Route path="/analytics" component={AnalyticsPage} />}
+        {!isDemo && <Route path="/demo" component={DemoControls} />}
+        {isDemo && <Route path="/intelligence" component={DemoRedirect} />}
+        {isDemo && <Route path="/customers" component={DemoRedirect} />}
+        {isDemo && <Route path="/predictive" component={DemoRedirect} />}
+        {isDemo && <Route path="/strategy" component={DemoRedirect} />}
+        {isDemo && <Route path="/policy-studio" component={DemoRedirect} />}
+        {isDemo && <Route path="/reports" component={DemoRedirect} />}
+        {isDemo && <Route path="/analytics" component={DemoRedirect} />}
+        {isDemo && <Route path="/demo" component={DemoRedirect} />}
         <Route component={NotFound} />
       </Switch>
     </Suspense>

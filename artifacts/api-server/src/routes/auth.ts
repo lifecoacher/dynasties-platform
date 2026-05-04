@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import bcrypt from "bcryptjs";
 import { signToken, requireAuth } from "../middlewares/auth.js";
+import { isDemoCompany } from "../lib/demo-companies.js";
 import { validateBody } from "../middlewares/validate.js";
 import { loginSchema, registerSchema } from "../schemas/index.js";
 
@@ -93,7 +94,7 @@ router.post("/auth/register", validateBody(registerSchema), async (req, res) => 
     res.status(201).json({
       data: {
         token,
-        user: { id: userId, email: normalizedEmail, name, role: "ADMIN", companyId },
+        user: { id: userId, email: normalizedEmail, name, role: "ADMIN", companyId, isDemo: isDemoCompany(companyId) },
         company: { id: companyId, name: companyName, slug },
       },
     });
@@ -156,6 +157,7 @@ router.post("/auth/login", validateBody(loginSchema), async (req, res) => {
         role: user.role,
         companyId: user.companyId,
         companyName: company?.name || null,
+        isDemo: isDemoCompany(user.companyId),
       },
     },
   });
@@ -190,7 +192,14 @@ router.get("/auth/me", requireAuth, async (req, res) => {
     .where(eq(companiesTable.id, user.companyId))
     .limit(1);
 
-  res.json({ data: { ...user, company: company || null, companyName: company?.name || null } });
+  res.json({
+    data: {
+      ...user,
+      company: company || null,
+      companyName: company?.name || null,
+      isDemo: isDemoCompany(user.companyId),
+    },
+  });
 });
 
 export default router;

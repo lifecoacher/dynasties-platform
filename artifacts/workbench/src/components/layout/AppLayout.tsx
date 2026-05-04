@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { RightPanel } from "./RightPanel";
-import { DEMO_MODE } from "@/hooks/use-demo";
+import { useIsDemo } from "@/hooks/use-demo";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -9,11 +9,12 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, hideRightPanel = false }: AppLayoutProps) {
+  const isDemo = useIsDemo();
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        {DEMO_MODE && (
+        {isDemo && (
           <div className="shrink-0 px-4 py-1 bg-primary/5 border-b border-primary/8 text-center">
             <span className="text-[10px] font-medium text-primary/50 tracking-wider uppercase">
               Demo Mode

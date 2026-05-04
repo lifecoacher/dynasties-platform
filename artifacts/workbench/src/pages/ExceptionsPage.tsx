@@ -81,6 +81,8 @@ export default function ExceptionsPage() {
   const totalCritical = summary?.bySeverity?.CRITICAL ?? 0;
   const totalHigh = summary?.bySeverity?.HIGH ?? 0;
   const totalMedium = summary?.bySeverity?.MEDIUM ?? 0;
+  const totalAllTime = summary?.totalAllTime ?? 0;
+  const totalResolved = summary?.totalResolved ?? 0;
 
   return (
     <AppLayout>
@@ -89,7 +91,13 @@ export default function ExceptionsPage() {
           <h1 className="text-[22px] font-bold text-foreground tracking-tight font-heading">Exceptions</h1>
         </div>
 
-        <p className={`text-[13px] ${voice.color} mb-5`}>{voice.text}</p>
+        <p className={`text-[13px] ${voice.color} mb-1`}>{voice.text}</p>
+        {totalAllTime > 0 && (
+          <p className="text-[11px] text-muted-foreground/40 mb-5">
+            {totalAllTime} total · {totalResolved} resolved (preserved in history)
+          </p>
+        )}
+        {totalAllTime === 0 && <div className="mb-5" />}
 
         {(totalCritical > 0 || totalHigh > 0 || totalMedium > 0) && (
           <div className="flex items-center gap-5 mb-6 text-[13px]">
