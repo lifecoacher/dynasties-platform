@@ -58,6 +58,7 @@ const publicBaseUrlSchema = z.string().optional().refine(
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
+  APP_DATABASE_URL: requiredInProd("APP_DATABASE_URL"),
   NODE_ENV: z
     .enum(["development", "production", "test", "staging"])
     .default("development"),
@@ -76,7 +77,15 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.preprocess((v) => (v === "" ? undefined : v), z.string().min(1).optional()),
   AI_INTEGRATIONS_ANTHROPIC_API_KEY: z.preprocess((v) => (v === "" ? undefined : v), z.string().min(1).optional()),
   CORS_ALLOWED_ORIGINS: corsOriginsSchema,
-  STORAGE_BACKEND: z.enum(["local", "s3"]).optional(),
+  STORAGE_BACKEND: z.enum(["local", "s3"]).optional().refine(
+    (val) => {
+      if (isProdOrStaging() && val !== "s3") {
+        return false;
+      }
+      return true;
+    },
+    { message: "STORAGE_BACKEND must be 's3' in production/staging. Local filesystem storage is not safe for multi-instance deployments." },
+  ),
   QUEUE_BACKEND: z.enum(["local", "sqs"]).optional().refine(
     (val) => {
       if (isProdOrStaging() && val !== "sqs") {
@@ -125,7 +134,9 @@ export function loadEnv(): EnvConfig {
     console.error("  STRIPE_PUBLISHABLE_KEY   - Stripe publishable key");
     console.error("  STRIPE_WEBHOOK_SECRET    - Stripe webhook signing secret");
     console.error("  CLERK_WEBHOOK_SECRET     - Clerk webhook signing secret");
+    console.error("  APP_DATABASE_URL         - App runtime DB connection string (least-privilege role)");
     console.error("  QUEUE_BACKEND=sqs        - Queue backend");
+    console.error("  STORAGE_BACKEND=s3       - Storage backend");
     console.error("  CORS_ALLOWED_ORIGINS     - Comma-separated allowed origins");
     console.error("═══════════════════════════════════════════════════");
     throw new Error(`Environment validation failed:\n${formatted}`);

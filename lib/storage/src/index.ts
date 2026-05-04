@@ -5,12 +5,31 @@ import crypto from "node:crypto";
 let s3Client: import("@aws-sdk/client-s3").S3Client | null = null;
 let s3Loaded = false;
 
+function isProdOrStaging(): boolean {
+  const env = process.env.NODE_ENV;
+  return env === "production" || env === "staging";
+}
+
 async function getS3(): Promise<import("@aws-sdk/client-s3").S3Client | null> {
   if (s3Loaded) return s3Client;
   s3Loaded = true;
 
+  const backend = process.env.STORAGE_BACKEND;
   const bucket = process.env.S3_BUCKET_RAW_DOCUMENTS;
-  if (!bucket || process.env.STORAGE_BACKEND === "local") return null;
+
+  if (backend === "local") {
+    if (isProdOrStaging()) {
+      throw new Error("FATAL: STORAGE_BACKEND=local is not allowed in production/staging. Set STORAGE_BACKEND=s3.");
+    }
+    return null;
+  }
+
+  if (!bucket) {
+    if (isProdOrStaging()) {
+      throw new Error("FATAL: S3_BUCKET_RAW_DOCUMENTS must be set in production/staging.");
+    }
+    return null;
+  }
 
   try {
     const { S3Client } = await import("@aws-sdk/client-s3");
@@ -23,8 +42,10 @@ async function getS3(): Promise<import("@aws-sdk/client-s3").S3Client | null> {
     }
     s3Client = new S3Client(opts);
     return s3Client;
-  } catch {
-    console.warn("[storage] @aws-sdk/client-s3 not available, falling back to local filesystem");
+  } catch (err) {
+    if (isProdOrStaging()) {
+      throw new Error(`FATAL: Failed to initialize S3 client in production/staging: ${err instanceof Error ? err.message : String(err)}`);
+    }
     return null;
   }
 }

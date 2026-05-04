@@ -16,7 +16,8 @@ Dynasties runs on AWS with the following infrastructure:
 
 | Variable | Source | Description |
 |---|---|---|
-| `DATABASE_URL` | SSM | PostgreSQL connection string |
+| `DATABASE_URL` | SSM | PostgreSQL connection string (migration-grade, `dynasties` superuser) |
+| `APP_DATABASE_URL` | SSM | PostgreSQL connection string (least-privilege `app_user` role, used by API at runtime) |
 | `JWT_SECRET` | SSM | JWT signing secret |
 | `ANTHROPIC_API_KEY` | SSM | Anthropic API key for AI agents |
 | `STRIPE_SECRET_KEY` | SSM | Stripe secret key |
@@ -25,8 +26,8 @@ Dynasties runs on AWS with the following infrastructure:
 | `CLERK_WEBHOOK_SECRET` | SSM | Clerk webhook signing secret |
 | `PUBLIC_BASE_URL` | ECS env | Public-facing URL (e.g. `https://app.dynasties.ai`) |
 | `CORS_ALLOWED_ORIGINS` | ECS env | Comma-separated allowed origins |
-| `QUEUE_BACKEND` | ECS env | Must be `sqs` in production |
-| `STORAGE_BACKEND` | ECS env | Must be `s3` in production |
+| `QUEUE_BACKEND` | ECS env | Must be `sqs` in production (hard-fail if missing or `local`) |
+| `STORAGE_BACKEND` | ECS env | Must be `s3` in production (hard-fail if missing or `local`) |
 | `AWS_REGION` | ECS env | AWS region (e.g. `us-east-1`) |
 | `AWS_ACCOUNT_ID` | ECS env | AWS account ID for SQS URL resolution |
 | `SQS_QUEUE_ENV_SUFFIX` | ECS env | Queue name suffix (e.g. `-production`) |
@@ -41,12 +42,42 @@ Dynasties runs on AWS with the following infrastructure:
 2. **Build & push** — builds Docker images, pushes to ECR (main branch only)
 3. **Deploy** — runs migrations via ECS Fargate task, updates ECS service, deploys frontend to S3/CloudFront
 
+### Database Users — Migration vs Runtime
+
+Dynasties uses two distinct Postgres roles to enforce least privilege:
+
+| Role | Connection var | Privileges | Used by |
+|---|---|---|---|
+| `dynasties` (superuser) | `DATABASE_URL` | DDL, `CREATE TABLE`, `ALTER`, `DROP`, `GRANT` | Migration ECS task only |
+| `app_user` (runtime) | `APP_DATABASE_URL` | DML only: `SELECT`, `INSERT`, `UPDATE`, `DELETE` on all app tables | API ECS service |
+
+**Creating the `app_user` role** (one-time, run as the `dynasties` superuser):
+```sql
+CREATE ROLE app_user WITH LOGIN PASSWORD '<strong-random-password>';
+GRANT CONNECT ON DATABASE dynasties TO app_user;
+GRANT USAGE ON SCHEMA public TO app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO app_user;
+```
+
+**After each migration** that adds new tables, re-run the `GRANT` statements above or use `ALTER DEFAULT PRIVILEGES` (already included) to ensure new tables are accessible.
+
+The `APP_DATABASE_URL` SSM parameter is constructed automatically by Terraform using the `app_db_password` variable:
+```
+postgres://app_user:<app_db_password>@<rds-endpoint>/dynasties
+```
+
 ### Database Migrations
 
 Migrations run as a dedicated ECS Fargate task (`dynasties-migrate-production`) inside the VPC before the API service is updated. The task:
 - Uses the same Docker image as the API server
 - Runs `node dist/scripts/run-migrations.js`
-- Has access to the database via SSM-sourced `DATABASE_URL`
+- Has access to the database via SSM-sourced `DATABASE_URL` (the `dynasties` superuser)
+- Does **not** receive `APP_DATABASE_URL` — it does not need runtime-level access
 - Deploy pipeline waits for the task to complete and checks exit code
 
 To run migrations manually:
@@ -98,9 +129,40 @@ Queue names follow the pattern: `dynasties-<queue-name>-<environment>.fifo`
 | intelligence-linking-jobs | Intelligence-to-shipment linking |
 | ai-runtime-jobs | AI runtime analysis triggers |
 
-### DLQ Monitoring
+### DLQ Monitoring & Alerting
 
-CloudWatch alarms fire when any DLQ has > 0 visible messages. Investigate via:
+CloudWatch alarms fire when any DLQ has > 0 visible messages. All alarms (DLQ, API 5xx, RDS CPU) route to the `dynasties-alerts-<environment>` SNS topic.
+
+**Setting up alert email:**
+
+1. Set `alert_email` in your Terraform variables:
+   ```hcl
+   alert_email = "oncall@yourcompany.com"
+   ```
+2. Run `terraform apply` — AWS will send a confirmation email to that address.
+3. **You must click the confirmation link** in the email within 72 hours. Until confirmed, no email alerts will be delivered.
+4. Verify the subscription is confirmed:
+   ```bash
+   aws sns list-subscriptions-by-topic \
+     --topic-arn $(terraform output -raw sns_alerts_topic_arn)
+   ```
+   Status should show `Confirmed`, not `PendingConfirmation`.
+
+**Adding PagerDuty/webhook subscribers:**
+
+Add additional `aws_sns_topic_subscription` resources in `infra/main.tf` with `protocol = "https"` and `endpoint = "<pagerduty-integration-url>"`.
+
+**Testing a DLQ alarm:**
+
+```bash
+aws cloudwatch set-alarm-state \
+  --alarm-name "dynasties-dlq-extraction-jobs-production" \
+  --state-value ALARM \
+  --state-reason "Manual test"
+```
+You should receive an email within 1–2 minutes. Reset with `--state-value OK`.
+
+**Investigating DLQ messages:**
 ```bash
 aws sqs receive-message \
   --queue-url https://sqs.<region>.amazonaws.com/<account>/dynasties-<queue>-dlq-<env>.fifo \
@@ -142,11 +204,13 @@ Auto-scaling is configured with:
 
 ## Monitoring Alarms
 
-| Alarm | Condition | Action |
-|---|---|---|
-| API 5xx | > 10 errors in 5 min | Check application logs |
-| RDS CPU | > 80% for 10 min | Check slow queries, consider scaling |
-| DLQ depth | > 0 messages | Investigate failed queue jobs |
+All alarms route to the `dynasties-alerts-<environment>` SNS topic. Email subscribers receive both ALARM and OK notifications.
+
+| Alarm | Condition | SNS Action | Investigation |
+|---|---|---|---|
+| API 5xx | > 10 errors in 5 min | Email alert | Check application logs |
+| RDS CPU | > 80% for 10 min | Email alert | Check slow queries, consider scaling |
+| DLQ depth (×16) | > 0 messages in any DLQ | Email alert | Investigate failed queue jobs |
 
 ## Incident Response
 

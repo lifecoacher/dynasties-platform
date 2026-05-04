@@ -1,0 +1,86 @@
+You are the lead AWS release engineer for Dynasties Platform.
+
+The latest hostile AWS readiness audit on branch rc/aws-readiness-fix-20260504 @ 1bb9f52 classified the system as REAL-USER PILOT READY, conditional on three pre-flight fixes.
+
+Your job is to implement only these three fixes.
+
+Do not add unrelated features.
+Do not refactor broadly.
+Do not return a plan without code changes.
+
+## FIX 1 — Dedicated app_user Postgres role + APP_DATABASE_URL
+
+Problem:
+lib/db supports APP_DATABASE_URL || DATABASE_URL, but Terraform only provisions DATABASE_URL. The API task may run with migration-grade DB privileges.
+
+Required:
+- Add a dedicated least-privilege app_user DB role strategy.
+- Provision/store APP_DATABASE_URL in SSM.
+- Wire APP_DATABASE_URL into the ECS API task.
+- Migration task must continue using DATABASE_URL with migration privileges.
+- API task must use APP_DATABASE_URL for normal runtime queries.
+- Remove or fix any misleading GRANT block that silently assumes app_user exists.
+- Document the migration/admin user vs app runtime user split.
+
+Validation:
+- API task has APP_DATABASE_URL secret.
+- Migration task uses DATABASE_URL.
+- App runtime does not require migration-grade DB user.
+- No swallowed GRANT failure remains.
+
+## FIX 2 — Hard-fail production if unsafe backends are used
+
+Problem:
+Queue falls back to in-memory EventEmitter if QUEUE_BACKEND !== sqs. That is dangerous in AWS. Storage may also silently use local mode.
+
+Required:
+- In production/staging, hard-fail boot unless:
+  - QUEUE_BACKEND=sqs
+  - STORAGE_BACKEND=s3, if STORAGE_BACKEND exists / is used
+- Validate through Zod env schema.
+- Do not allow production to quietly use local/in-memory backends.
+- Local/demo mode can keep safe fallbacks.
+
+Validation:
+- NODE_ENV=production + QUEUE_BACKEND missing/local fails at boot.
+- NODE_ENV=production + QUEUE_BACKEND=sqs passes.
+- Same for STORAGE_BACKEND if applicable.
+
+## FIX 3 — DLQ alarms must notify humans
+
+Problem:
+DLQ CloudWatch alarms exist but do not route to SNS/PagerDuty/email. Alarms firing into a void are decorative infrastructure, the worst kind.
+
+Required:
+- Add SNS topic for production alerts.
+- Add variable for alert email.
+- Wire all DLQ CloudWatch alarms to SNS.
+- Add SNS email subscription support.
+- Document how to confirm the subscription.
+- If PagerDuty/webhook support is easy, add variable hooks, but email SNS is sufficient for pilot.
+
+Validation:
+- Every DLQ alarm has alarm_actions pointing to SNS.
+- SNS topic exists.
+- Email subscription variable is documented.
+- RUNBOOK explains how to confirm alert subscription and test DLQ alarm.
+
+## Output
+
+Return:
+1. exact files changed
+2. Terraform changes made
+3. env schema changes made
+4. DB role / APP_DATABASE_URL strategy
+5. backend hard-fail behavior
+6. DLQ alerting path
+7. validation commands run and results
+8. remaining risks, if any
+9. commit hash
+
+Success criteria:
+- API task uses APP_DATABASE_URL
+- migration task uses DATABASE_URL
+- production cannot boot with in-memory queue/local storage
+- DLQ alarms notify humans
+- no unrelated changes

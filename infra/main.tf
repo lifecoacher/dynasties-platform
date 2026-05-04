@@ -74,6 +74,18 @@ variable "qb_client_secret" {
   default   = ""
 }
 
+variable "app_db_password" {
+  type        = string
+  sensitive   = true
+  description = "Password for the least-privilege app_user Postgres role used by the API at runtime"
+}
+
+variable "alert_email" {
+  type        = string
+  description = "Email address for production alert notifications (DLQ, 5xx, RDS). Must be confirmed via email after first apply."
+  default     = ""
+}
+
 variable "domain_name" {
   type        = string
   description = "Primary domain name for the application (e.g. app.dynasties.io)"
@@ -361,6 +373,7 @@ resource "aws_iam_role_policy" "ecs_exec_ssm" {
       Resource = concat(
         [
           aws_ssm_parameter.database_url.arn,
+          aws_ssm_parameter.app_database_url.arn,
           aws_ssm_parameter.jwt_secret.arn,
           aws_ssm_parameter.anthropic_key.arn,
           aws_ssm_parameter.stripe_secret_key.arn,
@@ -452,6 +465,7 @@ resource "aws_ecs_task_definition" "api" {
 
     secrets = [
       { name = "DATABASE_URL", valueFrom = aws_ssm_parameter.database_url.arn },
+      { name = "APP_DATABASE_URL", valueFrom = aws_ssm_parameter.app_database_url.arn },
       { name = "JWT_SECRET", valueFrom = aws_ssm_parameter.jwt_secret.arn },
       { name = "ANTHROPIC_API_KEY", valueFrom = aws_ssm_parameter.anthropic_key.arn },
       { name = "AI_INTEGRATIONS_ANTHROPIC_API_KEY", valueFrom = aws_ssm_parameter.anthropic_key.arn },
@@ -515,6 +529,12 @@ resource "aws_ssm_parameter" "clerk_webhook_secret" {
   name  = "/dynasties/${var.environment}/clerk-webhook-secret"
   type  = "SecureString"
   value = var.clerk_webhook_secret
+}
+
+resource "aws_ssm_parameter" "app_database_url" {
+  name  = "/dynasties/${var.environment}/app-database-url"
+  type  = "SecureString"
+  value = "postgres://app_user:${var.app_db_password}@${aws_db_instance.main.endpoint}/dynasties"
 }
 
 resource "aws_ssm_parameter" "qb_client_id" {
@@ -830,6 +850,19 @@ resource "aws_s3_bucket_policy" "frontend" {
   })
 }
 
+resource "aws_sns_topic" "alerts" {
+  name = "dynasties-alerts-${var.environment}"
+
+  tags = { Environment = var.environment }
+}
+
+resource "aws_sns_topic_subscription" "alert_email" {
+  count     = var.alert_email != "" ? 1 : 0
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
+}
+
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   alarm_name          = "dynasties-api-5xx-${var.environment}"
   comparison_operator = "GreaterThanThreshold"
@@ -840,6 +873,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   statistic           = "Sum"
   threshold           = 10
   alarm_description   = "API 5xx errors exceed threshold"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
 
   dimensions = {
     TargetGroup  = aws_lb_target_group.api.arn_suffix
@@ -857,6 +892,8 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   statistic           = "Average"
   threshold           = 80
   alarm_description   = "RDS CPU utilization exceeds 80%"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.main.id
@@ -875,6 +912,8 @@ resource "aws_cloudwatch_metric_alarm" "dlq_depth" {
   statistic           = "Sum"
   threshold           = 0
   alarm_description   = "Dead letter queue ${each.key} has messages"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
 
   dimensions = {
     QueueName = each.value.name
@@ -895,4 +934,8 @@ output "ecr_api_url" {
 
 output "ecr_frontend_url" {
   value = aws_ecr_repository.frontend.repository_url
+}
+
+output "sns_alerts_topic_arn" {
+  value = aws_sns_topic.alerts.arn
 }

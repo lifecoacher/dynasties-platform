@@ -18,6 +18,7 @@ async function main() {
   logger.info("Stripe schema ready");
 
   const { pool } = await import("@workspace/db");
+  const isProd = process.env.NODE_ENV === "production" || process.env.NODE_ENV === "staging";
   try {
     await pool.query(`
       GRANT USAGE ON SCHEMA stripe TO app_user;
@@ -27,7 +28,11 @@ async function main() {
     logger.info("Granted stripe schema permissions to app_user");
   } catch (err: any) {
     if (err.message?.includes("does not exist")) {
-      logger.info("app_user role does not exist — skipping GRANT (single-role deployment)");
+      if (isProd) {
+        logger.error("app_user role does not exist in production — create it before running stripe-setup. See RUNBOOK.md 'Database Users' section.");
+        throw new Error("FATAL: app_user role must exist in production/staging. Run the CREATE ROLE SQL from RUNBOOK.md first.");
+      }
+      logger.warn("app_user role does not exist — skipping GRANT (dev/test single-role deployment)");
     } else {
       logger.error({ err }, "Failed to grant stripe schema permissions");
       throw err;
