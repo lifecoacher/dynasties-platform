@@ -51,25 +51,36 @@ Dynasties uses two distinct Postgres roles to enforce least privilege:
 | `dynasties` (superuser) | `DATABASE_URL` | DDL, `CREATE TABLE`, `ALTER`, `DROP`, `GRANT` | Migration ECS task only |
 | `app_user` (runtime) | `APP_DATABASE_URL` | DML only: `SELECT`, `INSERT`, `UPDATE`, `DELETE` on all app tables | API ECS service |
 
-**Creating the `app_user` role** (one-time, run as the `dynasties` superuser):
-```sql
-CREATE ROLE app_user WITH LOGIN PASSWORD '<strong-random-password>';
-GRANT CONNECT ON DATABASE dynasties TO app_user;
-GRANT USAGE ON SCHEMA public TO app_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT USAGE, SELECT ON SEQUENCES TO app_user;
+**Creating the `app_user` role** — use the **idempotent script** at [`infra/sql/create-app-user.sql`](./infra/sql/create-app-user.sql). Safe to re-run on every deploy.
+
+```bash
+# Run from a bastion or one-off ECS task with DATABASE_URL set:
+psql "$DATABASE_URL" \
+  -v app_user_password="$APP_USER_PASSWORD" \
+  -f infra/sql/create-app-user.sql
 ```
 
-**After each migration** that adds new tables, re-run the `GRANT` statements above or use `ALTER DEFAULT PRIVILEGES` (already included) to ensure new tables are accessible.
+The script:
+- Creates the role idempotently (`DO $$ ... EXCEPTION WHEN duplicate_object`)
+- Always resets the password (handles rotation)
+- Grants `CONNECT`, schema `USAGE`, DML on all current tables, sequence access
+- Sets `ALTER DEFAULT PRIVILEGES` so future tables created by migrations are auto-accessible
+- Grants read access to the `stripe` schema if it exists
+- Explicitly `REVOKE`s `CREATE` on `public` (defense in depth)
+- Prints role attributes for verification
+
+**After each migration** that adds new tables, the `ALTER DEFAULT PRIVILEGES` clauses ensure they are accessible automatically. No re-run needed unless privileges drift.
 
 The `APP_DATABASE_URL` SSM parameter is constructed automatically by Terraform using the `app_db_password` variable:
 ```
 postgres://app_user:<app_db_password>@<rds-endpoint>/dynasties
 ```
+
+**Bootstrap order** (one-time, before first API deploy):
+1. `terraform apply` — provisions RDS + SSM params
+2. Connect with `DATABASE_URL` (superuser) and run `infra/sql/create-app-user.sql` with `APP_USER_PASSWORD` matching the `app_db_password` Terraform variable
+3. Run migrations via the migration ECS task
+4. Deploy API service (now boots cleanly with `APP_DATABASE_URL`)
 
 ### Database Migrations
 
