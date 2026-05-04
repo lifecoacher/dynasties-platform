@@ -8,7 +8,7 @@ on:
 
 env:
   NODE_VERSION: "22"
-  PNPM_VERSION: "10"
+  PNPM_VERSION: "10.26.1"
 
 jobs:
   install:
@@ -31,6 +31,16 @@ jobs:
             lib/*/node_modules
             services/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   typecheck:
     needs: install
@@ -91,12 +101,17 @@ jobs:
             services/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Run migrations
-        run: pnpm --filter @workspace/db run migrate
-      - name: Run tests
-        run: pnpm test --if-present
+        run: bash scripts/run-migrations.sh
+      - name: Run unit tests
+        run: pnpm test
+      - name: Run E2E tests (if server available)
+        run: pnpm test -- --reporter=verbose
+        env:
+          E2E: "true"
+        continue-on-error: true
 
   build:
-    needs: [typecheck, test]
+    needs: [typecheck, test, secret-scan]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

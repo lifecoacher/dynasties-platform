@@ -13,9 +13,12 @@ import { loginLimiter, apiLimiter } from "./middlewares/rate-limit.js";
 import { requestLogger } from "./middlewares/request-logger.js";
 import { globalErrorHandler, notFoundHandler } from "./middlewares/error-handler.js";
 import { WebhookHandlers } from "./webhookHandlers.js";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("api-server");
 
 const app: Express = express();
-app.set("trust proxy", 1);
+app.set("trust proxy", Number(process.env.TRUST_PROXY || "1"));
 
 const ALLOWED_ORIGINS = process.env.CORS_ALLOWED_ORIGINS
   ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((o) => o.trim())
@@ -27,9 +30,23 @@ if (process.env.REPLIT_DEV_DOMAIN) {
 
 const isProduction = process.env.NODE_ENV === "production";
 
+if (isProduction && ALLOWED_ORIGINS.length === 0) {
+  logger.error("CORS_ALLOWED_ORIGINS is empty in production — CORS will reject all cross-origin requests");
+}
+
+if (!isProduction && ALLOWED_ORIGINS.length === 0) {
+  ALLOWED_ORIGINS.push("http://localhost:3000", "http://localhost:5173", "http://localhost:8080");
+}
+
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        connectSrc: ["'self'"],
+      },
+    },
     crossOriginEmbedderPolicy: false,
     hsts: isProduction ? { maxAge: 31536000, includeSubDomains: true } : false,
   }),
@@ -37,9 +54,7 @@ app.use(
 
 app.use(
   cors({
-    origin: isProduction
-      ? ALLOWED_ORIGINS
-      : true,
+    origin: ALLOWED_ORIGINS,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "x-dev-role-override"],
@@ -55,18 +70,25 @@ app.post(
       res.status(400).json({ error: 'Missing stripe-signature' });
       return;
     }
+    const sig = Array.isArray(signature) ? signature[0] : signature;
+    if (!Buffer.isBuffer(req.body)) {
+      logger.error("Stripe webhook: req.body is not a Buffer");
+      res.status(500).json({ error: 'Internal webhook processing error' });
+      return;
+    }
     try {
-      const sig = Array.isArray(signature) ? signature[0] : signature;
-      if (!Buffer.isBuffer(req.body)) {
-        console.error('STRIPE WEBHOOK ERROR: req.body is not a Buffer');
-        res.status(500).json({ error: 'Webhook processing error' });
-        return;
-      }
       await WebhookHandlers.processWebhook(req.body as Buffer, sig);
       res.status(200).json({ received: true });
     } catch (error: any) {
-      console.error('Webhook error:', error.message);
-      res.status(400).json({ error: 'Webhook processing error' });
+      const isSignatureError = error.type === 'StripeSignatureVerificationError'
+        || error.message?.includes('signature');
+      if (isSignatureError) {
+        logger.warn({ error: error.message }, "Stripe webhook signature verification failed");
+        res.status(400).json({ error: 'Webhook signature verification failed' });
+      } else {
+        logger.error({ err: error, eventId: error.raw?.id }, "Stripe webhook processing error");
+        res.status(500).json({ error: 'Internal webhook processing error' });
+      }
     }
   }
 );
@@ -96,7 +118,14 @@ app.use("/api/auth/register", loginLimiter);
 app.use("/api", authRouter);
 app.use("/api", clerkAuthRouter);
 app.use("/api", adminRouter);
-app.use("/api", demoRouter);
+
+const isDemoMode = process.env.VITE_DEMO_MODE === "true";
+if (isDemoMode || !isProduction) {
+  app.use("/api", demoRouter);
+} else {
+  logger.info("Demo routes disabled (production mode, VITE_DEMO_MODE !== true)");
+}
+
 app.use("/api", clerkWebhookRouter);
 app.use("/api", router);
 

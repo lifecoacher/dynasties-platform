@@ -266,6 +266,7 @@ export async function getShipmentFinancialSummary(
   const latestReconciliation = reconciliations[0] || null;
 
   return {
+    shipmentId,
     expectedTotal: Math.round(expectedTotal * 100) / 100,
     actualTotal: Math.round(actualTotal * 100) / 100,
     chargeBreakdown: charges.map((ch) => ({
