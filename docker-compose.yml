@@ -37,7 +37,7 @@ services:
       DATABASE_URL: postgres://dynasties:dynasties_dev@postgres:5432/dynasties
       NODE_ENV: production
       PORT: "8080"
-      JWT_SECRET: "${JWT_SECRET:-dev-jwt-secret-change-in-production-min32chars}"
+      JWT_SECRET: "${JWT_SECRET}"
       AWS_REGION: us-east-1
       S3_ENDPOINT: http://localstack:4566
       SQS_ENDPOINT: http://localstack:4566

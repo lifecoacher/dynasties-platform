@@ -11,6 +11,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "pino-pretty": "^13.1.3"
   }
 }
