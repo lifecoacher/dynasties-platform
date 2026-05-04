@@ -1,5 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { runWithTenant } from "@workspace/db";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("tenant");
 
 export function requireTenant(req: Request, res: Response, next: NextFunction): void {
   if (!req.user?.companyId) {
@@ -34,7 +37,7 @@ export async function setTenantContext(req: Request, res: Response, next: NextFu
     });
   } catch (err: any) {
     if (!res.headersSent) {
-      console.error("[tenant] RLS context error:", err.message);
+      logger.error({ err: err.message }, "RLS context error");
       res.status(503).json({ error: "Tenant context setup failed" });
     }
   }

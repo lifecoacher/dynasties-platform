@@ -5,6 +5,9 @@ import { eq } from "drizzle-orm";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
 import { stripeConnectService } from "../services/stripe-connect-service.js";
+import { getPublicBaseUrl, createLogger } from "@workspace/config";
+
+const logger = createLogger("stripe-connect");
 
 const router = Router();
 
@@ -14,7 +17,7 @@ router.get("/stripe/connect/status", async (req, res) => {
     const status = await stripeConnectService.getLocalConnectStatus(companyId);
     res.json({ data: status });
   } catch (error: any) {
-    console.error("[connect] Error fetching status:", error);
+    logger.error({ err: error }, "Error fetching Connect status");
     res.status(500).json({ error: "Failed to fetch Connect status" });
   }
 });
@@ -25,7 +28,7 @@ router.post("/stripe/connect/sync", async (req, res) => {
     const status = await stripeConnectService.syncConnectStatus(companyId);
     res.json({ data: status });
   } catch (error: any) {
-    console.error("[connect] Error syncing status:", error);
+    logger.error({ err: error }, "Error syncing Connect status");
     res.status(500).json({ error: "Failed to sync Connect status" });
   }
 });
@@ -50,7 +53,7 @@ router.post("/stripe/connect/create-account", requireMinRole("ADMIN"), async (re
 
     res.json({ data: { connectAccountId: accountId } });
   } catch (error: any) {
-    console.error("[connect] Error creating account:", error);
+    logger.error({ err: error }, "Error creating Connect account");
     if (error?.type === "StripeInvalidRequestError" && error?.message?.includes("signed up for Connect")) {
       res.status(400).json({
         error: "Stripe Connect is not enabled on this Stripe account. Enable it at https://dashboard.stripe.com/connect first.",
@@ -73,9 +76,7 @@ router.post("/stripe/connect/onboarding-link", requireMinRole("ADMIN"), async (r
       return;
     }
 
-    const host = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || req.get("host");
-    const protocol = host?.includes("localhost") ? "http" : "https";
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = getPublicBaseUrl();
     const returnUrl = `${baseUrl}/settings/billing?connect=return`;
     const refreshUrl = `${baseUrl}/settings/billing?connect=refresh`;
 
@@ -87,7 +88,7 @@ router.post("/stripe/connect/onboarding-link", requireMinRole("ADMIN"), async (r
 
     res.json({ data: { url } });
   } catch (error: any) {
-    console.error("[connect] Error creating onboarding link:", error);
+    logger.error({ err: error }, "Error creating onboarding link");
     res.status(500).json({ error: "Failed to create onboarding link" });
   }
 });

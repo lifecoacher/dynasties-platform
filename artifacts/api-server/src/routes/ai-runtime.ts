@@ -11,6 +11,9 @@ import {
   ensureAiState,
   runShipmentAnalysis,
 } from "@workspace/svc-ai-runtime";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("ai-runtime");
 
 const router: IRouter = Router();
 
@@ -70,7 +73,7 @@ router.get("/shipments/:id/ai-state", async (req, res) => {
 
     res.json(mapStateToDto(state));
   } catch (err: any) {
-    console.error("[ai-runtime] ai-state error:", err.message);
+    logger.error({ err: err.message }, "AI state error");
     res.status(500).json({ error: "Failed to fetch AI state" });
   }
 });
@@ -83,7 +86,7 @@ router.get("/shipments/:id/ai-analysis-history", async (req, res) => {
     const runs = await getAnalysisHistory(shipmentId, companyId);
     res.json(runs.map(mapRunToDto));
   } catch (err: any) {
-    console.error("[ai-runtime] analysis-history error:", err.message);
+    logger.error({ err: err.message }, "Analysis history error");
     res.status(500).json({ error: "Failed to fetch analysis history" });
   }
 });
@@ -96,7 +99,7 @@ router.get("/shipments/:id/ai-event-log", async (req, res) => {
     const events = await getAiEventLog(shipmentId, companyId);
     res.json(events);
   } catch (err: any) {
-    console.error("[ai-runtime] event-log error:", err.message);
+    logger.error({ err: err.message }, "Event log error");
     res.status(500).json({ error: "Failed to fetch event log" });
   }
 });
@@ -144,7 +147,7 @@ router.post(
         });
       }
     } catch (err: any) {
-      console.error("[ai-runtime] reanalyze error:", err.message);
+      logger.error({ err: err.message }, "Reanalyze error");
       res.status(500).json({ error: "Failed to trigger reanalysis" });
     }
   },

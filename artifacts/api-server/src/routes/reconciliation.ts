@@ -13,6 +13,9 @@ import { eq, and } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("reconciliation");
 
 const router: IRouter = Router();
 
@@ -28,7 +31,7 @@ router.get("/shipments/:id/financial-summary", async (req, res) => {
     const summary = await getShipmentFinancialSummary(companyId, shipmentId);
     res.json({ data: summary });
   } catch (err: any) {
-    console.error(`[reconciliation] Financial summary failed company=${companyId} shipment=${shipmentId}:`, err.message);
+    logger.error({ err: err.message, companyId, shipmentId }, "Financial summary failed");
     res.status(500).json({ error: "Failed to load financial summary", code: "FINANCIAL_SUMMARY_ERROR", message: "Unable to calculate financial summary for this shipment. Please try again." });
   }
 });
@@ -41,7 +44,7 @@ router.get("/shipments/:id/carrier-invoices", async (req, res) => {
     const invoices = await getCarrierInvoicesForShipment(companyId, shipmentId);
     res.json({ data: invoices });
   } catch (err: any) {
-    console.error(`[reconciliation] Carrier invoices fetch failed company=${companyId} shipment=${shipmentId}:`, err.message);
+    logger.error({ err: err.message, companyId, shipmentId }, "Carrier invoices fetch failed");
     res.status(500).json({ error: "Failed to load carrier invoices", code: "CARRIER_INVOICES_ERROR", message: "Unable to retrieve carrier invoices. Please try again." });
   }
 });
@@ -84,7 +87,7 @@ router.post("/shipments/:id/carrier-invoices", requireMinRole("OPERATOR"), async
       res.status(409).json({ error: "Carrier invoice with this number already exists" });
       return;
     }
-    console.error(`[reconciliation] Carrier invoice ingestion failed company=${companyId} shipment=${shipmentId}:`, err.message);
+    logger.error({ err: err.message, companyId, shipmentId }, "Carrier invoice ingestion failed");
     res.status(500).json({ error: "Failed to ingest carrier invoice", code: "CARRIER_INGEST_ERROR", message: "Unable to process carrier invoice. Please verify the data and try again." });
   }
 });
@@ -117,7 +120,7 @@ router.post("/carrier-invoices/upload", requireMinRole("OPERATOR"), async (req, 
       });
       results.push(result);
     } catch (err: any) {
-      console.error(`[reconciliation] Batch upload item failed company=${companyId} invoice=${inv.invoiceNumber}:`, err.message);
+      logger.error({ err: err.message, companyId, invoiceNumber: inv.invoiceNumber }, "Batch upload item failed");
       const isDuplicate = err?.cause?.code === "23505";
       errors.push({
         invoiceNumber: inv.invoiceNumber,
@@ -145,7 +148,7 @@ router.get("/shipments/:id/reconciliation", async (req, res) => {
     const results = await getReconciliationForShipment(companyId, shipmentId);
     res.json({ data: results });
   } catch (err: any) {
-    console.error(`[reconciliation] Reconciliation fetch failed company=${companyId} shipment=${shipmentId}:`, err.message);
+    logger.error({ err: err.message, companyId, shipmentId }, "Reconciliation fetch failed");
     res.status(500).json({ error: "Failed to load reconciliation results", code: "RECONCILIATION_FETCH_ERROR", message: "Unable to retrieve reconciliation data. Please try again." });
   }
 });
@@ -179,7 +182,7 @@ router.post("/shipments/:id/reconcile", requireMinRole("OPERATOR"), async (req, 
 
     res.json({ data: result });
   } catch (err: any) {
-    console.error(`[reconciliation] Reconciliation FAILED company=${companyId} shipment=${shipmentId}:`, err.message);
+    logger.error({ err: err.message, companyId, shipmentId }, "Reconciliation FAILED");
     res.status(500).json({ error: "Reconciliation failed", code: "RECONCILIATION_FAILED", message: "Unable to perform reconciliation. Please verify carrier invoice data and try again." });
   }
 });
@@ -259,7 +262,7 @@ router.patch("/reconciliation/:reconId/resolve", requireMinRole("OPERATOR"), asy
 
     res.json({ data: updated });
   } catch (err: any) {
-    console.error(`[reconciliation] Resolution FAILED company=${companyId} reconId=${reconId}:`, err.message);
+    logger.error({ err: err.message, companyId, reconId }, "Resolution FAILED");
     res.status(500).json({ error: "Resolution failed", code: "RESOLUTION_FAILED", message: "Unable to update reconciliation resolution. Please try again." });
   }
 });

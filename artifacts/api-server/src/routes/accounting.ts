@@ -18,6 +18,9 @@ import {
   simulateDemoPayment,
   getOrCreateConnection,
 } from "../services/accounting/sync-service.js";
+import { getPublicBaseUrl, createLogger } from "@workspace/config";
+
+const logger = createLogger("accounting");
 
 const router = Router();
 
@@ -135,7 +138,7 @@ router.get("/accounting/oauth/quickbooks/auth-url", requireMinRole("ADMIN"), asy
     return;
   }
 
-  const redirectUri = `${req.protocol}://${req.get("host")}/api/accounting/oauth/quickbooks/callback`;
+  const redirectUri = `${getPublicBaseUrl()}/api/accounting/oauth/quickbooks/callback`;
   const companyId = getCompanyId(req);
 
   const authUrl = new URL("https://appcenter.intuit.com/connect/oauth2");
@@ -167,7 +170,7 @@ export const qbOAuthCallbackHandler: import("express").RequestHandler = async (r
   }
 
   try {
-    const redirectUri = `${req.protocol}://${req.get("host")}/api/accounting/oauth/quickbooks/callback`;
+    const redirectUri = `${getPublicBaseUrl()}/api/accounting/oauth/quickbooks/callback`;
 
     const tokenResp = await fetch("https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer", {
       method: "POST",
@@ -206,10 +209,9 @@ export const qbOAuthCallbackHandler: import("express").RequestHandler = async (r
 
     res.json({ data: { success: true, realmId, companyId } });
   } catch (err: any) {
-    console.error("[accounting] OAuth callback error:", err.message);
+    logger.error({ err: err.message }, "OAuth callback error");
     res.status(500).json({ error: err.message });
   }
 };
 
 export default router;
-

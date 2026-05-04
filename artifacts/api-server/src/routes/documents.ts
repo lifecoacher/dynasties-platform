@@ -7,6 +7,9 @@ import { publishExtractionJob } from "@workspace/queue";
 import { generateId, classifyDocumentType } from "@workspace/shared-utils";
 import multer from "multer";
 import { getCompanyId } from "../middlewares/tenant.js";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("documents");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -88,7 +91,7 @@ router.post("/documents/upload", upload.single("file"), async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("[upload] error:", err);
+    logger.error({ err }, "Upload error");
     res.status(500).json({ error: "Upload failed" });
   }
 });
@@ -118,7 +121,7 @@ router.post("/emails/ingest", upload.single("email"), async (req, res) => {
 
     res.status(201).json({ data: result });
   } catch (err) {
-    console.error("[email-ingest] error:", err);
+    logger.error({ err }, "Email ingest error");
     res.status(500).json({ error: "Email ingestion failed" });
   }
 });

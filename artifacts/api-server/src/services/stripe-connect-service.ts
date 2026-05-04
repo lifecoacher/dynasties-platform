@@ -2,6 +2,9 @@ import { db } from "@workspace/db";
 import { companiesTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient.js";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("stripe-connect");
 
 export interface ConnectStatus {
   stripeConnectAccountId: string | null;
@@ -50,7 +53,7 @@ export class StripeConnectService {
       })
       .where(eq(companiesTable.id, companyId));
 
-    console.log(`[connect] Created Connect account ${account.id} for company ${companyId}`);
+    logger.info({ accountId: account.id, companyId }, "Created Connect account");
     return account.id;
   }
 
@@ -103,7 +106,7 @@ export class StripeConnectService {
       disabledReason: account.requirements.disabled_reason ?? null,
     } : undefined;
 
-    console.log(`[connect] Synced Connect status for company ${companyId}: charges=${chargesEnabled} payouts=${payoutsEnabled} submitted=${detailsSubmitted}`);
+    logger.info({ companyId, chargesEnabled, payoutsEnabled, detailsSubmitted }, "Synced Connect status");
 
     return {
       stripeConnectAccountId: company.stripeConnectAccountId,

@@ -86,15 +86,12 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
   }
 }
 
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("openweather");
+
 function logProviderCall(outcome: "success" | "error" | "fallback", latencyMs: number, detail?: string): void {
-  console.log(JSON.stringify({
-    provider: "openweather",
-    outcome,
-    latencyMs: Math.round(latencyMs),
-    fallback: outcome === "fallback",
-    detail: detail || undefined,
-    timestamp: new Date().toISOString(),
-  }));
+  logger.info({ provider: "openweather", outcome, latencyMs: Math.round(latencyMs), fallback: outcome === "fallback", detail: detail || undefined }, `Provider call: ${outcome}`);
 }
 
 export async function fetchWeather(lat: number, lng: number): Promise<WeatherSummary | null> {

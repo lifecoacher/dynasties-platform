@@ -12,6 +12,9 @@ import { runDocumentValidation } from "@workspace/svc-document-validation";
 import { runShipmentDecision } from "@workspace/svc-shipment-decision";
 import { getCompanyId } from "../middlewares/tenant.js";
 import { requireMinRole } from "../middlewares/auth.js";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("doc-engine");
 
 const router: IRouter = Router();
 
@@ -27,7 +30,7 @@ router.get("/shipments/:id/generated-documents", async (req, res) => {
     const readiness = await getDocumentReadiness(companyId, shipmentId);
     res.json({ data: readiness });
   } catch (err: any) {
-    console.error(`[doc-engine] Readiness check failed company=${companyId} shipment=${shipmentId}:`, err.message);
+    logger.error({ err: err.message, companyId, shipmentId }, "Readiness check failed");
     res.status(500).json({ error: "Failed to check document readiness", code: "DOC_READINESS_ERROR", message: "Unable to check document status. Please try again." });
   }
 });
@@ -40,7 +43,7 @@ router.get("/shipments/:id/generated-documents/list", async (req, res) => {
     const docs = await listGeneratedDocuments(companyId, shipmentId);
     res.json({ data: docs });
   } catch (err: any) {
-    console.error(`[doc-engine] List documents failed company=${companyId} shipment=${shipmentId}:`, err.message);
+    logger.error({ err: err.message, companyId, shipmentId }, "List documents failed");
     res.status(500).json({ error: "Failed to list documents", code: "DOC_LIST_ERROR", message: "Unable to retrieve generated documents. Please try again." });
   }
 });
@@ -72,19 +75,19 @@ router.post("/shipments/:id/generated-documents/:type/generate", requireMinRole(
     try {
       validationResult = await runDocumentValidation(shipmentId, companyId);
     } catch (err: any) {
-      console.warn(`[doc-engine] Post-generation validation recheck failed shipment=${shipmentId}:`, err.message);
+      logger.warn({ err: err.message, shipmentId }, "Post-generation validation recheck failed");
     }
 
     let decisionResult = null;
     try {
       decisionResult = await runShipmentDecision(shipmentId, companyId);
     } catch (err: any) {
-      console.warn(`[doc-engine] Post-generation decision recompute failed shipment=${shipmentId}:`, err.message);
+      logger.warn({ err: err.message, shipmentId }, "Post-generation decision recompute failed");
     }
 
     res.json({ data: { ...result, validation: validationResult, decision: decisionResult?.data || null } });
   } catch (err: any) {
-    console.error(`[doc-engine] Generation FAILED company=${companyId} shipment=${shipmentId} type=${docType}:`, err.message);
+    logger.error({ err: err.message, companyId, shipmentId, docType }, "Generation FAILED");
     res.status(500).json({ error: "Document generation failed", code: "DOC_GENERATION_ERROR", message: "Unable to generate document. Please verify shipment data is complete and try again." });
   }
 });
@@ -102,7 +105,7 @@ router.get("/shipments/:id/generated-documents/:documentId", async (req, res) =>
     }
     res.json({ data: doc });
   } catch (err: any) {
-    console.error(`[doc-engine] Document fetch failed company=${companyId} doc=${documentId}:`, err.message);
+    logger.error({ err: err.message, companyId, documentId }, "Document fetch failed");
     res.status(500).json({ error: "Failed to load document", code: "DOC_FETCH_ERROR", message: "Unable to retrieve document. Please try again." });
   }
 });
@@ -135,19 +138,19 @@ router.post("/shipments/:id/generated-documents/:documentId/regenerate", require
     try {
       validationResult = await runDocumentValidation(shipmentId, companyId);
     } catch (err: any) {
-      console.warn(`[doc-engine] Post-regeneration validation recheck failed shipment=${shipmentId}:`, err.message);
+      logger.warn({ err: err.message, shipmentId }, "Post-regeneration validation recheck failed");
     }
 
     let decisionResult = null;
     try {
       decisionResult = await runShipmentDecision(shipmentId, companyId);
     } catch (err: any) {
-      console.warn(`[doc-engine] Post-regeneration decision recompute failed shipment=${shipmentId}:`, err.message);
+      logger.warn({ err: err.message, shipmentId }, "Post-regeneration decision recompute failed");
     }
 
     res.json({ data: { ...result, validation: validationResult, decision: decisionResult?.data || null } });
   } catch (err: any) {
-    console.error(`[doc-engine] Regeneration FAILED company=${companyId} shipment=${shipmentId} doc=${documentId}:`, err.message);
+    logger.error({ err: err.message, companyId, shipmentId, documentId }, "Regeneration FAILED");
     res.status(500).json({ error: "Document regeneration failed", code: "DOC_REGENERATION_ERROR", message: "Unable to regenerate document. Please try again." });
   }
 });
@@ -178,7 +181,7 @@ router.get("/shipments/:id/generated-documents/:documentId/download", async (req
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.send(doc.htmlContent);
   } catch (err: any) {
-    console.error(`[doc-engine] Download failed company=${companyId} doc=${documentId}:`, err.message);
+    logger.error({ err: err.message, companyId, documentId }, "Download failed");
     res.status(500).json({ error: "Failed to download document", code: "DOC_DOWNLOAD_ERROR", message: "Unable to download document. Please try again." });
   }
 });
@@ -197,7 +200,7 @@ router.get("/shipments/:id/generated-documents/:type/versions", async (req, res)
     const versions = await getDocumentVersions(companyId, shipmentId, docType as GeneratedDocType);
     res.json({ data: versions });
   } catch (err: any) {
-    console.error(`[doc-engine] Version fetch failed company=${companyId} shipment=${shipmentId} type=${docType}:`, err.message);
+    logger.error({ err: err.message, companyId, shipmentId, docType }, "Version fetch failed");
     res.status(500).json({ error: "Failed to load document versions", code: "DOC_VERSIONS_ERROR", message: "Unable to retrieve document version history. Please try again." });
   }
 });

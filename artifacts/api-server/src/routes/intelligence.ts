@@ -18,6 +18,10 @@ import { requireMinRole } from "../middlewares/auth.js";
 import { generateId } from "@workspace/shared-utils";
 import { publishIngestionJob } from "@workspace/queue";
 
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("intelligence");
+
 type AsyncHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
 function safe(label: string, handler: AsyncHandler): AsyncHandler {
@@ -25,7 +29,7 @@ function safe(label: string, handler: AsyncHandler): AsyncHandler {
     try {
       await handler(req, res, next);
     } catch (err) {
-      console.error(`[intelligence] ${label} error:`, err);
+      logger.error({ err, label }, "Route error");
       next(err);
     }
   };

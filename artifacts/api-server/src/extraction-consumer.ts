@@ -63,6 +63,9 @@ import {
 import { eq, and } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import { publishDecisionJob } from "@workspace/queue";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("consumer");
 
 async function tryTriggerDecisionEngine(shipmentId: string, companyId: string): Promise<void> {
   const [compliance] = await db
@@ -84,7 +87,7 @@ async function tryTriggerDecisionEngine(shipmentId: string, companyId: string): 
     .limit(1);
 
   if (compliance && risk && insurance) {
-    console.log(`[consumer] M4 complete for shipment=${shipmentId}, triggering decision engine`);
+    logger.info({ shipmentId }, "M4 complete, triggering decision engine");
     publishDecisionJob({ companyId, shipmentId, trigger: "m4_complete" });
   }
 }
@@ -101,177 +104,151 @@ export function startConsumers(): void {
         attemptCount: entry.attemptCount,
         status: "FAILED",
       });
-      console.log(`[dlq] persisted failed job from ${entry.queueName}`);
+      logger.info({ queue: entry.queueName }, "Persisted failed job to DLQ");
     } catch (err) {
-      console.error(`[dlq] failed to persist:`, err);
+      logger.error({ err }, "Failed to persist DLQ entry");
     }
   });
 
   registerExtractionConsumer(async (job: ExtractionJob) => {
     await processExtractionJob(job);
   });
-  console.log("[consumer] extraction job consumer registered");
+  logger.info("Extraction job consumer registered");
 
   registerPipelineConsumer(async (job: ShipmentPipelineJob) => {
     const result = await runShipmentPipeline(job.documentIds, job.companyId);
     if (result.success) {
-      console.log(
-        `[consumer] pipeline complete: shipment=${result.shipmentId} ref=${result.reference} entities=${result.entitiesCreated}new/${result.entitiesMatched}matched`,
-      );
+      logger.info({ shipmentId: result.shipmentId, reference: result.reference, entitiesCreated: result.entitiesCreated, entitiesMatched: result.entitiesMatched }, "Pipeline complete");
     } else {
-      console.log(`[consumer] pipeline failed: ${result.error}`);
+      logger.warn({ error: result.error }, "Pipeline failed");
     }
   });
-  console.log("[consumer] shipment pipeline consumer registered");
+  logger.info("Shipment pipeline consumer registered");
 
   registerComplianceConsumer(async (job: ComplianceJob) => {
     const result = await runComplianceScreening(job.shipmentId, job.companyId);
     if (result.success) {
-      console.log(
-        `[consumer] compliance complete: shipment=${job.shipmentId} status=${result.status} matches=${result.matchCount}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, status: result.status, matchCount: result.matchCount }, "Compliance complete");
       await tryTriggerDecisionEngine(job.shipmentId, job.companyId);
       triggerAiReanalysis(job.companyId, job.shipmentId, "COMPLIANCE_UPDATED");
     } else {
-      console.log(`[consumer] compliance failed: ${result.error}`);
+      logger.warn({ shipmentId: job.shipmentId, error: result.error }, "Compliance failed");
     }
   });
-  console.log("[consumer] compliance job consumer registered");
+  logger.info("Compliance job consumer registered");
 
   registerRiskConsumer(async (job: RiskJob) => {
     const result = await runRiskIntelligence(job.shipmentId, job.companyId);
     if (result.success) {
-      console.log(
-        `[consumer] risk complete: shipment=${job.shipmentId} score=${result.compositeScore} action=${result.recommendedAction}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, compositeScore: result.compositeScore, recommendedAction: result.recommendedAction }, "Risk complete");
       await tryTriggerDecisionEngine(job.shipmentId, job.companyId);
       triggerAiReanalysis(job.companyId, job.shipmentId, "RISK_UPDATED");
     } else {
-      console.log(`[consumer] risk failed: ${result.error}`);
+      logger.warn({ shipmentId: job.shipmentId, error: result.error }, "Risk failed");
     }
   });
-  console.log("[consumer] risk job consumer registered");
+  logger.info("Risk job consumer registered");
 
   registerInsuranceConsumer(async (job: InsuranceJob) => {
     const result = await runInsuranceQuoteGeneration(job.shipmentId, job.companyId);
     if (result.success) {
-      console.log(
-        `[consumer] insurance complete: shipment=${job.shipmentId} coverage=${result.coverageType} premium=${result.estimatedPremium}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, coverageType: result.coverageType, estimatedPremium: result.estimatedPremium }, "Insurance complete");
       await tryTriggerDecisionEngine(job.shipmentId, job.companyId);
       triggerAiReanalysis(job.companyId, job.shipmentId, "INSURANCE_UPDATED");
     } else {
-      console.log(`[consumer] insurance failed: ${result.error}`);
+      logger.warn({ shipmentId: job.shipmentId, error: result.error }, "Insurance failed");
     }
   });
-  console.log("[consumer] insurance job consumer registered");
+  logger.info("Insurance job consumer registered");
 
   registerPricingConsumer(async (job: PricingJob) => {
     const result = await runPricing(job.shipmentId, job.companyId);
     if (result.success) {
-      console.log(
-        `[consumer] pricing complete: shipment=${job.shipmentId} charges=${result.chargeCount} total=$${result.totalAmount.toFixed(2)}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, chargeCount: result.chargeCount, totalAmount: result.totalAmount.toFixed(2) }, "Pricing complete");
       triggerAiReanalysis(job.companyId, job.shipmentId, "PRICING_UPDATED");
     } else {
-      console.log(`[consumer] pricing failed: ${result.error}`);
+      logger.warn({ shipmentId: job.shipmentId, error: result.error }, "Pricing failed");
     }
   });
-  console.log("[consumer] pricing job consumer registered");
+  logger.info("Pricing job consumer registered");
 
   registerDocGenConsumer(async (job: DocGenJob) => {
     const result = await runDocumentGeneration(job.shipmentId, job.companyId);
     if (result.success) {
-      console.log(
-        `[consumer] docgen complete: shipment=${job.shipmentId} docs=${result.documentsGenerated} types=${result.documentTypes.join(",")}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, documentsGenerated: result.documentsGenerated, documentTypes: result.documentTypes }, "Docgen complete");
     } else {
-      console.log(`[consumer] docgen failed: ${result.error}`);
+      logger.warn({ shipmentId: job.shipmentId, error: result.error }, "Docgen failed");
     }
   });
-  console.log("[consumer] docgen job consumer registered");
+  logger.info("Docgen job consumer registered");
 
   registerBillingConsumer(async (job: BillingJob) => {
     const result = await runBilling(job.shipmentId, job.companyId);
     if (result.success) {
-      console.log(
-        `[consumer] billing complete: shipment=${job.shipmentId} invoice=${result.invoiceNumber} total=$${result.grandTotal.toFixed(2)}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, invoiceNumber: result.invoiceNumber, grandTotal: result.grandTotal.toFixed(2) }, "Billing complete");
     } else {
-      console.log(`[consumer] billing failed: ${result.error}`);
+      logger.warn({ shipmentId: job.shipmentId, error: result.error }, "Billing failed");
     }
   });
-  console.log("[consumer] billing job consumer registered");
+  logger.info("Billing job consumer registered");
 
   registerExceptionConsumer(async (job: ExceptionJob) => {
     const result = await runExceptionDetection(job.shipmentId, job.companyId);
     if (result.success) {
-      console.log(
-        `[consumer] exceptions complete: shipment=${job.shipmentId} found=${result.exceptionsCreated} types=${result.exceptionTypes.join(",") || "none"}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, exceptionsCreated: result.exceptionsCreated, exceptionTypes: result.exceptionTypes }, "Exceptions complete");
       if (result.exceptionsCreated > 0) {
         triggerAiReanalysis(job.companyId, job.shipmentId, "EXCEPTION_CREATED");
       }
     } else {
-      console.log(`[consumer] exceptions failed: ${result.error}`);
+      logger.warn({ shipmentId: job.shipmentId, error: result.error }, "Exceptions failed");
     }
   });
-  console.log("[consumer] exception job consumer registered");
+  logger.info("Exception job consumer registered");
 
   registerTradeLaneConsumer(async (job: TradeLaneJob) => {
     const result = await runTradeLaneUpdate(job.shipmentId, job.companyId);
     if (result.success) {
-      console.log(
-        `[consumer] trade-lane complete: shipment=${job.shipmentId} lane=${result.origin}→${result.destination} count=${result.shipmentCount}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, origin: result.origin, destination: result.destination, shipmentCount: result.shipmentCount }, "Trade-lane complete");
     } else {
-      console.log(`[consumer] trade-lane failed: ${result.error}`);
+      logger.warn({ shipmentId: job.shipmentId, error: result.error }, "Trade-lane failed");
     }
   });
-  console.log("[consumer] trade-lane job consumer registered");
+  logger.info("Trade-lane job consumer registered");
 
   registerClaimsConsumer(async (job: ClaimsJob) => {
     const result = await runClaimPreparation(job.shipmentId, job.companyId, job.claimType, job.incidentDescription);
     if (result.success) {
-      console.log(
-        `[consumer] claims complete: shipment=${job.shipmentId} claim=${result.claimNumber}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, claimNumber: result.claimNumber }, "Claims complete");
     } else {
-      console.log(`[consumer] claims failed: ${result.error}`);
+      logger.warn({ shipmentId: job.shipmentId, error: result.error }, "Claims failed");
     }
   });
-  console.log("[consumer] claims job consumer registered");
+  logger.info("Claims job consumer registered");
 
   registerDecisionConsumer(async (job: DecisionJob) => {
     const result = await runDecisionEngine(job.shipmentId, job.companyId);
     if (result.success) {
-      console.log(
-        `[consumer] decision-engine complete: shipment=${job.shipmentId} recommendations=${result.recommendationsCreated} edges=${result.graphEdgesCreated}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, recommendationsCreated: result.recommendationsCreated, graphEdgesCreated: result.graphEdgesCreated }, "Decision-engine complete");
     } else {
-      console.log(`[consumer] decision-engine failed: ${result.error}`);
+      logger.warn({ shipmentId: job.shipmentId, error: result.error }, "Decision-engine failed");
     }
   });
-  console.log("[consumer] decision-engine consumer registered");
+  logger.info("Decision-engine consumer registered");
 
   registerIngestionConsumer(async (job: IngestionJob) => {
     const result = await runIngestionPipeline(job.sourceId, job.sourceType, job.companyId);
-    console.log(
-      `[consumer] ingestion complete: source=${job.sourceType} persisted=${result.persisted} deduped=${result.deduplicated} failed=${result.failed}`,
-    );
+    logger.info({ sourceType: job.sourceType, persisted: result.persisted, deduplicated: result.deduplicated, failed: result.failed }, "Ingestion complete");
   });
-  console.log("[consumer] ingestion consumer registered");
+  logger.info("Ingestion consumer registered");
 
   registerIntelligenceLinkingConsumer(async (job: IntelligenceLinkingJob) => {
     const edgesCreated = await runIntelligenceLinking(job.companyId, job.sourceType, job.ingestionRunId);
-    console.log(
-      `[consumer] intelligence-linking complete: source=${job.sourceType} edges=${edgesCreated}`,
-    );
+    logger.info({ sourceType: job.sourceType, edgesCreated }, "Intelligence-linking complete");
   });
-  console.log("[consumer] intelligence-linking consumer registered");
+  logger.info("Intelligence-linking consumer registered");
 
   registerAiRuntimeConsumer(async (job: AiRuntimeJob) => {
-    console.log(`[consumer] ai-runtime: shipment=${job.shipmentId} trigger=${job.triggerType}`);
+    logger.info({ shipmentId: job.shipmentId, triggerType: job.triggerType }, "AI-runtime processing");
     try {
       const result = await runShipmentAnalysis({
         shipmentId: job.shipmentId,
@@ -280,14 +257,12 @@ export function startConsumers(): void {
         triggerSourceEntityId: job.triggerSourceEntityId,
         triggerSourceEntityType: job.triggerSourceEntityType,
       });
-      console.log(
-        `[consumer] ai-runtime complete: shipment=${job.shipmentId} runId=${result.runId} success=${result.success}`,
-      );
+      logger.info({ shipmentId: job.shipmentId, runId: result.runId, success: result.success }, "AI-runtime complete");
     } catch (err) {
-      console.error(`[consumer] ai-runtime failed for shipment=${job.shipmentId}:`, err);
+      logger.error({ err, shipmentId: job.shipmentId }, "AI-runtime failed");
     }
   });
-  console.log("[consumer] ai-runtime consumer registered");
+  logger.info("AI-runtime consumer registered");
 
   registerReanalysisConsumer(async (job: ReanalysisJob) => {
     const impacted = await findImpactedShipments(
@@ -306,19 +281,17 @@ export function startConsumers(): void {
         impacted,
         job.ingestionRunId,
       );
-      console.log(
-        `[consumer] reanalysis complete: source=${job.sourceType} identified=${result.shipmentsIdentified} queued=${result.shipmentsQueued} skipped=${result.skippedDuplicate}`,
-      );
+      logger.info({ sourceType: job.sourceType, shipmentsIdentified: result.shipmentsIdentified, shipmentsQueued: result.shipmentsQueued, skippedDuplicate: result.skippedDuplicate }, "Reanalysis complete");
     } else {
-      console.log(`[consumer] reanalysis: no impacted shipments for ${job.sourceType}`);
+      logger.info({ sourceType: job.sourceType }, "Reanalysis: no impacted shipments");
     }
 
     try {
       await computeAndPersistScores(job.companyId);
-      console.log(`[consumer] scoring refresh complete for company=${job.companyId}`);
+      logger.info({ companyId: job.companyId }, "Scoring refresh complete");
     } catch (err) {
-      console.error(`[consumer] scoring refresh failed:`, err);
+      logger.error({ err }, "Scoring refresh failed");
     }
   });
-  console.log("[consumer] reanalysis consumer registered");
+  logger.info("Reanalysis consumer registered");
 }

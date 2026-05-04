@@ -98,7 +98,7 @@ router.post("/auth/register", validateBody(registerSchema), async (req, res) => 
       },
     });
   } catch (err) {
-    console.error("[auth/register] error:", err);
+    req.log?.error({ err }, "Registration error");
     res.status(500).json({ error: "Registration failed" });
   }
 });

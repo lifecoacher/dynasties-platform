@@ -42,6 +42,38 @@ variable "anthropic_api_key" {
   sensitive = true
 }
 
+variable "stripe_secret_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "stripe_publishable_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "stripe_webhook_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "clerk_webhook_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "qb_client_id" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "qb_client_secret" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
 variable "domain_name" {
   type        = string
   description = "Primary domain name for the application (e.g. app.dynasties.io)"
@@ -237,15 +269,18 @@ resource "aws_s3_bucket_versioning" "raw" {
 
 resource "aws_sqs_queue" "queues" {
   for_each = toset([
-    "extraction", "shipment-pipeline", "compliance", "risk",
-    "insurance", "pricing", "docgen", "billing",
-    "exception", "trade-lane", "claims"
+    "extraction-jobs", "shipment-pipeline-jobs", "compliance-jobs", "risk-jobs",
+    "insurance-jobs", "pricing-jobs", "docgen-jobs", "billing-jobs",
+    "exception-jobs", "trade-lane-jobs", "claims-jobs", "decision-jobs",
+    "ingestion-jobs", "reanalysis-jobs", "intelligence-linking-jobs", "ai-runtime-jobs"
   ])
 
-  name                       = "dynasties-${each.key}-${var.environment}"
-  visibility_timeout_seconds = 300
-  message_retention_seconds  = 1209600
-  receive_wait_time_seconds  = 20
+  name                        = "dynasties-${each.key}-${var.environment}.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = false
+  visibility_timeout_seconds  = 300
+  message_retention_seconds   = 1209600
+  receive_wait_time_seconds   = 20
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.dlq[each.key].arn
@@ -255,12 +290,14 @@ resource "aws_sqs_queue" "queues" {
 
 resource "aws_sqs_queue" "dlq" {
   for_each = toset([
-    "extraction", "shipment-pipeline", "compliance", "risk",
-    "insurance", "pricing", "docgen", "billing",
-    "exception", "trade-lane", "claims"
+    "extraction-jobs", "shipment-pipeline-jobs", "compliance-jobs", "risk-jobs",
+    "insurance-jobs", "pricing-jobs", "docgen-jobs", "billing-jobs",
+    "exception-jobs", "trade-lane-jobs", "claims-jobs", "decision-jobs",
+    "ingestion-jobs", "reanalysis-jobs", "intelligence-linking-jobs", "ai-runtime-jobs"
   ])
 
-  name                      = "dynasties-${each.key}-dlq-${var.environment}"
+  name                      = "dynasties-${each.key}-dlq-${var.environment}.fifo"
+  fifo_queue                = true
   message_retention_seconds = 1209600
 }
 
@@ -321,11 +358,19 @@ resource "aws_iam_role_policy" "ecs_exec_ssm" {
         "ssm:GetParameters",
         "ssm:GetParameter",
       ]
-      Resource = [
-        aws_ssm_parameter.database_url.arn,
-        aws_ssm_parameter.jwt_secret.arn,
-        aws_ssm_parameter.anthropic_key.arn,
-      ]
+      Resource = concat(
+        [
+          aws_ssm_parameter.database_url.arn,
+          aws_ssm_parameter.jwt_secret.arn,
+          aws_ssm_parameter.anthropic_key.arn,
+          aws_ssm_parameter.stripe_secret_key.arn,
+          aws_ssm_parameter.stripe_publishable_key.arn,
+          aws_ssm_parameter.stripe_webhook_secret.arn,
+          aws_ssm_parameter.clerk_webhook_secret.arn,
+        ],
+        var.qb_client_id != "" ? [aws_ssm_parameter.qb_client_id[0].arn] : [],
+        var.qb_client_secret != "" ? [aws_ssm_parameter.qb_client_secret[0].arn] : [],
+      )
     }]
   })
 }
@@ -362,7 +407,7 @@ resource "aws_iam_role_policy" "ecs_task_s3_sqs" {
       },
       {
         Effect   = "Allow"
-        Action   = ["sqs:SendMessage", "sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
+        Action   = ["sqs:SendMessage", "sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes", "sqs:ChangeMessageVisibility"]
         Resource = [for q in aws_sqs_queue.queues : q.arn]
       },
     ]
@@ -394,7 +439,15 @@ resource "aws_ecs_task_definition" "api" {
       { name = "AWS_REGION", value = var.aws_region },
       { name = "S3_BUCKET_RAW_DOCUMENTS", value = aws_s3_bucket.raw_documents.id },
       { name = "S3_BUCKET_GENERATED_DOCUMENTS", value = aws_s3_bucket.generated_documents.id },
-      { name = "CORS_ALLOWED_ORIGINS", value = "https://${aws_cloudfront_distribution.main.domain_name}" },
+      { name = "STORAGE_BACKEND", value = "s3" },
+      { name = "QUEUE_BACKEND", value = "sqs" },
+      { name = "TRUST_PROXY", value = "2" },
+      { name = "LOG_LEVEL", value = "info" },
+      { name = "AWS_ACCOUNT_ID", value = data.aws_caller_identity.current.account_id },
+      { name = "SQS_QUEUE_ENV_SUFFIX", value = "-${var.environment}" },
+      { name = "PUBLIC_BASE_URL", value = var.domain_name != "" ? "https://${var.domain_name}" : "https://${aws_cloudfront_distribution.main.domain_name}" },
+      { name = "CORS_ALLOWED_ORIGINS", value = var.domain_name != "" ? "https://${var.domain_name},https://${aws_cloudfront_distribution.main.domain_name}" : "https://${aws_cloudfront_distribution.main.domain_name}" },
+      { name = "QB_MODE", value = "live" },
     ]
 
     secrets = [
@@ -402,6 +455,10 @@ resource "aws_ecs_task_definition" "api" {
       { name = "JWT_SECRET", valueFrom = aws_ssm_parameter.jwt_secret.arn },
       { name = "ANTHROPIC_API_KEY", valueFrom = aws_ssm_parameter.anthropic_key.arn },
       { name = "AI_INTEGRATIONS_ANTHROPIC_API_KEY", valueFrom = aws_ssm_parameter.anthropic_key.arn },
+      { name = "STRIPE_SECRET_KEY", valueFrom = aws_ssm_parameter.stripe_secret_key.arn },
+      { name = "STRIPE_PUBLISHABLE_KEY", valueFrom = aws_ssm_parameter.stripe_publishable_key.arn },
+      { name = "STRIPE_WEBHOOK_SECRET", valueFrom = aws_ssm_parameter.stripe_webhook_secret.arn },
+      { name = "CLERK_WEBHOOK_SECRET", valueFrom = aws_ssm_parameter.clerk_webhook_secret.arn },
     ]
 
     logConfiguration = {
@@ -431,6 +488,84 @@ resource "aws_ssm_parameter" "anthropic_key" {
   name  = "/dynasties/${var.environment}/anthropic-api-key"
   type  = "SecureString"
   value = var.anthropic_api_key
+}
+
+resource "aws_ssm_parameter" "stripe_secret_key" {
+  name  = "/dynasties/${var.environment}/stripe-secret-key"
+  type  = "SecureString"
+  value = var.stripe_secret_key
+}
+
+resource "aws_ssm_parameter" "stripe_publishable_key" {
+  name  = "/dynasties/${var.environment}/stripe-publishable-key"
+  type  = "SecureString"
+  value = var.stripe_publishable_key
+}
+
+resource "aws_ssm_parameter" "stripe_webhook_secret" {
+  name  = "/dynasties/${var.environment}/stripe-webhook-secret"
+  type  = "SecureString"
+  value = var.stripe_webhook_secret
+}
+
+resource "aws_ssm_parameter" "clerk_webhook_secret" {
+  name  = "/dynasties/${var.environment}/clerk-webhook-secret"
+  type  = "SecureString"
+  value = var.clerk_webhook_secret
+}
+
+resource "aws_ssm_parameter" "qb_client_id" {
+  count = var.qb_client_id != "" ? 1 : 0
+  name  = "/dynasties/${var.environment}/qb-client-id"
+  type  = "SecureString"
+  value = var.qb_client_id
+}
+
+resource "aws_ssm_parameter" "qb_client_secret" {
+  count = var.qb_client_secret != "" ? 1 : 0
+  name  = "/dynasties/${var.environment}/qb-client-secret"
+  type  = "SecureString"
+  value = var.qb_client_secret
+}
+
+resource "aws_cloudwatch_log_group" "migrate" {
+  name              = "/ecs/dynasties-migrate-${var.environment}"
+  retention_in_days = 14
+}
+
+resource "aws_ecs_task_definition" "migrate" {
+  family                   = "dynasties-migrate-${var.environment}"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([{
+    name      = "migrate"
+    image     = "${aws_ecr_repository.api.repository_url}:latest"
+    essential = true
+    command   = ["node", "dist/scripts/run-migrations.js"]
+
+    environment = [
+      { name = "NODE_ENV", value = "production" },
+      { name = "AWS_REGION", value = var.aws_region },
+    ]
+
+    secrets = [
+      { name = "DATABASE_URL", valueFrom = aws_ssm_parameter.database_url.arn },
+    ]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.migrate.name
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "migrate"
+      }
+    }
+  }])
 }
 
 resource "aws_lb" "main" {
@@ -546,6 +681,10 @@ resource "aws_ecs_service" "api" {
     container_name   = "api"
     container_port   = 8080
   }
+
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
+  health_check_grace_period_seconds  = 120
 
   deployment_circuit_breaker {
     enable   = true

@@ -19,6 +19,10 @@ import {
 } from "@workspace/svc-workflow-orchestrator";
 import type { RecommendationInput } from "@workspace/svc-workflow-orchestrator";
 
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("orchestration");
+
 type AsyncHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
 function safe(label: string, handler: AsyncHandler): AsyncHandler {
@@ -26,7 +30,7 @@ function safe(label: string, handler: AsyncHandler): AsyncHandler {
     try {
       await handler(req, res, next);
     } catch (err) {
-      console.error(`[orchestration] ${label} error:`, err);
+      logger.error({ err, label }, "Route error");
       next(err);
     }
   };

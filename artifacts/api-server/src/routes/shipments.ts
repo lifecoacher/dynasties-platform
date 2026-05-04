@@ -405,7 +405,7 @@ router.post("/shipments/:id/routing-pricing", requireMinRole("OPERATOR"), async 
     });
     res.json({ data: result.data });
   } catch (err: any) {
-    console.error("Routing & pricing error:", err);
+    req.log?.error({ err }, "Routing & pricing error");
     res.status(500).json({ error: "Routing & pricing analysis failed" });
   }
 });
@@ -442,7 +442,7 @@ router.post("/shipments/:id/decision", requireMinRole("OPERATOR"), async (req, r
     });
     res.json({ data: result.data });
   } catch (err: any) {
-    console.error("Decision engine error:", err);
+    req.log?.error({ err }, "Decision engine error");
     res.status(500).json({ error: "Decision computation failed" });
   }
 });
@@ -565,7 +565,7 @@ router.post("/shipments/:id/shipment-events", requireMinRole("OPERATOR"), async 
 
     res.json({ data: result });
   } catch (err: any) {
-    console.error("[event-ingestion] Ingest failed:", err);
+    req.log?.error({ err }, "Event ingest failed");
     res.status(400).json({ error: err.message });
   }
 });
@@ -603,7 +603,7 @@ router.post("/shipments/:id/shipment-events/batch", requireMinRole("OPERATOR"), 
       summary: { total: rawEvents.length, succeeded, failed },
     });
   } catch (err: any) {
-    console.error("[event-ingestion] Batch ingest failed:", err);
+    req.log?.error({ err }, "Batch event ingest failed");
     res.status(500).json({ error: err.message });
   }
 });

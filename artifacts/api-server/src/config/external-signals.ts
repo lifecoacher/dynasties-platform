@@ -1,3 +1,7 @@
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("external-signals");
+
 export interface ExternalSignalsConfig {
   enabled: boolean;
   weather: {
@@ -34,15 +38,18 @@ export function getExternalSignalsConfig(): ExternalSignalsConfig {
 
 export function logExternalSignalsConfig(): void {
   const cfg = getExternalSignalsConfig();
-  console.log("[external-signals] Configuration:");
-  console.log(`  Global enabled: ${cfg.enabled}`);
-  console.log(`  Weather API: ${cfg.weather.enabled ? "ENABLED" : "disabled"} (key ${cfg.weather.apiKey ? "present" : "missing"})`);
-  console.log(`  AIS API: ${cfg.ais.enabled ? "ENABLED" : "disabled"} (key ${cfg.ais.apiKey ? "present" : "missing"})`);
+  logger.info({
+    globalEnabled: cfg.enabled,
+    weatherEnabled: cfg.weather.enabled,
+    weatherKeyPresent: !!cfg.weather.apiKey,
+    aisEnabled: cfg.ais.enabled,
+    aisKeyPresent: !!cfg.ais.apiKey,
+  }, "External signals configuration");
 
   if (cfg.weather.enabled && !cfg.weather.apiKey) {
-    console.warn("[external-signals] Weather API enabled but OPENWEATHER_API_KEY is missing — will use fallback data");
+    logger.warn("Weather API enabled but OPENWEATHER_API_KEY is missing — will use fallback data");
   }
   if (cfg.ais.enabled && !cfg.ais.apiKey) {
-    console.warn("[external-signals] AIS API enabled but AISSTREAM_API_KEY is missing — will use fallback data");
+    logger.warn("AIS API enabled but AISSTREAM_API_KEY is missing — will use fallback data");
   }
 }

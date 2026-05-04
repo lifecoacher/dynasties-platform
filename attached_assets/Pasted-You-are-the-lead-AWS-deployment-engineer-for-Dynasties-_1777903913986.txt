@@ -1,0 +1,422 @@
+You are the lead AWS deployment engineer for Dynasties Platform.
+
+You are fixing every blocker from the latest AWS Deployment Readiness Audit on main at SHA 62d3b47.
+
+This is NOT a feature sprint.
+This is NOT a product polish sprint.
+This is a production deployment gate sprint.
+
+Audit verdict:
+DEPLOYABLE WITH CONDITIONS — NOT YET READY FOR REAL-USER PILOT.
+
+The codebase is close, but AWS deployment will break real billing/webhook flows unless the remaining blockers are fixed. The audit specifically found Replit URL coupling, missing ECS secrets, migrations running from GitHub Actions against private RDS, incomplete CORS allow-list, missing boot-time secret enforcement, ECS desired_count risk, SQS not enabled in ECS, E2E tests not truly running, remaining console logs, and app_user role/GRANT inconsistency. Fix these directly in code and infrastructure. Do not return a plan without code changes.
+
+---
+
+## PHASE 1 — REMOVE REPLIT URL COUPLING
+
+### Problem
+Production Stripe and return URLs are still built from:
+- REPLIT_DOMAINS
+- REPLIT_DEV_DOMAIN
+
+On AWS these are undefined, producing URLs like:
+- https://undefined/api/stripe/webhook
+- https://undefined/settings/billing?checkout=success
+
+### Required fix
+Add a required `PUBLIC_BASE_URL` env var.
+
+Implement:
+- add `PUBLIC_BASE_URL` to the Zod env schema
+- require it in production and staging
+- validate it is a valid HTTPS URL outside local dev
+- replace every use of `REPLIT_DOMAINS` / `REPLIT_DEV_DOMAIN` used for public URLs in:
+  - artifacts/api-server/src/index.ts
+  - artifacts/api-server/src/routes/stripe-billing.ts
+  - artifacts/api-server/src/routes/stripe-connect.ts
+  - any other file constructing Stripe webhook, checkout, portal, return, onboarding, or OAuth callback URLs
+
+Rules:
+- local/dev may use localhost fallback only if explicitly local
+- AWS/staging/prod must use `PUBLIC_BASE_URL`
+- never create public URLs from Replit env vars in AWS mode
+
+Validation:
+- Stripe webhook URL uses `${PUBLIC_BASE_URL}/api/stripe/webhook`
+- Stripe checkout success/cancel URLs use `${PUBLIC_BASE_URL}/settings/billing?...`
+- Stripe Connect onboarding refresh/return URLs use `PUBLIC_BASE_URL`
+
+---
+
+## PHASE 2 — WIRE REQUIRED SECRETS INTO AWS ECS
+
+### Problem
+Terraform ECS task definition currently injects only:
+- DATABASE_URL
+- JWT_SECRET
+- ANTHROPIC_API_KEY
+
+Missing:
+- STRIPE_SECRET_KEY
+- STRIPE_PUBLISHABLE_KEY
+- STRIPE_WEBHOOK_SECRET
+- CLERK_WEBHOOK_SECRET
+- QB_CLIENT_ID
+- QB_CLIENT_SECRET
+
+Also missing production envs:
+- QB_MODE=live
+- QUEUE_BACKEND=sqs
+- PUBLIC_BASE_URL
+
+### Required fix
+Update `infra/main.tf`.
+
+Add SSM SecureString parameters for:
+- STRIPE_SECRET_KEY
+- STRIPE_PUBLISHABLE_KEY
+- STRIPE_WEBHOOK_SECRET
+- CLERK_WEBHOOK_SECRET
+- QB_CLIENT_ID
+- QB_CLIENT_SECRET
+
+Inject them into ECS task definition `secrets`.
+
+Add plain environment variables:
+- NODE_ENV=production
+- QB_MODE=live
+- QUEUE_BACKEND=sqs
+- PUBLIC_BASE_URL from var/domain config
+- CORS_ALLOWED_ORIGINS including custom domain + CloudFront default domain
+
+Add Terraform vars if needed:
+- domain_name
+- app_subdomain or public_base_url
+
+Validation:
+- ECS task has all money-path and webhook secrets
+- QuickBooks cannot silently fall back to demo in AWS
+- queue backend is SQS in AWS
+- app receives PUBLIC_BASE_URL
+
+---
+
+## PHASE 3 — MAKE PRODUCTION SECRETS REQUIRED AT BOOT
+
+### Problem
+Some production secrets are optional in env schema and only fail at runtime.
+
+### Required fix
+Update Zod env validation so production/staging fails to boot if missing:
+- STRIPE_SECRET_KEY
+- STRIPE_WEBHOOK_SECRET
+- STRIPE_PUBLISHABLE_KEY
+- CLERK_WEBHOOK_SECRET
+- QB_CLIENT_ID
+- QB_CLIENT_SECRET
+- PUBLIC_BASE_URL
+- CORS_ALLOWED_ORIGINS
+
+Also:
+- require `QB_MODE=live` in production unless explicitly disabled
+- require `QUEUE_BACKEND=sqs` in production unless explicitly overridden with a loud failure or documented internal-only mode
+
+Rules:
+- fail fast at boot, not on first Stripe or Clerk webhook
+- error messages must clearly identify missing env names
+- local/demo can still run with safe fallbacks
+
+---
+
+## PHASE 4 — MOVE MIGRATIONS INTO ECS FARGATE TASK
+
+### Problem
+Deploy workflow runs migrations from GitHub Actions against RDS in a private subnet. This will fail because RDS is not publicly accessible and only accepts ECS SG traffic.
+
+### Required fix
+Update AWS deployment flow.
+
+Implement:
+- an ECS migration task definition or task override that runs `scripts/run-migrations.sh`
+- deploy workflow must call `aws ecs run-task` inside the VPC/subnets/security groups
+- wait for task completion with `aws ecs wait tasks-stopped`
+- inspect exit code
+- fail deployment if migration task fails
+- only update ECS service after migration success
+
+Rules:
+- do not run migrations directly from GitHub runner against private RDS
+- migration task must use same DB secret/network access as API task
+- migration task must be one-off and safe
+
+Validation:
+- deploy.yml no longer calls migration script locally against private DB
+- deploy.yml starts Fargate migration task before ECS service update
+
+---
+
+## PHASE 5 — FIX CORS ALLOW-LIST FOR AWS CUSTOM DOMAIN
+
+### Problem
+Terraform sets CORS only to the CloudFront default domain. Real users on `app.dynasties.io` will be blocked.
+
+### Required fix
+Update Terraform/app config:
+- CORS_ALLOWED_ORIGINS must include:
+  - custom public app domain, e.g. `https://app.dynasties.io`
+  - CloudFront default domain
+- drive this from `var.domain_name` / `PUBLIC_BASE_URL`
+- fail closed if missing in prod
+
+Validation:
+- browser Origin from custom domain is accepted
+- unknown origins are rejected
+- no wildcard credentialed CORS
+
+---
+
+## PHASE 6 — MOVE STRIPE INIT OUT OF HOT BOOT PATH
+
+### Problem
+`initStripe()` runs migrations and webhook setup on every app boot. Multiple ECS tasks cause migration/webhook thundering herd.
+
+### Required fix
+Refactor boot flow:
+- app startup should not run schema migrations
+- app startup should not register Stripe webhooks on every task boot
+- move Stripe webhook registration into:
+  - explicit deployment task, or
+  - admin/setup command/script, or
+  - one-off ECS task
+
+Implement:
+- remove migration/webhook setup from normal `app.listen()` path
+- add script such as:
+  - `scripts/register-stripe-webhook.ts`
+  - or `pnpm stripe:register-webhook`
+- update deploy workflow or runbook to execute it once per deploy/environment if needed
+- ensure it uses `PUBLIC_BASE_URL`
+
+Validation:
+- app boots quickly
+- no multi-task Stripe setup race
+- webhook registration still available via explicit command
+
+---
+
+## PHASE 7 — ECS RELIABILITY SETTINGS
+
+### Problem
+ECS service likely runs one task. No redundancy.
+
+### Required fix
+Update `infra/main.tf` ECS service:
+- set `desired_count = 2`
+- set `deployment_minimum_healthy_percent = 50`
+- set `deployment_maximum_percent = 200`
+- ensure autoscaling target exists for CPU/memory if not already present
+- ensure health check grace period is sane
+
+Validation:
+- service can survive one task replacement
+- rolling deploy should not fully drop API
+
+---
+
+## PHASE 8 — ENABLE SQS QUEUE BACKEND IN AWS
+
+### Problem
+Queue code supports SQS but AWS task does not set `QUEUE_BACKEND=sqs`, so app defaults to in-memory EventEmitter.
+
+### Required fix
+- set `QUEUE_BACKEND=sqs` in ECS task definition
+- ensure all required SQS queue URLs/names/env vars used by the queue adapter are injected
+- ensure IAM role has required SQS permissions:
+  - SendMessage
+  - ReceiveMessage
+  - DeleteMessage
+  - ChangeMessageVisibility
+  - GetQueueAttributes
+- verify existing queues/DLQs in Terraform are actually referenced by env/config
+
+Validation:
+- AWS mode cannot silently run EventEmitter queue
+- health check reports SQS mode
+- queue consumer count / queue health works in AWS mode
+
+---
+
+## PHASE 9 — MAKE CI E2E REAL OR HONEST
+
+### Problem
+Money-path E2E tests hit `localhost:8080/api`, but CI does not start the API server. CI uses continue-on-error, so failures are swallowed.
+
+### Required fix
+Choose one correct path:
+
+Option A, preferred:
+- start API server in CI with Postgres service and required env
+- wait for `/api/healthz/ready`
+- run money-path E2E tests for real
+- remove `continue-on-error`
+
+Option B:
+- split E2E into separate staging workflow
+- remove the claim that CI runs them
+- keep CI unit tests real and enforced
+- no misleading green check
+
+Rules:
+- no continue-on-error for release-critical tests
+- CI must not imply fake coverage
+
+Validation:
+- test count is real
+- money-path either runs successfully or is explicitly separated
+
+---
+
+## PHASE 10 — REMOVE REMAINING CONSOLE LOGGING FROM API SERVER
+
+### Problem
+147 `console.*` calls remain.
+
+### Required fix
+- replace remaining `console.log/warn/error` in `artifacts/api-server/src` with Pino logger calls
+- import shared logger where needed
+- preserve useful context
+- avoid logging secrets/PII
+- add ESLint no-console rule for API server if practical
+
+Validation:
+- no or near-zero console.* in API server source
+- requestId/companyId logging remains intact
+
+---
+
+## PHASE 11 — DB LEAST-PRIVILEGE ROLE / app_user FIX
+
+### Problem
+Code runs GRANTs to `app_user`, but Terraform does not create that role. GRANTs are swallowed. App may connect as master user.
+
+### Required fix
+Choose the safest practical fix:
+
+Option A:
+- add bootstrap migration or Terraform-supported setup to create `app_user`
+- grant least privileges
+- create separate SSM-managed app DATABASE_URL using app_user
+- ensure app connects as app_user, not master
+
+Option B:
+- remove misleading `GRANT ... TO app_user` block if not ready
+- document that least-privilege DB role is not yet implemented
+- do not silently swallow the GRANT failure
+
+Preferred:
+- implement least-privilege app_user if feasible.
+
+Validation:
+- no swallowed GRANT failures
+- DB user strategy is explicit and secure
+
+---
+
+## PHASE 12 — FRONTEND STRIPE CSP CHECK
+
+### Problem
+API CSP is strict. Need to ensure frontend does not block Stripe if using Stripe Elements/Checkout flows.
+
+### Required fix
+- inspect frontend nginx/security headers
+- ensure frontend CSP allows required Stripe domains if CSP is set:
+  - frame-src https://js.stripe.com https://hooks.stripe.com
+  - connect-src https://api.stripe.com plus app API origin
+  - script-src https://js.stripe.com if needed
+- do not loosen API CSP unnecessarily
+
+Validation:
+- Stripe Checkout / onboarding redirects still work
+- frontend CSP will not block Stripe assets
+
+---
+
+## PHASE 13 — DOCS / RUNBOOK UPDATE
+
+Update:
+- RUNBOOK.md
+- SYSTEM_MAP.md
+- REVIEW_PACKAGE.md
+- deployment docs
+- replit.md if used as changelog
+
+Include:
+- PUBLIC_BASE_URL
+- AWS secrets list
+- migration task deployment flow
+- Stripe webhook registration flow
+- SQS production mode
+- QuickBooks live-mode env requirements
+- E2E CI strategy
+
+---
+
+## FINAL VALIDATION REQUIREMENTS
+
+Run or verify:
+
+1. `pnpm install`
+2. `pnpm typecheck`
+3. `pnpm test`
+4. `pnpm build`
+5. Terraform validate if available
+6. Docker build if practical
+7. env schema tests for production mode
+8. health endpoint tests
+9. Stripe URL generation tests:
+   - webhook URL
+   - checkout success/cancel URL
+   - Connect return/refresh URL
+10. CI workflow sanity:
+   - migration task runs inside ECS
+   - E2E status is truthful
+
+---
+
+## OUTPUT REQUIREMENTS
+
+Return:
+
+1. exact files changed
+2. exact AWS/Terraform changes made
+3. exact env schema changes made
+4. exact Replit URL replacements made
+5. exact ECS secrets/env additions
+6. exact migration deployment flow change
+7. exact CORS changes
+8. exact Stripe boot/init change
+9. exact SQS production wiring
+10. exact CI/E2E changes
+11. exact logging cleanup
+12. exact DB role strategy
+13. validation commands run and results
+14. remaining risks, if any
+15. commit hash
+
+---
+
+## CONSTRAINTS
+
+- Do NOT weaken tenant isolation.
+- Do NOT leave Stripe public URLs based on Replit env vars.
+- Do NOT allow production to boot without required Stripe/Clerk/QB secrets.
+- Do NOT run migrations from GitHub runner against private RDS.
+- Do NOT allow wildcard credentialed CORS.
+- Do NOT let AWS default to in-memory queue.
+- Do NOT hide failures with catch(() => {}).
+- Do NOT fake E2E coverage.
+- Do NOT make broad unrelated product changes.
+- Do NOT return a plan without code changes.
+
+Implement the fixes required to make the next AWS readiness audit pass cleanly.

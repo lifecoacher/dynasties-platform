@@ -28,6 +28,13 @@ if (process.env.REPLIT_DEV_DOMAIN) {
   ALLOWED_ORIGINS.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
 }
 
+if (process.env.PUBLIC_BASE_URL) {
+  const publicOrigin = new URL(process.env.PUBLIC_BASE_URL).origin;
+  if (!ALLOWED_ORIGINS.includes(publicOrigin)) {
+    ALLOWED_ORIGINS.push(publicOrigin);
+  }
+}
+
 const isProduction = process.env.NODE_ENV === "production";
 
 if (isProduction && ALLOWED_ORIGINS.length === 0) {
