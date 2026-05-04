@@ -1,0 +1,277 @@
+You are the lead release engineer for Dynasties Platform.
+
+You are fixing every production-readiness blocker from the latest read-only Production PR Audit of origin/main.
+
+This is not a feature sprint.
+This is not exploratory.
+This is a focused production gate fix sprint.
+
+Audit verdict:
+PASS WITH CONDITIONS — NOT YET PRODUCTION-READY.
+Main blockers:
+1. migration drift
+2. CI tests not actually running
+3. unsafe process-level error swallowing
+4. Helmet CSP disabled
+5. permissive non-prod CORS risk
+6. default JWT secret in docker-compose
+7. structured logging still console-based
+8. pnpm version mismatch
+9. demo routes exposed
+10. missing secret scanning
+
+Your job is to implement all fixes below in code, commit them cleanly, and verify.
+
+---
+
+## PHASE 1 — CRITICAL FIXES
+
+### 1. Fix migration drift
+Problem:
+- Two migrations share the 0003 prefix:
+  - 0003_recommendation_hardening.sql
+  - 0003_romantic_lester.sql
+- Drizzle journal only references 0003_romantic_lester.
+- 0003_recommendation_hardening.sql will never run.
+
+Required fix:
+- Resolve properly using Drizzle migration tooling.
+- Do NOT hand-edit the journal unless absolutely unavoidable.
+- Preferred:
+  - delete/rename the orphaned migration
+  - regenerate as next clean migration, e.g. 0005_recommendation_hardening.sql
+  - ensure meta journal/snapshot includes it
+- Verify on scratch DB that migration applies.
+- Confirm columns/indexes added:
+  - recommendation fingerprint column
+  - superseded_by_id column
+  - recommendations_active_fingerprint_idx or equivalent unique/partial index
+
+### 2. Make CI actually run tests
+Problem:
+- CI runs `pnpm test --if-present`
+- no package has a test script
+- test suite is effectively a no-op.
+
+Required fix:
+- add root `test` script
+- install/configure Vitest
+- create `vitest.config.ts`
+- ensure real tests run in CI
+- for API/E2E tests that need a live server:
+  - gate with env flag such as `E2E=true`
+  - skip clearly when env is absent
+- CI must show real test count, not zero.
+
+### 3. Fix process-level error handlers
+Problem:
+- `uncaughtException` and `unhandledRejection` currently log and continue.
+- This is unsafe.
+
+Required fix:
+- keep handlers, but change behavior:
+  - log full error and stack
+  - start graceful shutdown
+  - stop accepting new requests
+  - close HTTP server if accessible
+  - close DB pool if accessible
+  - set timeout 10–30 seconds
+  - call `process.exit(1)`
+- Do not keep process alive after uncaught exception.
+- Let ECS/container supervisor restart.
+
+---
+
+## PHASE 2 — MAJOR PRODUCTION HARDENING
+
+### 4. Enable strict Helmet CSP
+Problem:
+- Helmet exists but `contentSecurityPolicy: false`
+- COEP also disabled.
+
+Required fix:
+- enable strict API-safe CSP.
+- Recommended baseline:
+  - `default-src 'none'`
+  - `frame-ancestors 'none'`
+  - allow only what API genuinely needs
+- Make sure Stripe webhooks, Clerk webhooks, QuickBooks OAuth callback, health endpoints still work.
+- Keep frontend CSP separate if needed.
+
+### 5. Tighten CORS
+Problem:
+- non-production allows all origins with credentials.
+- if NODE_ENV is wrong, production can become permissive.
+
+Required fix:
+- require explicit allow-list.
+- never use `origin: true` with `credentials: true`.
+- allow localhost only through explicit dev defaults or env.
+- fail closed in production if allowed origins are missing.
+- validate env in Zod schema.
+
+### 6. Remove default JWT secret
+Problem:
+- docker-compose has public fallback secret while NODE_ENV=production.
+
+Required fix:
+- remove fallback:
+  - no `${JWT_SECRET:-dev...}` in production-like compose
+- update Zod env validation to reject known bad substrings:
+  - `dev`
+  - `change`
+  - `example`
+  - `secret`
+  - `password`
+  where appropriate
+- app must fail boot if JWT_SECRET is weak or missing outside explicit local demo mode.
+
+### 7. Pin pnpm version consistently
+Problem:
+- Dockerfiles use pnpm@9
+- root packageManager uses pnpm@10.26.1
+- CI likely uses 10.x
+
+Required fix:
+- update all Dockerfiles to:
+  - `corepack prepare pnpm@10.26.1 --activate`
+- pin GitHub Actions pnpm setup to the same version.
+- root package.json remains source of truth.
+
+### 8. Replace console-based logging with Pino
+Problem:
+- Pino exists but API request path uses console.*
+- 164 console calls remain in API server.
+
+Required fix:
+- import/use registered Pino logger from lib/config.
+- replace request logger with Pino.
+- add request ID / correlation ID.
+- attach request-scoped child logger to request context if practical.
+- log:
+  - method
+  - path
+  - status
+  - duration
+  - requestId
+  - userId if available
+  - companyId if available
+- configure redaction for:
+  - Authorization header
+  - cookies
+  - emails
+  - Stripe IDs/secrets where appropriate
+- replace core API `console.*` calls where practical.
+- Leave only unavoidable boot-time console if necessary.
+
+---
+
+## PHASE 3 — MEDIUM RELEASE FIXES
+
+### 9. Fix Stripe webhook error classification
+Problem:
+- signature failures and internal processing errors return/log too generically.
+
+Required fix:
+- signature verification failure:
+  - log warn
+  - return 400
+- internal processing failure:
+  - log error with stack and event ID if available
+  - return 500
+- include Stripe event id in logs after verified payload is parsed.
+
+### 10. Gate demo routes
+Problem:
+- demo router is mounted unconditionally.
+
+Required fix:
+- only mount demo routes when:
+  - `DEMO_MODE=true`
+  - or explicit local/dev env flag is enabled
+- ensure production cannot access demo routes.
+- audit demo routes for write side effects.
+
+### 11. Add secret scanning to CI
+Required fix:
+- add gitleaks or equivalent GitHub Actions step.
+- make it fail CI on detected secrets.
+- document GitHub Push Protection should be enabled manually in repo settings.
+
+### 12. Migration runner single source of truth
+Problem:
+- deploy workflow runs migrate command directly instead of using script.
+
+Required fix:
+- update deploy.yml to call `scripts/run-migrations.sh`
+- keep migration behavior in one place.
+
+### 13. Add tenant/user context to request logs
+Required fix:
+- include companyId/userId after auth middleware has populated them.
+- ensure logs still work for unauthenticated routes.
+
+---
+
+## PHASE 4 — FOLLOW-UP CLEANUPS IF LOW RISK
+
+Do these if straightforward and safe:
+
+1. Make TRUST_PROXY configurable through env with default `1`.
+2. Add tenant/account-aware rate limit for login or write-heavy paths.
+3. Add DynamoDB state lock note/config for Terraform backend if feasible.
+4. Document Stripe webhook timestamp tolerance or expose via env.
+5. Add x-clerk-* headers to CORS allowed headers only if needed.
+
+---
+
+## VALIDATION REQUIREMENTS
+
+After fixes:
+
+1. `pnpm install` succeeds.
+2. `pnpm typecheck` succeeds.
+3. `pnpm test` runs real tests and reports nonzero test count.
+4. `pnpm build` succeeds.
+5. Dockerfiles build with pnpm 10.26.1.
+6. Migrations apply cleanly to scratch DB.
+7. App boots locally with proper env.
+8. App refuses to boot in production mode with missing/weak JWT_SECRET.
+9. CORS rejects unauthorized origins.
+10. Helmet headers include CSP.
+11. Stripe webhook duplicate handling still works.
+12. Request logs are structured and include requestId.
+13. Demo routes unavailable when demo mode off.
+14. Process-level fatal handlers log and exit instead of swallowing.
+
+---
+
+## OUTPUT REQUIREMENTS
+
+Return:
+
+1. exact files changed
+2. migrations fixed/created
+3. CI/test changes made
+4. security hardening changes made
+5. logging/observability changes made
+6. Docker/pnpm fixes made
+7. demo route gating changes made
+8. validation commands run and results
+9. any remaining unresolved risks
+10. commit hash
+
+---
+
+## CONSTRAINTS
+
+- Do NOT weaken tenant isolation.
+- Do NOT fake passing tests.
+- Do NOT keep process alive after uncaughtException.
+- Do NOT leave migration journal drift.
+- Do NOT leave permissive credentialed CORS.
+- Do NOT leave known default secrets.
+- Do NOT make broad unrelated refactors.
+- Do NOT return a plan without code changes.
+
+Implement everything required to make the next production-readiness audit pass cleanly.

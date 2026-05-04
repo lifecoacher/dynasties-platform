@@ -1,4 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
+import { createLogger } from "@workspace/config";
+
+const logger = createLogger("api-server");
 
 export function notFoundHandler(
   req: Request,
@@ -21,8 +24,6 @@ export function globalErrorHandler(
   const statusCode = (err as any).statusCode || 500;
 
   const logPayload = {
-    level: statusCode >= 500 ? "error" : "warn",
-    msg: `${req.method} ${req.originalUrl} error`,
     method: req.method,
     url: req.originalUrl,
     statusCode,
@@ -31,10 +32,13 @@ export function globalErrorHandler(
     userId: req.user?.userId || "anonymous",
     companyId: req.user?.companyId || "-",
     requestId: req.requestId || "-",
-    timestamp: new Date().toISOString(),
   };
 
-  console.error(JSON.stringify(logPayload));
+  if (statusCode >= 500) {
+    logger.error(logPayload, `${req.method} ${req.originalUrl} error`);
+  } else {
+    logger.warn(logPayload, `${req.method} ${req.originalUrl} error`);
+  }
 
   const clientMessage = statusCode >= 500
     ? "An unexpected error occurred. Please try again or contact support."
