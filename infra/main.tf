@@ -459,7 +459,10 @@ resource "aws_ecs_task_definition" "api" {
       { name = "STRIPE_PUBLISHABLE_KEY", valueFrom = aws_ssm_parameter.stripe_publishable_key.arn },
       { name = "STRIPE_WEBHOOK_SECRET", valueFrom = aws_ssm_parameter.stripe_webhook_secret.arn },
       { name = "CLERK_WEBHOOK_SECRET", valueFrom = aws_ssm_parameter.clerk_webhook_secret.arn },
-    ]
+    ] + (var.qb_client_id != "" && var.qb_client_secret != "" ? [
+      { name = "QB_CLIENT_ID", valueFrom = aws_ssm_parameter.qb_client_id[0].arn },
+      { name = "QB_CLIENT_SECRET", valueFrom = aws_ssm_parameter.qb_client_secret[0].arn },
+    ] : [])
 
     logConfiguration = {
       logDriver = "awslogs"

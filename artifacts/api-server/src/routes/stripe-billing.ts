@@ -323,11 +323,11 @@ router.post("/stripe/activate-demo", requireMinRole("ADMIN"), async (req, res) =
   const config = getPlanConfig(planType);
 
   const seatInfo = await checkSeatLimit(companyId);
-  if (seatInfo.seatsUsed > config.seatLimit) {
+  if (seatInfo.used > config.seatLimit) {
     res.status(400).json({
-      error: `Cannot switch to ${planType}: you have ${seatInfo.seatsUsed} active seats but this plan allows ${config.seatLimit}. Remove ${seatInfo.seatsUsed - config.seatLimit} seat(s) first.`,
+      error: `Cannot switch to ${planType}: you have ${seatInfo.used} active seats but this plan allows ${config.seatLimit}. Remove ${seatInfo.used - config.seatLimit} seat(s) first.`,
       code: "SEAT_LIMIT_EXCEEDED",
-      seatsUsed: seatInfo.seatsUsed,
+      seatsUsed: seatInfo.used,
       newLimit: config.seatLimit,
     });
     return;

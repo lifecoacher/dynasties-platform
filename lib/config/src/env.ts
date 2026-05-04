@@ -140,9 +140,6 @@ export function getPublicBaseUrl(): string {
   if (env.PUBLIC_BASE_URL) {
     return env.PUBLIC_BASE_URL.replace(/\/+$/, "");
   }
-  if (process.env.REPLIT_DEV_DOMAIN) {
-    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
-  }
   const port = env.PORT || 8080;
   return `http://localhost:${port}`;
 }

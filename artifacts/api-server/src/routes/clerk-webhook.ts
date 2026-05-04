@@ -4,6 +4,7 @@ import { usersTable, companiesTable, eventsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
 import crypto from "node:crypto";
+import bcrypt from "bcryptjs";
 import { createLogger } from "@workspace/config";
 
 const logger = createLogger("clerk-webhook");
@@ -93,9 +94,13 @@ router.post("/auth/clerk-webhook", async (req, res) => {
         const userId = generateId("usr");
 
         await db.transaction(async (tx) => {
+          const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Date.now()}`;
+          const placeholderHash = await bcrypt.hash(generateId(), 10);
+
           await tx.insert(companiesTable).values({
             id: companyId,
             name: `${name}'s Organization`,
+            slug,
             industry: "FREIGHT_FORWARDING",
             billingStatus: "TRIAL",
             planType: "STARTER",
@@ -106,6 +111,7 @@ router.post("/auth/clerk-webhook", async (req, res) => {
             companyId,
             email,
             name,
+            passwordHash: placeholderHash,
             clerkId,
             role: "ADMIN",
             isActive: true,

@@ -450,7 +450,7 @@ async function computeComplianceRisk(
 
   if (!compliance) return null;
   if (compliance.status === "CLEAR") return 0;
-  if (compliance.status === "FLAGGED") return 75;
+  if (compliance.status === "ALERT") return 75;
   return 50;
 }
 

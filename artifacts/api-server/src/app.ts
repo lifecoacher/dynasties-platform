@@ -24,10 +24,6 @@ const ALLOWED_ORIGINS = process.env.CORS_ALLOWED_ORIGINS
   ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((o) => o.trim())
   : [];
 
-if (process.env.REPLIT_DEV_DOMAIN) {
-  ALLOWED_ORIGINS.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
-}
-
 if (process.env.PUBLIC_BASE_URL) {
   const publicOrigin = new URL(process.env.PUBLIC_BASE_URL).origin;
   if (!ALLOWED_ORIGINS.includes(publicOrigin)) {

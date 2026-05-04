@@ -2,6 +2,7 @@ import { db } from "@workspace/db";
 import {
   workflowTasksTable,
   recommendationsTable,
+  usersTable,
 } from "@workspace/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { generateId } from "@workspace/shared-utils";
@@ -90,6 +91,18 @@ export async function syncTasksFromRecommendations(
   let updated = 0;
   let suppressed = 0;
   let reopened = 0;
+
+  const [companyAdmin] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(
+      and(
+        eq(usersTable.companyId, companyId),
+        eq(usersTable.role, "ADMIN"),
+        eq(usersTable.isActive, true),
+      ),
+    )
+    .limit(1);
 
   const activeTasks = await db
     .select()
@@ -189,7 +202,7 @@ export async function syncTasksFromRecommendations(
         })
         .where(eq(workflowTasksTable.id, existingByType.id));
       updated++;
-    } else {
+    } else if (companyAdmin) {
       await db.insert(workflowTasksTable).values({
         id: generateId(),
         companyId,
@@ -199,10 +212,13 @@ export async function syncTasksFromRecommendations(
         description: rec.explanation,
         status: "OPEN",
         priority: priority as any,
+        createdBy: companyAdmin.id,
         creationSource: "RECOMMENDATION",
         metadata: buildTaskMetadata(rec, analysisRunId),
       });
       created++;
+    } else {
+      suppressed++;
     }
   }
 
